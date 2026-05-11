@@ -609,19 +609,26 @@ function renderStats(){
     const firmArchived=allArchived.filter(a=>a.firm===firm);
     const firmActive=accounts.filter(a=>a.firm===firm);
     if(firmArchived.length===0&&firmActive.length===0) return;
-    const total=firmArchived.reduce((s,a)=>s+(a.totalPayoutEur||0),0);
-    const avgPO=firmArchived.length>0?Math.round(total/firmArchived.length):0;
-    const avgPOCount=firmArchived.length>0?(firmArchived.reduce((s,a)=>s+(a.payoutCount||0),0)/firmArchived.length).toFixed(1):0;
-    const m=firmMeta(firm);
+    // Total from archived
+    const archivedTotal=firmArchived.reduce((s,a)=>s+(a.totalPayoutEur||0),0);
+    // Total from active accounts payouts
+    const activeTotal=firmActive.reduce((s,acc)=>s+acc.history.filter(h=>h.payout).reduce((ss,h)=>ss+(h.payoutEur||0),0),0);
+    const total=archivedTotal+activeTotal;
+    // Total payout count (archived + active)
+    const activePayoutCount=firmActive.reduce((s,acc)=>s+acc.history.filter(h=>h.payout).length,0);
+    const totalPayoutCount=firmArchived.reduce((s,a)=>s+(a.payoutCount||0),0)+activePayoutCount;
+    const totalAccounts=firmArchived.length+firmActive.length;
+    const avgPO=totalAccounts>0?Math.round(total/totalAccounts):0;
+    const avgPOCount=totalAccounts>0?(totalPayoutCount/totalAccounts).toFixed(1):0;
     fHTML+=`<div class="firm-stats-card">
       <div class="firm-stats-top">
         ${firmAvatar(firm,38)}
         <div><div class="firm-stats-name">${firm}</div><div class="firm-stats-count">${firmArchived.length} archivé${firmArchived.length>1?'s':''} · ${firmActive.length} actif${firmActive.length>1?'s':''}</div></div>
       </div>
       <div class="firm-stats-grid">
-        <div class="archived-stat"><div class="archived-stat-label">Total encaissé</div><div class="archived-stat-val pos">${firmArchived.length>0?fmt(total)+' €':'—'}</div></div>
-        <div class="archived-stat"><div class="archived-stat-label">Moy. / compte</div><div class="archived-stat-val">${firmArchived.length>0?fmt(avgPO)+' €':'—'}</div></div>
-        <div class="archived-stat"><div class="archived-stat-label">Payouts moy.</div><div class="archived-stat-val">${firmArchived.length>0?avgPOCount:'—'}</div></div>
+        <div class="archived-stat"><div class="archived-stat-label">Total encaissé</div><div class="archived-stat-val pos">${total>0?fmt(total)+' €':'—'}</div></div>
+        <div class="archived-stat"><div class="archived-stat-label">Moy. / compte</div><div class="archived-stat-val">${avgPO>0?fmt(avgPO)+' €':'—'}</div></div>
+        <div class="archived-stat"><div class="archived-stat-label">Payouts moy.</div><div class="archived-stat-val">${totalAccounts>0?avgPOCount:'—'}</div></div>
         <div class="archived-stat"><div class="archived-stat-label">Comptes cramés</div><div class="archived-stat-val neg">${firmArchived.length}</div></div>
       </div>
     </div>`;
@@ -933,20 +940,32 @@ let editingPayout=null; // {source:'account'|'archived', accId, histIdx, archive
 
 function getAllPayouts(){
   const payouts=[];
-  // Active accounts
+  // Active accounts — payouts live in acc.history
   accounts.forEach(acc=>{
     acc.history.forEach((h,idx)=>{
-      if(h.payout) payouts.push({source:'account',accId:acc.id,histIdx:idx,firm:acc.firm,date:h.date,payoutEur:h.payoutEur,cycleCount:acc.cycleCount||1,active:true});
+      if(h.payout) payouts.push({
+        source:'account', accId:acc.id, histIdx:idx,
+        firm:acc.firm, date:h.date, payoutEur:h.payoutEur||0, active:true
+      });
     });
   });
-  // Archived accounts
+  // Archived accounts — payouts in payoutHistory array
   archived.forEach((a,ai)=>{
     (a.payoutHistory||[]).forEach((ph,pi)=>{
-      payouts.push({source:'archived',archivedIdx:ai,payoutHistIdx:pi,firm:a.firm,date:ph.date,payoutEur:ph.payoutEur,cycleCount:a.cycleCount||1,active:false});
+      payouts.push({
+        source:'archived', archivedIdx:ai, payoutHistIdx:pi,
+        firm:a.firm, date:ph.date, payoutEur:ph.payoutEur||0, active:false
+      });
     });
   });
-  // Sort by date desc (best effort)
-  return payouts.sort((a,b)=>b.date.localeCompare(a.date));
+  // Sort newest first (dd/mm format — compare mm then dd)
+  payouts.sort((a,b)=>{
+    const pa=a.date.split('/'), pb=b.date.split('/');
+    const ma=parseInt(pa[1]||0), mb=parseInt(pb[1]||0);
+    const da=parseInt(pa[0]||0), db=parseInt(pb[0]||0);
+    return mb!==ma?mb-ma:db-da;
+  });
+  return payouts;
 }
 
 function renderPayoutArchive(){
@@ -957,6 +976,8 @@ function renderPayoutArchive(){
     block.innerHTML=`<div class="empty" style="padding:20px 0"><i class="ti ti-cash"></i>Aucun payout enregistré.</div>`;
     return;
   }
+  // Store stable refs on window for edit/delete
+  window._payoutList=payouts;
   block.innerHTML=payouts.map((p,i)=>`
     <div class="payout-archive-item">
       <div style="display:flex;align-items:center;gap:10px;flex:1;min-width:0">
@@ -976,10 +997,11 @@ function renderPayoutArchive(){
 }
 
 function openPayoutModal(idx){
-  const payouts=getAllPayouts();
-  editingPayout={...payouts[idx],listIdx:idx};
-  document.getElementById('pm-amount').value=editingPayout.payoutEur;
-  document.getElementById('pm-date').value=editingPayout.date;
+  const p=(window._payoutList||[])[idx];
+  if(!p) return;
+  editingPayout={...p};
+  document.getElementById('pm-amount').value=p.payoutEur;
+  document.getElementById('pm-date').value=p.date;
   document.getElementById('payout-modal').classList.add('open');
 }
 function closePayoutModal(){document.getElementById('payout-modal').classList.remove('open');editingPayout=null;}
@@ -991,17 +1013,16 @@ function savePayoutEdit(){
   if(isNaN(newAmt)){closePayoutModal();return;}
   if(editingPayout.source==='account'){
     const acc=accounts.find(a=>a.id===editingPayout.accId);
-    if(acc){const h=acc.history[editingPayout.histIdx];h.payoutEur=newAmt;if(newDate)h.date=newDate;}
+    if(acc){const h=acc.history[editingPayout.histIdx];if(h&&h.payout){h.payoutEur=newAmt;if(newDate)h.date=newDate;}}
   } else {
     const a=archived[editingPayout.archivedIdx];
-    if(a&&a.payoutHistory){const ph=a.payoutHistory[editingPayout.payoutHistIdx];ph.payoutEur=newAmt;if(newDate)ph.date=newDate;}
+    if(a&&a.payoutHistory){const ph=a.payoutHistory[editingPayout.payoutHistIdx];if(ph){ph.payoutEur=newAmt;if(newDate)ph.date=newDate;}}
   }
   closePayoutModal(); saveAll(); renderAccounts(); renderStats();
 }
 
-function deletePayoutEntry(listIdx){
-  const payouts=getAllPayouts();
-  const p=payouts[listIdx];
+function deletePayoutEntry(idx){
+  const p=(window._payoutList||[])[idx];
   if(!p) return;
   if(p.source==='account'){
     const acc=accounts.find(a=>a.id===p.accId);
