@@ -11,348 +11,216 @@
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/tabler-icons.min.css">
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 <style>
-/* ── DARK THEME ── */
-[data-theme="dark"] {
-  --bg:        #080b0f;
-  --bg2:       #0e1318;
-  --bg3:       #141c24;
-  --bg4:       #1a2530;
-  --border:    rgba(0,230,118,0.08);
-  --border2:   rgba(0,230,118,0.18);
-  --border3:   rgba(0,230,118,0.35);
-  --text:      #e8f0fe;
-  --text2:     #6b8099;
-  --text3:     #354555;
-  --green:     #00e676;
-  --green2:    #00c864;
-  --green-bg:  rgba(0,230,118,0.07);
-  --green-dim: rgba(0,230,118,0.13);
-  --amber:     #ffb74d;
-  --amber-bg:  rgba(255,183,77,0.08);
-  --red:       #ff5252;
-  --red-bg:    rgba(255,82,82,0.08);
-  --red-bdr:   rgba(255,82,82,0.25);
-  --blue:      #64b5f6;
-  --blue-bg:   rgba(100,181,246,0.08);
-  --shadow:    none;
-  --glow:      0 0 20px rgba(0,230,118,0.12);
-  --card-top:  linear-gradient(90deg,transparent,rgba(0,230,118,0.18),transparent);
-  --theme-icon: "☀️";
-}
-
-/* ── LIGHT THEME ── */
-[data-theme="light"] {
-  --bg:        #f2f4f6;
-  --bg2:       #ffffff;
-  --bg3:       #f7f8fa;
-  --bg4:       #eef0f3;
-  --border:    rgba(0,150,80,0.1);
-  --border2:   rgba(0,150,80,0.2);
-  --border3:   rgba(0,150,80,0.4);
-  --text:      #111820;
-  --text2:     #5a6a78;
-  --text3:     #a0b0bc;
-  --green:     #00966e;
-  --green2:    #007a58;
-  --green-bg:  rgba(0,150,110,0.07);
-  --green-dim: rgba(0,150,110,0.13);
-  --amber:     #d08000;
-  --amber-bg:  rgba(208,128,0,0.07);
-  --red:       #d93025;
-  --red-bg:    rgba(217,48,37,0.06);
-  --red-bdr:   rgba(217,48,37,0.2);
-  --blue:      #1a73e8;
-  --blue-bg:   rgba(26,115,232,0.07);
-  --shadow:    0 2px 12px rgba(0,0,0,0.07);
-  --glow:      0 2px 12px rgba(0,150,110,0.1);
-  --card-top:  linear-gradient(90deg,transparent,rgba(0,150,110,0.15),transparent);
-  --theme-icon: "🌙";
-}
-
-* { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
-html, body { height: 100%; background: var(--bg); color: var(--text); font-family: 'Poppins', sans-serif; transition: background 0.3s, color 0.3s; }
-body { overflow-x: hidden; }
-.app { max-width: 430px; margin: 0 auto; padding-bottom: 110px; }
-
-/* NAV */
-.nav {
-  position: sticky; top: 0; z-index: 50;
-  background: var(--bg);
-  border-bottom: 0.5px solid var(--border);
-  padding: 16px 20px 12px;
-  display: flex; justify-content: space-between; align-items: center;
-}
-.nav-brand { display: flex; align-items: center; gap: 10px; }
-.nav-icon {
-  width: 32px; height: 32px; border-radius: 8px;
-  background: var(--green-bg); border: 0.5px solid var(--border2);
-  display: flex; align-items: center; justify-content: center;
-}
-.nav-icon i { font-size: 16px; color: var(--green); }
-.nav-title { font-size: 16px; font-weight: 700; letter-spacing: -0.3px; }
-.nav-sub { font-size: 10px; color: var(--text2); margin-top: 1px; }
-.nav-right { display: flex; align-items: center; gap: 8px; }
-.nav-pill {
-  background: var(--green-bg); border: 0.5px solid var(--border2);
-  border-radius: 20px; padding: 5px 14px;
-  font-size: 12px; font-weight: 600; color: var(--green);
-  font-family: 'DM Mono', monospace;
-}
-.theme-toggle {
-  width: 34px; height: 34px; border-radius: 50%;
-  background: var(--green-bg); border: 0.5px solid var(--border2);
-  cursor: pointer; display: flex; align-items: center; justify-content: center;
-  font-size: 17px; color: var(--green); transition: all 0.2s;
-}
-.theme-toggle:hover { border-color: var(--border3); background: var(--green-dim); }
-
-/* TABS */
-.tabs { display: flex; padding: 12px 20px 16px; gap: 8px; }
-.tab {
-  flex: 1; padding: 10px 0; font-size: 13px; font-weight: 500;
-  border: 0.5px solid var(--border); border-radius: 10px;
-  background: transparent; color: var(--text2); cursor: pointer;
-  transition: all 0.2s; font-family: 'Poppins', sans-serif;
-}
-.tab.active { background: var(--green-bg); color: var(--green); border-color: var(--border2); box-shadow: var(--glow); }
-
-/* SECTION LABEL */
-.section { padding: 0 20px; }
-.section-label {
-  font-size: 9px; font-weight: 700; letter-spacing: 0.14em;
-  color: var(--text3); text-transform: uppercase;
-  margin: 20px 0 12px; display: flex; align-items: center; gap: 8px;
-}
-.section-label::after { content: ''; flex: 1; height: 0.5px; background: var(--border); }
-
-/* CARDS */
-.card {
-  background: var(--bg2); border: 0.5px solid var(--border);
-  border-radius: 16px; padding: 18px; margin-bottom: 12px;
-  position: relative; overflow: hidden;
-  box-shadow: var(--shadow);
-}
-.card::before {
-  content: ''; position: absolute; top: 0; left: 0; right: 0; height: 1px;
-  background: var(--card-top); opacity: 0.6;
-}
-.card-top { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 16px; }
-.firm-name { font-size: 17px; font-weight: 700; letter-spacing: -0.3px; }
-.firm-sub { font-size: 10px; color: var(--text2); margin-top: 2px; }
-.badge { font-size: 10px; font-weight: 600; padding: 4px 12px; border-radius: 20px; letter-spacing: 0.04em; }
-.badge-ready    { background: var(--green-bg); color: var(--green); border: 0.5px solid var(--border2); }
-.badge-progress { background: var(--amber-bg); color: var(--amber); border: 0.5px solid rgba(208,128,0,0.2); }
-
-/* STATS */
-.stats-grid { display: grid; grid-template-columns: repeat(2,1fr); gap: 8px; margin-bottom: 16px; }
-.stat { background: var(--bg3); border-radius: 10px; padding: 12px; border: 0.5px solid var(--border); }
-.stat-label { font-size: 9px; font-weight: 600; color: var(--text3); margin-bottom: 4px; letter-spacing: 0.08em; text-transform: uppercase; }
-.stat-val { font-size: 16px; font-weight: 700; font-family: 'DM Mono', monospace; }
-.stat-val.pos     { color: var(--green); }
-.stat-val.neutral { color: var(--text); }
-.stat-val.amber   { color: var(--amber); }
-.stat-val.neg     { color: var(--red); }
-
-/* DOTS */
-.dots-row { margin-bottom: 16px; }
-.dots-label { font-size: 11px; color: var(--text2); margin-bottom: 10px; }
-.dots { display: flex; gap: 7px; }
-.dot {
-  width: 30px; height: 30px; border-radius: 50%;
-  border: 0.5px solid var(--border2); background: var(--bg3);
-  display: flex; align-items: center; justify-content: center;
-  font-size: 11px; color: var(--text3); font-family: 'DM Mono', monospace;
-  transition: all 0.25s;
-}
-.dot.win { background: var(--green); border-color: var(--green); color: #fff; font-weight: 700; box-shadow: 0 0 10px var(--green-dim); }
-[data-theme="dark"] .dot.win { color: #000; }
-
-/* ENTRY */
-.entry-row { display: flex; gap: 6px; align-items: center; margin-bottom: 12px; }
-.entry-input {
-  flex: 1; min-width: 0; background: var(--bg3); border: 0.5px solid var(--border2);
-  border-radius: 10px; color: var(--text);
-  font-size: 13px; font-family: 'Poppins', sans-serif;
-  padding: 0 10px; height: 40px; outline: none; transition: border-color 0.2s;
-}
-.entry-input:focus { border-color: var(--green); box-shadow: 0 0 0 3px var(--green-bg); }
-.entry-input::placeholder { color: var(--text3); font-size: 12px; }
-.btn-validate {
-  height: 40px; padding: 0 14px; background: var(--green); color: #000;
-  border: none; border-radius: 10px;
-  font-size: 12px; font-weight: 700; cursor: pointer;
-  font-family: 'Poppins', sans-serif; white-space: nowrap; flex-shrink: 0;
-  box-shadow: 0 0 16px var(--green-dim); transition: all 0.2s;
-}
-.btn-validate:active { opacity: 0.85; transform: scale(0.97); }
-.btn-icon {
-  height: 40px; width: 40px; background: var(--bg3);
-  border: 0.5px solid var(--border); border-radius: 10px;
-  color: var(--text2); cursor: pointer;
-  display: flex; align-items: center; justify-content: center; flex-shrink: 0; transition: all 0.2s;
-}
-.btn-icon:hover { border-color: var(--border2); color: var(--text); }
-.btn-icon.danger:hover { color: var(--red); border-color: var(--red-bdr); }
-
-/* DELETE CONFIRM */
-.delete-confirm {
-  display: flex; gap: 8px; align-items: center;
-  background: var(--red-bg); border: 0.5px solid var(--red-bdr);
-  border-radius: 10px; padding: 10px 14px; margin-bottom: 12px;
-}
-.delete-confirm span { flex: 1; font-size: 12px; color: var(--red); font-weight: 500; }
-.btn-confirm-yes { padding: 7px 14px; background: var(--red); color: #fff; border: none; border-radius: 8px; font-size: 12px; font-weight: 600; cursor: pointer; font-family: 'Poppins', sans-serif; }
-.btn-confirm-no  { padding: 7px 14px; background: var(--bg4); color: var(--text2); border: 0.5px solid var(--border); border-radius: 8px; font-size: 12px; cursor: pointer; font-family: 'Poppins', sans-serif; }
-
-/* HISTORY */
-.hist-toggle { font-size: 11px; color: var(--text3); cursor: pointer; background: none; border: none; display: flex; align-items: center; gap: 4px; padding: 2px 0; }
-.hist-undo-row { display: flex; align-items: center; justify-content: space-between; padding: 8px 0 10px; border-bottom: 0.5px solid var(--border); margin-bottom: 4px; }
-.btn-undo { padding: 5px 12px; background: var(--amber-bg); border: 0.5px solid rgba(208,128,0,0.25); border-radius: 8px; color: var(--amber); font-size: 11px; font-weight: 600; cursor: pointer; font-family: 'Poppins', sans-serif; white-space: nowrap; }
-.btn-undo:active { opacity: 0.7; }
-.hist-list { margin-top: 12px; border-top: 0.5px solid var(--border); padding-top: 12px; }
-.hist-item { display: flex; justify-content: space-between; align-items: center; padding: 6px 0; border-bottom: 0.5px solid var(--border); font-size: 11px; }
-.hist-item:last-child { border-bottom: none; }
-.hist-date { color: var(--text2); font-family: 'DM Mono', monospace; }
-.hist-val.pos  { color: var(--green); font-weight: 600; font-family: 'DM Mono', monospace; }
-.hist-val.neg  { color: var(--red);   font-weight: 600; font-family: 'DM Mono', monospace; }
-.hist-val.blue { color: var(--blue);  font-weight: 700; font-family: 'DM Mono', monospace; }
-.hist-tag { font-size: 9px; padding: 2px 8px; border-radius: 10px; font-weight: 600; }
-.hist-tag.win    { background: var(--green-bg); color: var(--green); border: 0.5px solid var(--border2); }
-.hist-tag.loss   { background: var(--bg3); color: var(--text3); }
-.hist-tag.payout { background: var(--blue-bg); color: var(--blue); border: 0.5px solid rgba(100,181,246,0.25); }
-
-/* CYCLE INFO */
-.cycle-info { background: var(--blue-bg); border: 0.5px solid rgba(100,181,246,0.2); border-radius: 10px; padding: 10px 14px; margin-bottom: 16px; font-size: 11px; color: var(--blue); }
-
-/* PAYOUT BTN */
-.payout-btn { width: 100%; padding: 12px; margin-bottom: 12px; background: var(--blue-bg); border: 0.5px solid rgba(100,181,246,0.3); border-radius: 10px; color: var(--blue); font-size: 13px; font-weight: 600; cursor: pointer; font-family: 'Poppins', sans-serif; transition: all 0.2s; }
-.payout-btn:active { opacity: 0.7; }
-
-/* ADD BTN */
-.btn-add { width: 100%; padding: 15px; margin-bottom: 12px; border: 0.5px dashed var(--border2); border-radius: 16px; background: transparent; color: var(--text2); cursor: pointer; font-size: 13px; font-family: 'Poppins', sans-serif; display: flex; align-items: center; justify-content: center; gap: 8px; transition: all 0.2s; }
-.btn-add:hover { background: var(--green-bg); color: var(--green); border-color: var(--border3); }
-
-/* COLLAPSIBLE PARAMS */
-.collapsible-header {
-  display: flex; align-items: center; justify-content: space-between;
-  cursor: pointer; padding: 12px 16px;
-  background: var(--bg2); border: 0.5px solid var(--border);
-  border-radius: 12px; margin-bottom: 8px;
-  transition: all 0.2s; user-select: none;
-}
-.collapsible-header:hover { border-color: var(--border2); }
-.collapsible-header.open { border-radius: 12px 12px 0 0; border-bottom-color: transparent; margin-bottom: 0; }
-.collapsible-title { font-size: 13px; font-weight: 600; color: var(--text2); display: flex; align-items: center; gap: 8px; }
-.collapsible-title i { font-size: 15px; color: var(--green); }
-.collapsible-chevron { font-size: 14px; color: var(--text3); transition: transform 0.25s; }
-.collapsible-header.open .collapsible-chevron { transform: rotate(180deg); }
-.collapsible-body {
-  background: var(--bg2); border: 0.5px solid var(--border);
-  border-top: none; border-radius: 0 0 12px 12px;
-  overflow: hidden; max-height: 0; transition: max-height 0.3s ease, padding 0.3s;
-  margin-bottom: 12px;
-}
-.collapsible-body.open { max-height: 600px; }
-
-/* SETTINGS */
-.settings-inner { padding: 4px 16px 8px; }
-.setting-row { display: flex; align-items: center; padding: 10px 0; border-bottom: 0.5px solid var(--border); gap: 10px; }
-.setting-row:last-child { border-bottom: none; }
-.setting-label { font-size: 13px; color: var(--text2); flex: 1; font-weight: 400; }
-.setting-label small { display: block; font-size: 9px; color: var(--text3); margin-top: 2px; }
-.setting-input { background: var(--bg3); border: 0.5px solid var(--border2); border-radius: 8px; color: var(--text); font-size: 13px; font-family: 'DM Mono', monospace; padding: 7px 10px; width: 88px; outline: none; text-align: right; transition: border-color 0.2s; }
-.setting-input:focus { border-color: var(--green); }
-.setting-unit { font-size: 11px; color: var(--text3); min-width: 16px; }
-.sc-params-row { display: flex; align-items: center; gap: 10px; padding: 10px 0; border-bottom: 0.5px solid var(--border); }
-.sc-params-row:last-child { border-bottom: none; }
-.sc-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
-.sc-params-name { font-size: 13px; font-weight: 600; flex: 1; }
-.sc-params-name.opt  { color: var(--green); }
-.sc-params-name.safe { color: var(--amber); }
-.sc-params-name.pes  { color: var(--red); }
-.sc-params-esp { font-size: 9px; color: var(--text3); min-width: 90px; text-align: right; line-height: 1.4; }
-
-/* GRAPH */
-.graph-card { background: var(--bg2); border: 0.5px solid var(--border); border-radius: 16px; padding: 18px; margin-bottom: 12px; position: relative; overflow: hidden; box-shadow: var(--shadow); }
-.graph-card::before { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 1px; background: var(--card-top); opacity: 0.5; }
-.graph-title { font-size: 13px; font-weight: 600; margin-bottom: 3px; }
-.graph-sub { font-size: 10px; color: var(--text3); margin-bottom: 14px; }
-.graph-legend { display: flex; gap: 18px; margin-bottom: 16px; flex-wrap: wrap; }
-.legend-item { display: flex; align-items: center; gap: 6px; font-size: 10px; color: var(--text2); }
-.legend-dot { width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0; }
-
-/* SCENARIO CARDS */
-.scenario-card { background: var(--bg2); border: 0.5px solid var(--border); border-radius: 16px; padding: 16px 18px; margin-bottom: 10px; position: relative; overflow: hidden; box-shadow: var(--shadow); }
-.sc-accent { position: absolute; top: 0; left: 0; right: 0; height: 2px; border-radius: 16px 16px 0 0; }
-.sc-header { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 2px; }
-.sc-name { font-size: 13px; font-weight: 700; }
-.sc-name.opt  { color: var(--green); }
-.sc-name.safe { color: var(--amber); }
-.sc-name.pes  { color: var(--red); }
-.sc-esp { font-size: 9px; color: var(--text3); margin-bottom: 10px; }
-.sc-rows { display: flex; flex-direction: column; gap: 0; }
-.sc-account-row { display: flex; justify-content: space-between; align-items: center; padding: 5px 0; border-bottom: 0.5px solid var(--border); }
-.sc-account-row:last-of-type { border-bottom: none; }
-.sc-acc-left { font-size: 11px; color: var(--text2); }
-.sc-acc-detail { font-size: 9px; color: var(--text3); margin-top: 1px; font-family: 'DM Mono', monospace; }
-.sc-acc-val { font-size: 12px; font-weight: 700; font-family: 'DM Mono', monospace; }
-.sc-acc-val.pos { color: var(--green); }
-.sc-acc-val.blocked { color: var(--text3); }
-.sc-total-row { display: flex; justify-content: space-between; align-items: center; padding-top: 10px; margin-top: 8px; border-top: 0.5px solid var(--border2); }
-.sc-total-label { font-size: 11px; color: var(--text2); }
-.sc-total-val { font-size: 20px; font-weight: 700; font-family: 'DM Mono', monospace; }
-.sc-total-val.green { color: var(--green); }
-.sc-total-val.amber { color: var(--amber); }
-
+[data-theme="dark"]{--bg:#080b0f;--bg2:#0e1318;--bg3:#141c24;--bg4:#1a2530;--border:rgba(0,230,118,0.08);--border2:rgba(0,230,118,0.18);--border3:rgba(0,230,118,0.35);--text:#e8f0fe;--text2:#6b8099;--text3:#354555;--green:#00e676;--green2:#00c864;--green-bg:rgba(0,230,118,0.07);--green-dim:rgba(0,230,118,0.13);--amber:#ffb74d;--amber-bg:rgba(255,183,77,0.08);--red:#ff5252;--red-bg:rgba(255,82,82,0.08);--red-bdr:rgba(255,82,82,0.25);--blue:#64b5f6;--blue-bg:rgba(100,181,246,0.08);--shadow:none;--glow:0 0 20px rgba(0,230,118,0.12);--card-top:linear-gradient(90deg,transparent,rgba(0,230,118,0.18),transparent)}
+[data-theme="light"]{--bg:#f2f4f6;--bg2:#ffffff;--bg3:#f7f8fa;--bg4:#eef0f3;--border:rgba(0,150,80,0.1);--border2:rgba(0,150,80,0.2);--border3:rgba(0,150,80,0.4);--text:#111820;--text2:#5a6a78;--text3:#a0b0bc;--green:#00966e;--green2:#007a58;--green-bg:rgba(0,150,110,0.07);--green-dim:rgba(0,150,110,0.13);--amber:#d08000;--amber-bg:rgba(208,128,0,0.07);--red:#d93025;--red-bg:rgba(217,48,37,0.06);--red-bdr:rgba(217,48,37,0.2);--blue:#1a73e8;--blue-bg:rgba(26,115,232,0.07);--shadow:0 2px 12px rgba(0,0,0,0.07);--glow:0 2px 12px rgba(0,150,110,0.1);--card-top:linear-gradient(90deg,transparent,rgba(0,150,110,0.15),transparent)}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+html,body{height:100%;background:var(--bg);color:var(--text);font-family:'Poppins',sans-serif;transition:background 0.3s,color 0.3s}
+body{overflow-x:hidden}
+.app{max-width:430px;margin:0 auto;padding-bottom:110px}
+.nav{position:sticky;top:0;z-index:50;background:var(--bg);border-bottom:0.5px solid var(--border);padding:16px 20px 12px;display:flex;justify-content:space-between;align-items:center}
+.nav-brand{display:flex;align-items:center;gap:10px}
+.nav-icon{width:32px;height:32px;border-radius:8px;background:var(--green-bg);border:0.5px solid var(--border2);display:flex;align-items:center;justify-content:center}
+.nav-icon i{font-size:16px;color:var(--green)}
+.nav-title{font-size:16px;font-weight:700;letter-spacing:-0.3px}
+.nav-sub{font-size:10px;color:var(--text2);margin-top:1px}
+.nav-right{display:flex;align-items:center;gap:8px}
+.theme-toggle{width:34px;height:34px;border-radius:50%;background:var(--green-bg);border:0.5px solid var(--border2);cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:17px;color:var(--green);transition:all 0.2s}
+.theme-toggle:hover{border-color:var(--border3);background:var(--green-dim)}
+.tabs{display:flex;padding:12px 20px 16px;gap:6px}
+.tab{flex:1;padding:9px 0;font-size:11px;font-weight:500;border:0.5px solid var(--border);border-radius:10px;background:transparent;color:var(--text2);cursor:pointer;transition:all 0.2s;font-family:'Poppins',sans-serif}
+.tab.active{background:var(--green-bg);color:var(--green);border-color:var(--border2);box-shadow:var(--glow)}
+.section{padding:0 20px}
+.section-label{font-size:9px;font-weight:700;letter-spacing:0.14em;color:var(--text3);text-transform:uppercase;margin:20px 0 12px;display:flex;align-items:center;gap:8px}
+.section-label::after{content:'';flex:1;height:0.5px;background:var(--border)}
+.card{background:var(--bg2);border:0.5px solid var(--border);border-radius:16px;padding:18px;margin-bottom:12px;position:relative;overflow:hidden;box-shadow:var(--shadow)}
+.card::before{content:'';position:absolute;top:0;left:0;right:0;height:1px;background:var(--card-top);opacity:0.6}
+.card-top{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:16px}
+.firm-name{font-size:17px;font-weight:700;letter-spacing:-0.3px}
+.firm-sub{font-size:10px;color:var(--text2);margin-top:2px}
+.badge{font-size:10px;font-weight:600;padding:4px 12px;border-radius:20px;letter-spacing:0.04em}
+.badge-ready{background:var(--green-bg);color:var(--green);border:0.5px solid var(--border2)}
+.badge-progress{background:var(--amber-bg);color:var(--amber);border:0.5px solid rgba(208,128,0,0.2)}
+.badge-danger{background:var(--red-bg);color:var(--red);border:0.5px solid var(--red-bdr)}
+.stats-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:8px;margin-bottom:14px}
+.stat{background:var(--bg3);border-radius:10px;padding:12px;border:0.5px solid var(--border)}
+.stat-label{font-size:9px;font-weight:600;color:var(--text3);margin-bottom:4px;letter-spacing:0.08em;text-transform:uppercase}
+.stat-val{font-size:16px;font-weight:700;font-family:'DM Mono',monospace}
+.stat-val.pos{color:var(--green)}
+.stat-val.neutral{color:var(--text)}
+.stat-val.amber{color:var(--amber)}
+.stat-val.neg{color:var(--red)}
+/* DRAWDOWN BAR */
+.dd-bar-wrap{margin-bottom:14px}
+.dd-bar-labels{display:flex;justify-content:space-between;font-size:10px;color:var(--text2);margin-bottom:5px}
+.dd-bar-labels span:last-child{font-family:'DM Mono',monospace}
+.dd-bar-bg{height:5px;background:var(--bg3);border-radius:3px;overflow:hidden;border:0.5px solid var(--border)}
+.dd-bar-fill{height:100%;border-radius:3px;transition:width 0.4s,background 0.4s}
+.dots-row{margin-bottom:14px}
+.dots-label{font-size:11px;color:var(--text2);margin-bottom:10px}
+.dots{display:flex;gap:7px}
+.dot{width:30px;height:30px;border-radius:50%;border:0.5px solid var(--border2);background:var(--bg3);display:flex;align-items:center;justify-content:center;font-size:11px;color:var(--text3);font-family:'DM Mono',monospace;transition:all 0.25s}
+.dot.win{background:var(--green);border-color:var(--green);color:#000;font-weight:700;box-shadow:0 0 10px var(--green-dim)}
+[data-theme="dark"] .dot.win{color:#000}
+.entry-row{display:flex;gap:6px;align-items:center;margin-bottom:12px}
+.entry-input{flex:1;min-width:0;background:var(--bg3);border:0.5px solid var(--border2);border-radius:10px;color:var(--text);font-size:13px;font-family:'Poppins',sans-serif;padding:0 10px;height:40px;outline:none;transition:border-color 0.2s}
+.entry-input:focus{border-color:var(--green);box-shadow:0 0 0 3px var(--green-bg)}
+.entry-input::placeholder{color:var(--text3);font-size:12px}
+.btn-validate{height:40px;padding:0 14px;background:var(--green);color:#000;border:none;border-radius:10px;font-size:12px;font-weight:700;cursor:pointer;font-family:'Poppins',sans-serif;white-space:nowrap;flex-shrink:0;box-shadow:0 0 16px var(--green-dim);transition:all 0.2s}
+.btn-validate:active{opacity:0.85;transform:scale(0.97)}
+.btn-icon{height:40px;width:40px;background:var(--bg3);border:0.5px solid var(--border);border-radius:10px;color:var(--text2);cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:all 0.2s}
+.btn-icon:hover{border-color:var(--border2);color:var(--text)}
+.btn-icon.danger:hover{color:var(--red);border-color:var(--red-bdr)}
+.delete-confirm{display:flex;gap:8px;align-items:center;background:var(--red-bg);border:0.5px solid var(--red-bdr);border-radius:10px;padding:10px 14px;margin-bottom:12px}
+.delete-confirm span{flex:1;font-size:12px;color:var(--red);font-weight:500}
+.btn-confirm-yes{padding:7px 14px;background:var(--red);color:#fff;border:none;border-radius:8px;font-size:12px;font-weight:600;cursor:pointer;font-family:'Poppins',sans-serif}
+.btn-confirm-no{padding:7px 14px;background:var(--bg4);color:var(--text2);border:0.5px solid var(--border);border-radius:8px;font-size:12px;cursor:pointer;font-family:'Poppins',sans-serif}
+/* CRASH CONFIRM */
+.crash-confirm{background:var(--red-bg);border:0.5px solid var(--red-bdr);border-radius:10px;padding:14px;margin-bottom:12px}
+.crash-confirm-title{font-size:13px;font-weight:700;color:var(--red);margin-bottom:4px;display:flex;align-items:center;gap:6px}
+.crash-confirm-sub{font-size:11px;color:var(--text2);margin-bottom:12px}
+.crash-confirm-btns{display:flex;gap:8px}
+.btn-crash-archive{flex:1;padding:9px;background:var(--red);color:#fff;border:none;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer;font-family:'Poppins',sans-serif}
+.btn-crash-cancel{flex:1;padding:9px;background:var(--bg4);color:var(--text2);border:0.5px solid var(--border);border-radius:8px;font-size:12px;cursor:pointer;font-family:'Poppins',sans-serif}
+.hist-toggle{font-size:11px;color:var(--text3);cursor:pointer;background:none;border:none;display:flex;align-items:center;gap:4px;padding:2px 0}
+.hist-undo-row{display:flex;align-items:center;justify-content:space-between;padding:8px 0 10px;border-bottom:0.5px solid var(--border);margin-bottom:4px}
+.btn-undo{padding:5px 12px;background:var(--amber-bg);border:0.5px solid rgba(208,128,0,0.25);border-radius:8px;color:var(--amber);font-size:11px;font-weight:600;cursor:pointer;font-family:'Poppins',sans-serif;white-space:nowrap}
+.hist-list{margin-top:12px;border-top:0.5px solid var(--border);padding-top:12px}
+.hist-item{display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:0.5px solid var(--border);font-size:11px}
+.hist-item:last-child{border-bottom:none}
+.hist-date{color:var(--text2);font-family:'DM Mono',monospace}
+.hist-val.pos{color:var(--green);font-weight:600;font-family:'DM Mono',monospace}
+.hist-val.neg{color:var(--red);font-weight:600;font-family:'DM Mono',monospace}
+.hist-val.blue{color:var(--blue);font-weight:700;font-family:'DM Mono',monospace}
+.hist-tag{font-size:9px;padding:2px 8px;border-radius:10px;font-weight:600}
+.hist-tag.win{background:var(--green-bg);color:var(--green);border:0.5px solid var(--border2)}
+.hist-tag.loss{background:var(--bg3);color:var(--text3)}
+.hist-tag.payout{background:var(--blue-bg);color:var(--blue);border:0.5px solid rgba(100,181,246,0.25)}
+.cycle-info{background:var(--blue-bg);border:0.5px solid rgba(100,181,246,0.2);border-radius:10px;padding:10px 14px;margin-bottom:14px;font-size:11px;color:var(--blue)}
+.payout-btn{width:100%;padding:12px;margin-bottom:12px;background:var(--blue-bg);border:0.5px solid rgba(100,181,246,0.3);border-radius:10px;color:var(--blue);font-size:13px;font-weight:600;cursor:pointer;font-family:'Poppins',sans-serif}
+.btn-add{width:100%;padding:15px;margin-bottom:12px;border:0.5px dashed var(--border2);border-radius:16px;background:transparent;color:var(--text2);cursor:pointer;font-size:13px;font-family:'Poppins',sans-serif;display:flex;align-items:center;justify-content:center;gap:8px;transition:all 0.2s}
+.btn-add:hover{background:var(--green-bg);color:var(--green);border-color:var(--border3)}
+/* COLLAPSIBLE */
+.collapsible-header{display:flex;align-items:center;justify-content:space-between;cursor:pointer;padding:12px 16px;background:var(--bg2);border:0.5px solid var(--border);border-radius:12px;margin-bottom:8px;transition:all 0.2s;user-select:none}
+.collapsible-header:hover{border-color:var(--border2)}
+.collapsible-header.open{border-radius:12px 12px 0 0;border-bottom-color:transparent;margin-bottom:0}
+.collapsible-title{font-size:13px;font-weight:600;color:var(--text2);display:flex;align-items:center;gap:8px}
+.collapsible-title i{font-size:15px;color:var(--green)}
+.collapsible-chevron{font-size:14px;color:var(--text3);transition:transform 0.25s}
+.collapsible-header.open .collapsible-chevron{transform:rotate(180deg)}
+.collapsible-body{background:var(--bg2);border:0.5px solid var(--border);border-top:none;border-radius:0 0 12px 12px;overflow:hidden;max-height:0;transition:max-height 0.3s ease;margin-bottom:12px}
+.collapsible-body.open{max-height:700px}
+.settings-inner{padding:4px 16px 8px}
+.setting-row{display:flex;align-items:center;padding:10px 0;border-bottom:0.5px solid var(--border);gap:10px}
+.setting-row:last-child{border-bottom:none}
+.setting-label{font-size:13px;color:var(--text2);flex:1;font-weight:400}
+.setting-label small{display:block;font-size:9px;color:var(--text3);margin-top:2px}
+.setting-input{background:var(--bg3);border:0.5px solid var(--border2);border-radius:8px;color:var(--text);font-size:13px;font-family:'DM Mono',monospace;padding:7px 10px;width:88px;outline:none;text-align:right;transition:border-color 0.2s}
+.setting-input:focus{border-color:var(--green)}
+.setting-unit{font-size:11px;color:var(--text3);min-width:16px}
+.sc-params-row{display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:0.5px solid var(--border)}
+.sc-params-row:last-child{border-bottom:none}
+.sc-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
+.sc-params-name{font-size:13px;font-weight:600;flex:1}
+.sc-params-name.opt{color:var(--green)}
+.sc-params-name.safe{color:var(--amber)}
+.sc-params-name.pes{color:var(--red)}
+.sc-params-esp{font-size:9px;color:var(--text3);min-width:90px;text-align:right;line-height:1.4}
+.graph-card{background:var(--bg2);border:0.5px solid var(--border);border-radius:16px;padding:18px;margin-bottom:12px;position:relative;overflow:hidden;box-shadow:var(--shadow)}
+.graph-card::before{content:'';position:absolute;top:0;left:0;right:0;height:1px;background:var(--card-top);opacity:0.5}
+.graph-title{font-size:13px;font-weight:600;margin-bottom:3px}
+.graph-sub{font-size:10px;color:var(--text3);margin-bottom:14px}
+.graph-legend{display:flex;gap:18px;margin-bottom:16px;flex-wrap:wrap}
+.legend-item{display:flex;align-items:center;gap:6px;font-size:10px;color:var(--text2)}
+.legend-dot{width:7px;height:7px;border-radius:50%;flex-shrink:0}
+.scenario-card{background:var(--bg2);border:0.5px solid var(--border);border-radius:16px;padding:16px 18px;margin-bottom:10px;position:relative;overflow:hidden;box-shadow:var(--shadow)}
+.sc-accent{position:absolute;top:0;left:0;right:0;height:2px;border-radius:16px 16px 0 0}
+.sc-name{font-size:13px;font-weight:700;margin-bottom:2px}
+.sc-name.opt{color:var(--green)}
+.sc-name.safe{color:var(--amber)}
+.sc-name.pes{color:var(--red)}
+.sc-esp{font-size:9px;color:var(--text3);margin-bottom:10px}
+.sc-account-row{display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:0.5px solid var(--border)}
+.sc-account-row:last-of-type{border-bottom:none}
+.sc-acc-left{font-size:11px;color:var(--text2)}
+.sc-acc-detail{font-size:9px;color:var(--text3);margin-top:1px;font-family:'DM Mono',monospace}
+.sc-acc-val{font-size:12px;font-weight:700;font-family:'DM Mono',monospace}
+.sc-acc-val.pos{color:var(--green)}
+.sc-acc-val.blocked{color:var(--text3)}
+.sc-total-row{display:flex;justify-content:space-between;align-items:center;padding-top:10px;margin-top:8px;border-top:0.5px solid var(--border2)}
+.sc-total-label{font-size:11px;color:var(--text2)}
+.sc-total-val{font-size:20px;font-weight:700;font-family:'DM Mono',monospace}
+.sc-total-val.green{color:var(--green)}
+.sc-total-val.amber{color:var(--amber)}
+/* STATS TAB */
+.firm-avatar{width:42px;height:42px;border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;letter-spacing:-0.5px;flex-shrink:0;border:0.5px solid rgba(255,255,255,0.08)}
+.stat-hero{background:var(--bg2);border:0.5px solid var(--border);border-radius:16px;padding:18px;margin-bottom:10px;box-shadow:var(--shadow);position:relative;overflow:hidden}
+.stat-hero::before{content:'';position:absolute;top:0;left:0;right:0;height:1px;background:var(--card-top);opacity:0.6}
+.stat-hero-val{font-size:28px;font-weight:700;font-family:'DM Mono',monospace;color:var(--green);line-height:1}
+.stat-hero-label{font-size:10px;color:var(--text2);margin-top:4px}
+.stat-hero-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;margin-bottom:10px}
+.archived-card{background:var(--bg2);border:0.5px solid var(--border);border-radius:14px;padding:14px 16px;margin-bottom:10px;box-shadow:var(--shadow)}
+.archived-card-top{display:flex;align-items:center;gap:12px;margin-bottom:12px}
+.archived-firm-info .name{font-size:15px;font-weight:700}
+.archived-firm-info .date{font-size:10px;color:var(--text2);margin-top:2px;font-family:'DM Mono',monospace}
+.archived-stats{display:grid;grid-template-columns:repeat(3,1fr);gap:6px}
+.archived-stat{background:var(--bg3);border-radius:8px;padding:8px 10px;border:0.5px solid var(--border)}
+.archived-stat-label{font-size:9px;color:var(--text3);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:3px}
+.archived-stat-val{font-size:13px;font-weight:700;font-family:'DM Mono',monospace;color:var(--text)}
+.archived-stat-val.pos{color:var(--green)}
+.archived-stat-val.neg{color:var(--red)}
+.firm-stats-card{background:var(--bg2);border:0.5px solid var(--border);border-radius:14px;padding:14px 16px;margin-bottom:10px;box-shadow:var(--shadow)}
+.firm-stats-top{display:flex;align-items:center;gap:10px;margin-bottom:12px}
+.firm-stats-name{font-size:14px;font-weight:700}
+.firm-stats-count{font-size:10px;color:var(--text2);margin-top:2px}
+.firm-stats-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:6px}
+.empty{text-align:center;padding:50px 20px;color:var(--text3);font-size:14px}
+.empty i{font-size:36px;display:block;margin-bottom:14px}
 /* MODAL */
-.overlay { display: none; position: fixed; inset: 0; background: rgba(4,8,12,0.8); z-index: 100; align-items: flex-end; justify-content: center; backdrop-filter: blur(4px); }
-[data-theme="light"] .overlay { background: rgba(0,0,0,0.4); }
-.overlay.open { display: flex; }
-.modal { background: var(--bg2); border-radius: 16px 16px 0 0; border-top: 0.5px solid var(--border2); padding: 20px 20px 44px; width: 100%; max-height: 90vh; overflow-y: auto; }
-.modal-handle { width: 36px; height: 4px; background: var(--border2); border-radius: 2px; margin: 0 auto 22px; }
-.modal-title { font-size: 18px; font-weight: 700; margin-bottom: 22px; letter-spacing: -0.3px; }
-.form-group { margin-bottom: 14px; }
-.form-label { font-size: 10px; font-weight: 600; color: var(--text2); margin-bottom: 7px; display: block; letter-spacing: 0.08em; text-transform: uppercase; }
-.form-input { width: 100%; background: var(--bg3); border: 0.5px solid var(--border2); border-radius: 10px; color: var(--text); font-size: 15px; padding: 13px 15px; outline: none; font-family: 'Poppins', sans-serif; transition: border-color 0.2s; }
-.form-input:focus { border-color: var(--green); box-shadow: 0 0 0 3px var(--green-bg); }
-.form-select { width: 100%; background: var(--bg3); border: 0.5px solid var(--border2); border-radius: 10px; color: var(--text); font-size: 15px; padding: 13px 15px; outline: none; font-family: 'Poppins', sans-serif; appearance: none; }
-.toggle-row { display: flex; align-items: center; justify-content: space-between; background: var(--bg3); border: 0.5px solid var(--border2); border-radius: 10px; padding: 13px 15px; }
-.toggle-label { font-size: 14px; color: var(--text2); }
-.toggle { position: relative; width: 46px; height: 26px; cursor: pointer; }
-.toggle input { opacity: 0; width: 0; height: 0; }
-.toggle-slider { position: absolute; inset: 0; background: var(--bg4); border: 0.5px solid var(--border2); border-radius: 13px; transition: 0.2s; }
-.toggle-slider:before { content: ''; position: absolute; width: 20px; height: 20px; left: 3px; top: 3px; background: var(--text3); border-radius: 50%; transition: 0.2s; }
-.toggle input:checked + .toggle-slider { background: var(--green-bg); border-color: var(--border3); }
-.toggle input:checked + .toggle-slider:before { background: var(--green); transform: translateX(20px); }
-.modal-btns { display: flex; gap: 10px; margin-top: 22px; }
-.btn-save { flex: 1; padding: 14px; background: var(--green); color: #000; border: none; border-radius: 10px; font-size: 15px; font-weight: 700; cursor: pointer; font-family: 'Poppins', sans-serif; }
-.btn-cancel { flex: 1; padding: 14px; background: var(--bg3); color: var(--text2); border: 0.5px solid var(--border); border-radius: 10px; font-size: 15px; cursor: pointer; font-family: 'Poppins', sans-serif; }
-
-.empty { text-align: center; padding: 50px 20px; color: var(--text3); font-size: 14px; }
-.empty i { font-size: 36px; display: block; margin-bottom: 14px; }
-.page { display: none; }
-.page.active { display: block; }
+.overlay{display:none;position:fixed;inset:0;background:rgba(4,8,12,0.8);z-index:100;align-items:flex-end;justify-content:center;backdrop-filter:blur(4px)}
+[data-theme="light"] .overlay{background:rgba(0,0,0,0.4)}
+.overlay.open{display:flex}
+.modal{background:var(--bg2);border-radius:16px 16px 0 0;border-top:0.5px solid var(--border2);padding:20px 20px 44px;width:100%;max-height:90vh;overflow-y:auto}
+.modal-handle{width:36px;height:4px;background:var(--border2);border-radius:2px;margin:0 auto 22px}
+.modal-title{font-size:18px;font-weight:700;margin-bottom:22px;letter-spacing:-0.3px}
+.form-group{margin-bottom:14px}
+.form-label{font-size:10px;font-weight:600;color:var(--text2);margin-bottom:7px;display:block;letter-spacing:0.08em;text-transform:uppercase}
+.form-input{width:100%;background:var(--bg3);border:0.5px solid var(--border2);border-radius:10px;color:var(--text);font-size:15px;padding:13px 15px;outline:none;font-family:'Poppins',sans-serif;transition:border-color 0.2s}
+.form-input:focus{border-color:var(--green);box-shadow:0 0 0 3px var(--green-bg)}
+.form-select{width:100%;background:var(--bg3);border:0.5px solid var(--border2);border-radius:10px;color:var(--text);font-size:15px;padding:13px 15px;outline:none;font-family:'Poppins',sans-serif;appearance:none}
+.toggle-row{display:flex;align-items:center;justify-content:space-between;background:var(--bg3);border:0.5px solid var(--border2);border-radius:10px;padding:13px 15px}
+.toggle-label{font-size:14px;color:var(--text2)}
+.toggle{position:relative;width:46px;height:26px;cursor:pointer}
+.toggle input{opacity:0;width:0;height:0}
+.toggle-slider{position:absolute;inset:0;background:var(--bg4);border:0.5px solid var(--border2);border-radius:13px;transition:0.2s}
+.toggle-slider:before{content:'';position:absolute;width:20px;height:20px;left:3px;top:3px;background:var(--text3);border-radius:50%;transition:0.2s}
+.toggle input:checked+.toggle-slider{background:var(--green-bg);border-color:var(--border3)}
+.toggle input:checked+.toggle-slider:before{background:var(--green);transform:translateX(20px)}
+.modal-btns{display:flex;gap:10px;margin-top:22px}
+.btn-save{flex:1;padding:14px;background:var(--green);color:#000;border:none;border-radius:10px;font-size:15px;font-weight:700;cursor:pointer;font-family:'Poppins',sans-serif}
+.btn-cancel{flex:1;padding:14px;background:var(--bg3);color:var(--text2);border:0.5px solid var(--border);border-radius:10px;font-size:15px;cursor:pointer;font-family:'Poppins',sans-serif}
+.page{display:none}
+.page.active{display:block}
 </style>
 </head>
 <body>
 <div class="app">
-
   <div class="nav">
     <div class="nav-brand">
-      <div class="nav-icon"><i class="ti ti-chart-line" aria-hidden="true"></i></div>
+      <div class="nav-icon"><i class="ti ti-chart-line"></i></div>
       <div>
         <div class="nav-title">Prop Tracker</div>
         <div class="nav-sub" id="nav-sub">0 compte · 90% split · 5j requis</div>
       </div>
     </div>
     <div class="nav-right">
-      <button class="theme-toggle" onclick="toggleTheme()" id="theme-btn" aria-label="Changer de thème"><i class="ti ti-sun" id="theme-icon"></i></button>
+      <button class="theme-toggle" onclick="toggleTheme()" id="theme-btn"><i class="ti ti-sun" id="theme-icon"></i></button>
     </div>
   </div>
 
   <div class="tabs">
     <button class="tab active" onclick="switchTab('comptes')">Comptes</button>
     <button class="tab" onclick="switchTab('treso')">Trésorerie</button>
+    <button class="tab" onclick="switchTab('stats')">Statistiques</button>
   </div>
 
   <!-- COMPTES -->
@@ -360,24 +228,17 @@ body { overflow-x: hidden; }
     <div class="section">
       <div class="section-label">Mes comptes</div>
       <div id="accounts-list"></div>
-      <button class="btn-add" onclick="openModal()">
-        <i class="ti ti-plus" style="font-size:16px" aria-hidden="true"></i> Ajouter un compte
-      </button>
+      <button class="btn-add" onclick="openModal()"><i class="ti ti-plus" style="font-size:16px"></i> Ajouter un compte</button>
     </div>
   </div>
 
   <!-- TRÉSORERIE -->
   <div class="page" id="page-treso">
     <div class="section">
-
-      <!-- Collapsible params -->
       <div class="section-label">Paramètres</div>
-
       <div class="collapsible-header" id="params-header" onclick="toggleParams()">
-        <span class="collapsible-title">
-          <i class="ti ti-settings" aria-hidden="true"></i> Général &amp; Scénarios
-        </span>
-        <i class="ti ti-chevron-down collapsible-chevron" id="params-chevron" aria-hidden="true"></i>
+        <span class="collapsible-title"><i class="ti ti-settings"></i> Général &amp; Scénarios</span>
+        <i class="ti ti-chevron-down collapsible-chevron" id="params-chevron"></i>
       </div>
       <div class="collapsible-body" id="params-body">
         <div class="settings-inner">
@@ -404,7 +265,6 @@ body { overflow-x: hidden; }
           <div id="scenario-params"></div>
         </div>
       </div>
-
       <div class="section-label">Projection trésorerie</div>
       <div class="graph-card">
         <div class="graph-title">Évolution après payouts</div>
@@ -416,15 +276,25 @@ body { overflow-x: hidden; }
         </div>
         <div style="position:relative;height:220px"><canvas id="treso-chart"></canvas></div>
       </div>
-
       <div class="section-label">Détail</div>
       <div id="scenarios-block"></div>
     </div>
   </div>
 
+  <!-- STATISTIQUES -->
+  <div class="page" id="page-stats">
+    <div class="section">
+      <div class="section-label">Vue globale</div>
+      <div id="global-stats"></div>
+      <div class="section-label">Par prop firm</div>
+      <div id="firm-stats"></div>
+      <div class="section-label">Comptes archivés</div>
+      <div id="archived-list"></div>
+    </div>
+  </div>
 </div>
 
-<!-- MODAL -->
+<!-- MODAL COMPTE -->
 <div class="overlay" id="overlay" onclick="if(event.target===this)closeModal()">
   <div class="modal">
     <div class="modal-handle"></div>
@@ -461,152 +331,139 @@ body { overflow-x: hidden; }
 </div>
 
 <script>
-const SPLIT=0.9, DAYS_REQ=5, WIN_THR=150;
+const SPLIT=0.9, DAYS_REQ=5, WIN_THR=150, DRAWDOWN_AMOUNT=2000;
 
-// Default settings — stored separately so they persist correctly
-const DEFAULT_SETTINGS = { tresoBase:10500, fxRate:0.85, winPnl:150, lossPnl:230 };
+// Prop firm brand colors & initials
+const FIRM_META = {
+  'Topstep':    { color:'#1a6cf5', bg:'rgba(26,108,245,0.12)', initials:'TS' },
+  'Lucid':      { color:'#a259ff', bg:'rgba(162,89,255,0.12)', initials:'LT' },
+  'MyFundedFX': { color:'#f5a623', bg:'rgba(245,166,35,0.12)', initials:'MF' },
+  'Tradeify':   { color:'#00e676', bg:'rgba(0,230,118,0.12)', initials:'TD' },
+};
+function firmMeta(name) { return FIRM_META[name] || {color:'#6b8099',bg:'rgba(107,128,153,0.12)',initials:name.slice(0,2).toUpperCase()}; }
+function firmAvatar(name, size=42) {
+  const m=firmMeta(name);
+  return `<div class="firm-avatar" style="width:${size}px;height:${size}px;background:${m.bg};color:${m.color};border-color:${m.color}22">${m.initials}</div>`;
+}
 
-let scConfigs = [
-  { key:'opt',  label:'Optimiste',  cls:'opt',  pWin:1.0 },
-  { key:'safe', label:'Safe',       cls:'safe', pWin:2/3 },
-  { key:'pes',  label:'Pessimiste', cls:'pes',  pWin:0.5 }
+let scConfigs=[
+  {key:'opt', label:'Optimiste', cls:'opt', pWin:1.0},
+  {key:'safe',label:'Safe',      cls:'safe',pWin:2/3},
+  {key:'pes', label:'Pessimiste',cls:'pes', pWin:0.5}
 ];
-
-let accounts=[], nextId=1, showHist={}, confirmDelete={}, editingId=null, chartInstance=null;
+let accounts=[], archived=[], nextId=1, showHist={}, confirmDelete={}, pendingCrash={}, editingId=null, chartInstance=null;
 let currentTheme='dark';
+
+// ── CRASH DETECTION ──
+// balanceMax tracked per account; seuil = min(0, balanceMax - 2000)
+function crashThreshold(acc) {
+  const bmax = acc.balanceMax || 0;
+  return Math.min(0, bmax - DRAWDOWN_AMOUNT);
+}
 
 // ── PERSISTENCE ──
 function saveAll() {
-  const settings = {
-    tresoBase: parseFloat(document.getElementById('treso-base').value)||10500,
-    fxRate:    parseFloat(document.getElementById('fx-rate').value)||0.85,
-    winPnl:    parseFloat(document.getElementById('p-win-pnl').value)||150,
-    lossPnl:   parseFloat(document.getElementById('p-loss-pnl').value)||230,
+  const settings={
+    tresoBase:parseFloat(document.getElementById('treso-base').value)||10500,
+    fxRate:parseFloat(document.getElementById('fx-rate').value)||0.85,
+    winPnl:parseFloat(document.getElementById('p-win-pnl').value)||150,
+    lossPnl:parseFloat(document.getElementById('p-loss-pnl').value)||230,
   };
-  try {
-    localStorage.setItem('pft_v9', JSON.stringify({accounts, nextId, scConfigs, settings, theme: currentTheme}));
-  } catch(e) {}
+  try { localStorage.setItem('pft_v10',JSON.stringify({accounts,archived,nextId,scConfigs,settings,theme:currentTheme})); } catch(e){}
 }
-
 function loadAll() {
   try {
-    const d = localStorage.getItem('pft_v9');
-    if (d) {
-      const p = JSON.parse(d);
-      accounts  = p.accounts  || [];
-      nextId    = p.nextId    || 1;
-      if (p.scConfigs) scConfigs = p.scConfigs;
-      if (p.theme) currentTheme = p.theme;
-      // Apply saved settings to inputs AFTER DOM ready
-      const s = p.settings || DEFAULT_SETTINGS;
-      document.getElementById('treso-base').value = s.tresoBase ?? 10500;
-      document.getElementById('fx-rate').value    = s.fxRate    ?? 0.85;
-      document.getElementById('p-win-pnl').value  = s.winPnl    ?? 150;
-      document.getElementById('p-loss-pnl').value = s.lossPnl   ?? 230;
+    const d=localStorage.getItem('pft_v10');
+    if(d){
+      const p=JSON.parse(d);
+      accounts=p.accounts||[]; archived=p.archived||[]; nextId=p.nextId||1;
+      if(p.scConfigs) scConfigs=p.scConfigs;
+      if(p.theme) currentTheme=p.theme;
+      const s=p.settings||{};
+      document.getElementById('treso-base').value=s.tresoBase??10500;
+      document.getElementById('fx-rate').value=s.fxRate??0.85;
+      document.getElementById('p-win-pnl').value=s.winPnl??150;
+      document.getElementById('p-loss-pnl').value=s.lossPnl??230;
+      // ensure balanceMax exists
+      accounts.forEach(acc=>{ if(acc.balanceMax===undefined) acc.balanceMax=acc.balance; });
       return;
     }
-    // Migrate from older versions
-    const old = localStorage.getItem('pft_v8')||localStorage.getItem('pft_v7')||localStorage.getItem('pft_v6');
-    if (old) { const p=JSON.parse(old); accounts=p.accounts||[]; nextId=p.nextId||1; }
-    // Apply defaults
-    document.getElementById('fx-rate').value = DEFAULT_SETTINGS.fxRate;
-  } catch(e) {
-    document.getElementById('fx-rate').value = DEFAULT_SETTINGS.fxRate;
-  }
+    const old=localStorage.getItem('pft_v9')||localStorage.getItem('pft_v8');
+    if(old){const p=JSON.parse(old);accounts=p.accounts||[];nextId=p.nextId||1;if(p.scConfigs)scConfigs=p.scConfigs;}
+    document.getElementById('fx-rate').value=0.85;
+    accounts.forEach(acc=>{ acc.balanceMax=acc.balance; });
+  } catch(e){ document.getElementById('fx-rate').value=0.85; }
 }
 
 // ── THEME ──
-function applyTheme(theme) {
-  document.documentElement.setAttribute('data-theme', theme);
-  const icon = document.getElementById('theme-icon');
-  if (icon) icon.className = theme === 'dark' ? 'ti ti-sun' : 'ti ti-moon';
-  currentTheme = theme;
+function applyTheme(t){
+  document.documentElement.setAttribute('data-theme',t);
+  const icon=document.getElementById('theme-icon');
+  if(icon) icon.className=t==='dark'?'ti ti-sun':'ti ti-moon';
+  currentTheme=t;
 }
-function toggleTheme() {
-  applyTheme(currentTheme === 'dark' ? 'light' : 'dark');
-  saveAll();
-  if (chartInstance) renderChart();
-}
+function toggleTheme(){ applyTheme(currentTheme==='dark'?'light':'dark'); saveAll(); if(chartInstance) renderChart(); }
 
 // ── COLLAPSIBLE ──
-function toggleParams() {
-  const header = document.getElementById('params-header');
-  const body   = document.getElementById('params-body');
-  header.classList.toggle('open');
-  body.classList.toggle('open');
+function toggleParams(){
+  document.getElementById('params-header').classList.toggle('open');
+  document.getElementById('params-body').classList.toggle('open');
 }
 
 // ── HELPERS ──
-function getWinPnl()  { return parseFloat(document.getElementById('p-win-pnl').value)||150; }
-function getLossPnl() { return parseFloat(document.getElementById('p-loss-pnl').value)||230; }
-function getBase()    { return parseFloat(document.getElementById('treso-base').value)||10500; }
-function getFx()      { return parseFloat(document.getElementById('fx-rate').value)||0.85; }
-function getScColor(sc) {
-  const isDark = currentTheme === 'dark';
-  if (sc.key==='opt')  return isDark ? '#00e676' : '#00966e';
-  if (sc.key==='safe') return isDark ? '#ffb74d' : '#d08000';
-  return isDark ? '#ff5252' : '#d93025';
+function getWinPnl(){return parseFloat(document.getElementById('p-win-pnl').value)||150;}
+function getLossPnl(){return parseFloat(document.getElementById('p-loss-pnl').value)||230;}
+function getBase(){return parseFloat(document.getElementById('treso-base').value)||10500;}
+function getFx(){return parseFloat(document.getElementById('fx-rate').value)||0.85;}
+function getEsp(sc){return sc.pWin*getWinPnl()+(1-sc.pWin)*(-getLossPnl());}
+function espLabel(sc){const e=getEsp(sc),s=e>=0?'+':'';return `${Math.round(sc.pWin*100)}% gagnants · E=${s}${e.toFixed(0)} $/j`;}
+function getScColor(sc){
+  const d=currentTheme==='dark';
+  if(sc.key==='opt') return d?'#00e676':'#00966e';
+  if(sc.key==='safe') return d?'#ffb74d':'#d08000';
+  return d?'#ff5252':'#d93025';
 }
+function fmt(n){ return Math.round(n).toLocaleString('fr-FR').replace(/\u00a0|\u0020/g,'\u202f'); }
+function fmtSign(n){ const r=Math.round(n); return(r>=0?'+':'−')+Math.abs(r).toLocaleString('fr-FR').replace(/\u00a0|\u0020/g,'\u202f'); }
+function onSettingChange(){ saveAll(); renderTreso(); }
 
-function getEsp(sc)    { return sc.pWin * getWinPnl() + (1-sc.pWin) * (-getLossPnl()); }
-function espLabel(sc)  { const e=getEsp(sc),s=e>=0?'+':''; return `${Math.round(sc.pWin*100)}% gagnants · E=${s}${e.toFixed(0)} $/j`; }
-function fmt(n) {
-  return Math.round(n).toLocaleString('fr-FR').replace(/\u00a0|\u0020/g, '\u202f');
-}
-function fmtSign(n) {
-  const r = Math.round(n);
-  return (r >= 0 ? '+' : '−') + Math.abs(r).toLocaleString('fr-FR').replace(/\u00a0|\u0020/g, '\u202f');
-}
-
-function onSettingChange() { saveAll(); renderTreso(); }
-
-// ── SCENARIO PARAMS (inside collapsible) ──
-function renderScenarioParams() {
-  const block = document.getElementById('scenario-params');
-  if (!block) return;
-  block.innerHTML = scConfigs.map(sc => `
+// ── SCENARIO PARAMS ──
+function renderScenarioParams(){
+  const block=document.getElementById('scenario-params');
+  if(!block) return;
+  block.innerHTML=scConfigs.map(sc=>`
     <div class="sc-params-row">
       <div class="sc-dot" style="background:${getScColor(sc)}"></div>
       <span class="sc-params-name ${sc.cls}">${sc.label}</span>
-      <input class="setting-input" type="number" id="sc-pwiz-${sc.key}"
-        value="${Math.round(sc.pWin*100)}" min="1" max="100" step="1"
-        style="width:72px" oninput="updateScenario('${sc.key}')">
+      <input class="setting-input" type="number" id="sc-pwiz-${sc.key}" value="${Math.round(sc.pWin*100)}" min="1" max="100" step="1" style="width:72px" oninput="updateScenario('${sc.key}')">
       <span class="setting-unit">%</span>
       <span class="sc-params-esp" id="sc-esp-${sc.key}">${espLabel(sc)}</span>
     </div>`).join('');
 }
-
-function updateScenario(key) {
-  const sc  = scConfigs.find(s=>s.key===key);
-  const val = parseFloat(document.getElementById(`sc-pwiz-${key}`).value);
-  if (isNaN(val)||val<1||val>100) return;
-  sc.pWin = val/100;
-  document.getElementById(`sc-esp-${key}`).textContent = espLabel(sc);
-  saveAll(); renderChart(); renderScenarios(); updateNavPill();
+function updateScenario(key){
+  const sc=scConfigs.find(s=>s.key===key);
+  const val=parseFloat(document.getElementById(`sc-pwiz-${key}`).value);
+  if(isNaN(val)||val<1||val>100) return;
+  sc.pWin=val/100;
+  document.getElementById(`sc-esp-${key}`).textContent=espLabel(sc);
+  saveAll(); renderChart(); renderScenarios();
 }
 
-// ── CALC ──
-function calcPayout(acc, sc, fx) {
-  const daysLeft    = DAYS_REQ - acc.gainDays;
-  const threshold   = (acc.hasPayout && acc.payoutBalance>0) ? acc.payoutBalance : 0;
-  const tradingDays = daysLeft / sc.pWin;
-  const finalBal    = acc.balance + tradingDays * getEsp(sc);
-  if (finalBal <= threshold) return null;
-  return {
-    daysLeft, tradingDays: Math.round(tradingDays*10)/10,
-    finalBalance: Math.round(finalBal),
-    balanceAfter: Math.round(finalBal*0.5),
-    payoutEur: Math.round(finalBal*0.5*SPLIT*fx)
-  };
+// ── CALC PAYOUT ──
+function calcPayout(acc,sc,fx){
+  const daysLeft=DAYS_REQ-acc.gainDays;
+  const threshold=(acc.hasPayout&&acc.payoutBalance>0)?acc.payoutBalance:0;
+  const tradingDays=daysLeft/sc.pWin;
+  const finalBal=acc.balance+tradingDays*getEsp(sc);
+  if(finalBal<=threshold) return null;
+  return{daysLeft,tradingDays:Math.round(tradingDays*10)/10,finalBalance:Math.round(finalBal),balanceAfter:Math.round(finalBal*0.5),payoutEur:Math.round(finalBal*0.5*SPLIT*fx)};
 }
-
-function buildCurve(sc, base, fx) {
+function buildCurve(sc,base,fx){
   const events=[];
   accounts.forEach(acc=>{const r=calcPayout(acc,sc,fx);if(r)events.push({day:r.tradingDays,payoutEur:r.payoutEur});});
   events.sort((a,b)=>a.day-b.day);
   const maxDay=events.length>0?Math.ceil(events[events.length-1].day)+1:30;
-  const curve=[];
-  let treso=base;
+  const curve=[];let treso=base;
   for(let d=0;d<=maxDay;d++){
     events.forEach(e=>{if(Math.round(e.day)===d)treso+=e.payoutEur;});
     curve.push({x:d,y:Math.round(treso)});
@@ -614,121 +471,189 @@ function buildCurve(sc, base, fx) {
   return curve;
 }
 
-// ── CHART ──
-function renderChart() {
-  const base=getBase(), fx=getFx();
-  const isDark = currentTheme==='dark';
-  const gridColor = isDark ? 'rgba(0,230,118,0.04)' : 'rgba(0,0,0,0.05)';
-  const tickColor = isDark ? '#354555' : '#a0b0bc';
+function renderChart(){
+  const base=getBase(),fx=getFx(),isDark=currentTheme==='dark';
+  const gridColor=isDark?'rgba(0,230,118,0.04)':'rgba(0,0,0,0.05)';
+  const tickColor=isDark?'#354555':'#a0b0bc';
   const ctx=document.getElementById('treso-chart');
   if(!ctx) return;
   document.getElementById('graph-base-label').textContent=fmt(base)+' €';
   const datasets=scConfigs.map(sc=>{
-    const curve=buildCurve(sc,base,fx);
-    const color=getScColor(sc);
-    return{label:sc.label,data:curve,borderColor:color,backgroundColor:'transparent',
-      borderWidth:2,tension:0,
+    const curve=buildCurve(sc,base,fx),color=getScColor(sc);
+    return{label:sc.label,data:curve,borderColor:color,backgroundColor:'transparent',borderWidth:2,tension:0,
       pointRadius:curve.map((p,i)=>i>0&&curve[i-1]&&p.y!==curve[i-1].y?5:0),
       pointBackgroundColor:color,pointBorderColor:isDark?'#080b0f':'#f2f4f6',pointBorderWidth:2};
   });
   if(chartInstance) chartInstance.destroy();
-  chartInstance=new Chart(ctx,{
-    type:'line',data:{datasets},
-    options:{
-      responsive:true,maintainAspectRatio:false,
-      interaction:{mode:'index',intersect:false},
-      plugins:{
-        legend:{display:false},
-        tooltip:{
-          backgroundColor:isDark?'#0e1318':'#fff',
-          borderColor:isDark?'rgba(0,230,118,0.15)':'rgba(0,0,0,0.1)',
-          borderWidth:1,
-          titleColor:isDark?'#6b8099':'#5a6a78',
-          bodyColor:isDark?'#e8f0fe':'#111820',
-          padding:12,
-          titleFont:{family:'DM Mono',size:11},
-          bodyFont:{family:'DM Mono',size:12},
-          callbacks:{title:i=>'Jour '+i[0].parsed.x,label:i=>' '+i.dataset.label+' : '+fmt(i.parsed.y)+' €'}
-        }
-      },
-      scales:{
-        x:{type:'linear',grid:{color:gridColor},
-          title:{display:true,text:'jours de trading',color:tickColor,font:{family:'DM Mono',size:10}},
-          ticks:{color:tickColor,font:{family:'DM Mono',size:10},maxTicksLimit:8}},
-        y:{grid:{color:gridColor},
-          ticks:{color:tickColor,font:{family:'DM Mono',size:10},maxTicksLimit:6,callback:v=>fmt(v)+' €'}}
-      }
-    }
-  });
+  chartInstance=new Chart(ctx,{type:'line',data:{datasets},options:{
+    responsive:true,maintainAspectRatio:false,interaction:{mode:'index',intersect:false},
+    plugins:{legend:{display:false},tooltip:{backgroundColor:isDark?'#0e1318':'#fff',borderColor:isDark?'rgba(0,230,118,0.15)':'rgba(0,0,0,0.1)',borderWidth:1,titleColor:isDark?'#6b8099':'#5a6a78',bodyColor:isDark?'#e8f0fe':'#111820',padding:12,titleFont:{family:'DM Mono',size:11},bodyFont:{family:'DM Mono',size:12},callbacks:{title:i=>'Jour '+i[0].parsed.x,label:i=>' '+i.dataset.label+' : '+fmt(i.parsed.y)+' €'}}},
+    scales:{x:{type:'linear',grid:{color:gridColor},title:{display:true,text:'jours de trading',color:tickColor,font:{family:'DM Mono',size:10}},ticks:{color:tickColor,font:{family:'DM Mono',size:10},maxTicksLimit:8}},y:{grid:{color:gridColor},ticks:{color:tickColor,font:{family:'DM Mono',size:10},maxTicksLimit:6,callback:v=>fmt(v)+' €'}}}
+  }});
 }
 
-// ── SCENARIOS ──
-function renderScenarios() {
-  const base=getBase(), fx=getFx();
-  const block=document.getElementById('scenarios-block');
+function renderScenarios(){
+  const base=getBase(),fx=getFx(),block=document.getElementById('scenarios-block');
   if(!block) return;
-  if(accounts.length===0){
-    block.innerHTML=`<div class="empty"><i class="ti ti-calculator"></i>Ajoute des comptes pour voir les projections.</div>`;
-    return;
-  }
+  if(accounts.length===0){block.innerHTML=`<div class="empty"><i class="ti ti-calculator"></i>Ajoute des comptes pour voir les projections.</div>`;return;}
   let html='';
   scConfigs.forEach(sc=>{
-    let totalEur=0, rowsHTML='';
+    let totalEur=0,rowsHTML='';
     accounts.forEach(acc=>{
       const r=calcPayout(acc,sc,fx);
-      if(r){
-        totalEur+=r.payoutEur;
-        rowsHTML+=`<div class="sc-account-row">
-          <div>
-            <div class="sc-acc-left">${acc.firm}</div>
-            <div class="sc-acc-detail">~${r.tradingDays}j · finale ${fmt(r.finalBalance)} $ · après ${fmt(r.balanceAfter)} $</div>
-          </div>
-          <div class="sc-acc-val pos">+${fmt(r.payoutEur)} €</div>
-        </div>`;
-      } else {
-        rowsHTML+=`<div class="sc-account-row">
-          <div><div class="sc-acc-left">${acc.firm}</div><div class="sc-acc-detail">balance insuffisante</div></div>
-          <div class="sc-acc-val blocked">—</div>
-        </div>`;
-      }
+      if(r){totalEur+=r.payoutEur;rowsHTML+=`<div class="sc-account-row"><div><div class="sc-acc-left">${acc.firm}</div><div class="sc-acc-detail">~${r.tradingDays}j · finale ${fmt(r.finalBalance)} $ · après ${fmt(r.balanceAfter)} $</div></div><div class="sc-acc-val pos">+${fmt(r.payoutEur)} €</div></div>`;}
+      else rowsHTML+=`<div class="sc-account-row"><div><div class="sc-acc-left">${acc.firm}</div><div class="sc-acc-detail">balance insuffisante</div></div><div class="sc-acc-val blocked">—</div></div>`;
     });
-    const total=base+totalEur;
-    const color=getScColor(sc);
-    html+=`<div class="scenario-card">
-      <div class="sc-accent" style="background:linear-gradient(90deg,transparent,${color}66,transparent)"></div>
-      <div class="sc-header">
-        <div class="sc-name ${sc.cls}">${sc.label}</div>
-      </div>
-      <div class="sc-esp">${espLabel(sc)}</div>
-      <div class="sc-rows">${rowsHTML}</div>
-      <div class="sc-total-row">
-        <span class="sc-total-label">Tréso après payout(s)</span>
-        <span class="sc-total-val ${total>base?'green':'amber'}">${fmt(total)} €</span>
-      </div>
-    </div>`;
+    const total=base+totalEur,color=getScColor(sc);
+    html+=`<div class="scenario-card"><div class="sc-accent" style="background:linear-gradient(90deg,transparent,${color}66,transparent)"></div><div class="sc-name ${sc.cls}">${sc.label}</div><div class="sc-esp">${espLabel(sc)}</div><div class="sc-base-row" style="display:flex;justify-content:space-between;font-size:11px;padding:7px 0;border-bottom:0.5px solid var(--border);margin-bottom:5px;font-family:'DM Mono',monospace"><span style="color:var(--text2)">Tréso de départ</span><span>${fmt(base)} €</span></div>${rowsHTML}<div class="sc-total-row"><span class="sc-total-label">Tréso après payout(s)</span><span class="sc-total-val ${total>base?'green':'amber'}">${fmt(total)} €</span></div></div>`;
   });
   block.innerHTML=html;
 }
+function renderTreso(){renderScenarioParams();renderChart();renderScenarios();}
 
-function renderTreso() { renderScenarioParams(); renderChart(); renderScenarios(); updateNavPill(); }
+// ── STATS TAB ──
+function renderStats(){
+  const allArchived=archived;
+  const totalPayouts=allArchived.reduce((s,a)=>s+(a.totalPayoutEur||0),0);
+  const avgPayoutPerAccount=allArchived.length>0?Math.round(totalPayouts/allArchived.length):0;
+  const avgPayoutsCount=allArchived.length>0?(allArchived.reduce((s,a)=>s+(a.payoutCount||0),0)/allArchived.length).toFixed(1):0;
+  const avgWinRate=allArchived.length>0?Math.round(allArchived.reduce((s,a)=>s+(a.winRate||0),0)/allArchived.length):0;
+  const avgDays=allArchived.length>0?Math.round(allArchived.reduce((s,a)=>s+(a.totalDays||0),0)/allArchived.length):0;
 
-function updateNavPill() {
-  const fx=getFx(), base=getBase();
-  let total=base;
-  accounts.forEach(acc=>{const r=calcPayout(acc,scConfigs[1],fx);if(r)total+=r.payoutEur;});
-  document.getElementById('nav-pill').textContent=fmt(total)+' €';
+  // Active win rates
+  const activeWinRates=accounts.map(acc=>{
+    const real=acc.history.filter(h=>!h.payout);
+    return real.length>0?Math.round(real.filter(h=>h.win).length/real.length*100):null;
+  }).filter(v=>v!==null);
+  const liveAvgWinRate=activeWinRates.length>0?Math.round(activeWinRates.reduce((a,b)=>a+b,0)/activeWinRates.length):null;
+
+  const gBlock=document.getElementById('global-stats');
+  gBlock.innerHTML=`
+    <div class="stat-hero-grid">
+      <div class="stat-hero">
+        <div class="stat-hero-val">${fmt(totalPayouts)} €</div>
+        <div class="stat-hero-label">Total encaissé (archivés)</div>
+      </div>
+      <div class="stat-hero">
+        <div class="stat-hero-val">${allArchived.length}</div>
+        <div class="stat-hero-label">Comptes archivés</div>
+      </div>
+      <div class="stat-hero">
+        <div class="stat-hero-val">${avgPayoutPerAccount>0?fmt(avgPayoutPerAccount)+' €':'—'}</div>
+        <div class="stat-hero-label">Payout moyen / compte</div>
+      </div>
+      <div class="stat-hero">
+        <div class="stat-hero-val">${liveAvgWinRate!==null?liveAvgWinRate+'%':'—'}</div>
+        <div class="stat-hero-label">Taux de réussite live</div>
+      </div>
+    </div>`;
+
+  // Stats par firm
+  const firms=['Topstep','Lucid','MyFundedFX','Tradeify'];
+  const fBlock=document.getElementById('firm-stats');
+  let fHTML='';
+  firms.forEach(firm=>{
+    const firmArchived=allArchived.filter(a=>a.firm===firm);
+    const firmActive=accounts.filter(a=>a.firm===firm);
+    if(firmArchived.length===0&&firmActive.length===0) return;
+    const total=firmArchived.reduce((s,a)=>s+(a.totalPayoutEur||0),0);
+    const avgPO=firmArchived.length>0?Math.round(total/firmArchived.length):0;
+    const avgPOCount=firmArchived.length>0?(firmArchived.reduce((s,a)=>s+(a.payoutCount||0),0)/firmArchived.length).toFixed(1):0;
+    const m=firmMeta(firm);
+    fHTML+=`<div class="firm-stats-card">
+      <div class="firm-stats-top">
+        ${firmAvatar(firm,38)}
+        <div><div class="firm-stats-name">${firm}</div><div class="firm-stats-count">${firmArchived.length} archivé${firmArchived.length>1?'s':''} · ${firmActive.length} actif${firmActive.length>1?'s':''}</div></div>
+      </div>
+      <div class="firm-stats-grid">
+        <div class="archived-stat"><div class="archived-stat-label">Total encaissé</div><div class="archived-stat-val pos">${firmArchived.length>0?fmt(total)+' €':'—'}</div></div>
+        <div class="archived-stat"><div class="archived-stat-label">Moy. / compte</div><div class="archived-stat-val">${firmArchived.length>0?fmt(avgPO)+' €':'—'}</div></div>
+        <div class="archived-stat"><div class="archived-stat-label">Payouts moy.</div><div class="archived-stat-val">${firmArchived.length>0?avgPOCount:'—'}</div></div>
+        <div class="archived-stat"><div class="archived-stat-label">Comptes cramés</div><div class="archived-stat-val neg">${firmArchived.length}</div></div>
+      </div>
+    </div>`;
+  });
+  fBlock.innerHTML=fHTML||`<div class="empty" style="padding:20px 0"><i class="ti ti-chart-bar"></i>Aucune donnée par firm pour l'instant.</div>`;
+
+  // Archived list
+  const aBlock=document.getElementById('archived-list');
+  if(allArchived.length===0){
+    aBlock.innerHTML=`<div class="empty"><i class="ti ti-archive"></i>Aucun compte archivé.<br>Les comptes cramés apparaîtront ici.</div>`;
+    return;
+  }
+  aBlock.innerHTML=allArchived.slice().reverse().map(a=>`
+    <div class="archived-card">
+      <div class="archived-card-top">
+        ${firmAvatar(a.firm,38)}
+        <div class="archived-firm-info">
+          <div class="name">${a.firm}</div>
+          <div class="date">Clôturé le ${a.closedAt} · cycle ${a.cycleCount||1}</div>
+        </div>
+      </div>
+      <div class="archived-stats">
+        <div class="archived-stat"><div class="archived-stat-label">Encaissé</div><div class="archived-stat-val pos">${fmt(a.totalPayoutEur||0)} €</div></div>
+        <div class="archived-stat"><div class="archived-stat-label">Payouts</div><div class="archived-stat-val">${a.payoutCount||0}</div></div>
+        <div class="archived-stat"><div class="archived-stat-label">Jours</div><div class="archived-stat-val">${a.totalDays||0}</div></div>
+        <div class="archived-stat"><div class="archived-stat-label">Taux réussite</div><div class="archived-stat-val">${a.winRate!=null?a.winRate+'%':'—'}</div></div>
+        <div class="archived-stat"><div class="archived-stat-label">Balance finale</div><div class="archived-stat-val neg">${fmt(a.finalBalance||0)} $</div></div>
+        <div class="archived-stat"><div class="archived-stat-label">Seuil crash</div><div class="archived-stat-val">${fmt(a.crashThreshold||0)} $</div></div>
+      </div>
+    </div>`).join('');
 }
 
-// ── TAB SWITCH ──
-function switchTab(tab) {
-  document.querySelectorAll('.tab').forEach((t,i)=>t.classList.toggle('active',(i===0&&tab==='comptes')||(i===1&&tab==='treso')));
-  document.getElementById('page-comptes').classList.toggle('active',tab==='comptes');
-  document.getElementById('page-treso').classList.toggle('active',tab==='treso');
+// ── ARCHIVE ACCOUNT ──
+function archiveAccount(id){
+  const acc=accounts.find(a=>a.id===id);
+  if(!acc) return;
+  const realDays=acc.history.filter(h=>!h.payout);
+  const winDays=realDays.filter(h=>h.win).length;
+  const payoutEvents=acc.history.filter(h=>h.payout);
+  const totalPayoutEur=payoutEvents.reduce((s,h)=>s+(h.payoutEur||0),0);
+  const d=new Date();
+  archived.push({
+    firm:acc.firm,
+    closedAt:d.toLocaleDateString('fr-FR',{day:'2-digit',month:'2-digit',year:'numeric'}),
+    cycleCount:acc.cycleCount||1,
+    totalPayoutEur,
+    payoutCount:payoutEvents.length,
+    totalDays:realDays.length,
+    winRate:realDays.length>0?Math.round(winDays/realDays.length*100):null,
+    finalBalance:Math.round(acc.balance),
+    crashThreshold:crashThreshold(acc),
+    balanceMax:acc.balanceMax||0
+  });
+  accounts=accounts.filter(a=>a.id!==id);
+  delete pendingCrash[id];
+  saveAll(); renderAccounts(); renderStats();
+}
+
+function cancelCrash(id){
+  // Undo the last entry that triggered the crash
+  const acc=accounts.find(a=>a.id===id);
+  if(!acc) return;
+  const idx=acc.history.findIndex(h=>!h.payout);
+  if(idx!==-1){
+    const entry=acc.history[idx];
+    acc.balance=Math.round((acc.balance-entry.val)*100)/100;
+    if(entry.win) acc.gainDays=Math.max(0,acc.gainDays-1);
+    acc.history.splice(idx,1);
+    // restore balanceMax if needed
+    if(acc.balance<(acc.balanceMax||0)&&entry.val>0) acc.balanceMax=acc.balance;
+  }
+  delete pendingCrash[id];
+  saveAll(); renderAccounts();
+}
+
+// ── TAB ──
+function switchTab(tab){
+  document.querySelectorAll('.tab').forEach((t,i)=>t.classList.toggle('active',(['comptes','treso','stats'][i])===tab));
+  ['comptes','treso','stats'].forEach(p=>document.getElementById(`page-${p}`).classList.toggle('active',p===tab));
   if(tab==='treso') setTimeout(renderTreso,50);
+  if(tab==='stats') renderStats();
 }
 
-// ── ACCOUNTS ──
-function renderAccounts() {
+// ── ACCOUNTS RENDER ──
+function renderAccounts(){
   const list=document.getElementById('accounts-list');
   if(accounts.length===0){
     list.innerHTML=`<div class="empty"><i class="ti ti-chart-line"></i>Aucun compte.<br>Ajoute ton premier compte prop firm.</div>`;
@@ -738,64 +663,71 @@ function renderAccounts() {
   accounts.forEach(acc=>{
     const threshold=(acc.hasPayout&&acc.payoutBalance>0)?acc.payoutBalance:0;
     const canPayout=acc.gainDays>=DAYS_REQ&&acc.balance>threshold;
-    const dots=Array.from({length:DAYS_REQ},(_,i)=>
-      `<div class="dot${i<acc.gainDays?' win':''}">${i<acc.gainDays?'✓':i+1}</div>`
-    ).join('');
-    const hs=showHist[acc.id], cd=confirmDelete[acc.id];
-
-    // Win rate from real history (exclude payout events)
-    const realDays = acc.history.filter(h=>!h.payout);
-    const winDays  = realDays.filter(h=>h.win).length;
-    const totalDays= realDays.length;
-    const winRate  = totalDays>0 ? Math.round(winDays/totalDays*100) : null;
-    const winRateColor = winRate===null ? 'neutral' : winRate>=66 ? 'pos' : winRate>=40 ? 'amber' : 'neg';
-
-    // Last non-payout entry for undo
-    const lastEntry = acc.history.find(h=>!h.payout);
-
+    const ct=crashThreshold(acc);
+    const drawdownRange=(acc.balanceMax||0)-ct;
+    const drawdownLeft=acc.balance-ct;
+    const ddPct=drawdownRange>0?Math.max(0,Math.min(100,Math.round(drawdownLeft/drawdownRange*100))):100;
+    const ddColor=ddPct>60?'var(--green)':ddPct>30?'var(--amber)':'var(--red)';
+    const isDanger=ddPct<=30;
+    const bCls=canPayout?'ready':isDanger?'danger':'progress';
+    const bLbl=canPayout?'PAYOUT DISPO':isDanger?'DANGER':acc.gainDays+'/5 jours';
+    const dots=Array.from({length:DAYS_REQ},(_,i)=>`<div class="dot${i<acc.gainDays?' win':''}">${i<acc.gainDays?'✓':i+1}</div>`).join('');
+    const realDays=acc.history.filter(h=>!h.payout);
+    const winDays=realDays.filter(h=>h.win).length;
+    const winRate=realDays.length>0?Math.round(winDays/realDays.length*100):null;
+    const wrColor=winRate===null?'neutral':winRate>=66?'pos':winRate>=40?'amber':'neg';
+    const lastEntry=acc.history.find(h=>!h.payout);
+    const hs=showHist[acc.id], cd=confirmDelete[acc.id], cp=pendingCrash[acc.id];
     let hHTML='';
     if(hs&&acc.history.length>0){
       hHTML=`<div class="hist-list">
-        ${lastEntry?`<div class="hist-undo-row">
-          <span style="font-size:11px;color:var(--text3)">Dernière entrée : <span style="color:var(--text2)">${lastEntry.val>=0?'+':''}${lastEntry.val} $</span></span>
-          <button class="btn-undo" onclick="undoLast(${acc.id})"><i class="ti ti-arrow-back-up" style="font-size:13px;vertical-align:-2px;margin-right:4px"></i>Annuler</button>
-        </div>`:''}
-        ${acc.history.slice(0,15).map(h=>
-        `<div class="hist-item">
-          <span class="hist-date">${h.date}</span>
-          <span class="hist-val ${h.payout?'blue':h.val>=0?'pos':'neg'}">${h.payout?'PAYOUT':fmtSign(h.val)+' $'}</span>
-          <span class="hist-tag ${h.payout?'payout':h.win?'win':'loss'}">${h.payout?'+'+fmt(h.payoutEur)+' €':h.win?'+1 jour':'—'}</span>
-        </div>`).join('')}
+        ${lastEntry?`<div class="hist-undo-row"><span style="font-size:11px;color:var(--text3)">Dernière : <span style="color:var(--text2)">${lastEntry.val>=0?'+':''}${lastEntry.val} $</span></span><button class="btn-undo" onclick="undoLast(${acc.id})"><i class="ti ti-arrow-back-up" style="font-size:12px;vertical-align:-1px;margin-right:3px"></i>Annuler</button></div>`:''}
+        ${acc.history.slice(0,15).map(h=>`<div class="hist-item"><span class="hist-date">${h.date}</span><span class="hist-val ${h.payout?'blue':h.val>=0?'pos':'neg'}">${h.payout?'PAYOUT':fmtSign(h.val)+' $'}</span><span class="hist-tag ${h.payout?'payout':h.win?'win':'loss'}">${h.payout?'+'+fmt(h.payoutEur)+' €':h.win?'+1 jour':'—'}</span></div>`).join('')}
       </div>`;
     }
     const iid=`inp-${acc.id}`;
     list.innerHTML+=`
     <div class="card">
       <div class="card-top">
-        <div><div class="firm-name">${acc.firm}</div><div class="firm-sub">cycle ${acc.cycleCount||1} · 90% split</div></div>
-        <span class="badge badge-${canPayout?'ready':'progress'}">${canPayout?'PAYOUT DISPO':acc.gainDays+'/5 jours'}</span>
+        <div style="display:flex;align-items:center;gap:10px">
+          ${firmAvatar(acc.firm,38)}
+          <div><div class="firm-name">${acc.firm}</div><div class="firm-sub">cycle ${acc.cycleCount||1} · 90% split</div></div>
+        </div>
+        <span class="badge badge-${bCls}">${bLbl}</span>
       </div>
       ${acc.hasPayout?`<div class="cycle-info">Seuil : > ${fmt(acc.payoutBalance)} $ · P&L cycle : ${fmtSign(acc.balance-acc.payoutBalance)} $</div>`:''}
       <div class="stats-grid">
         <div class="stat"><div class="stat-label">Balance</div><div class="stat-val neutral">${fmt(acc.balance)} $</div></div>
         <div class="stat"><div class="stat-label">Payout estimé</div><div class="stat-val pos">+${fmt(acc.balance*0.5*SPLIT*getFx())} €</div></div>
-        <div class="stat"><div class="stat-label">Jours tradés</div><div class="stat-val neutral">${totalDays}</div></div>
-        <div class="stat"><div class="stat-label">Taux de réussite</div><div class="stat-val ${winRateColor}">${winRate!==null?winRate+'%':'—'}</div></div>
+        <div class="stat"><div class="stat-label">Jours tradés</div><div class="stat-val neutral">${realDays.length}</div></div>
+        <div class="stat"><div class="stat-label">Taux de réussite</div><div class="stat-val ${wrColor}">${winRate!==null?winRate+'%':'—'}</div></div>
+      </div>
+      <div class="dd-bar-wrap">
+        <div class="dd-bar-labels"><span>Drawdown restant</span><span>${fmt(drawdownLeft)} $ / ${fmt(drawdownRange)} $</span></div>
+        <div class="dd-bar-bg"><div class="dd-bar-fill" style="width:${ddPct}%;background:${ddColor}"></div></div>
       </div>
       <div class="dots-row">
         <div class="dots-label">Jours de gain — ${acc.gainDays}/${DAYS_REQ} · seuil ${getWinPnl()} $</div>
         <div class="dots">${dots}</div>
       </div>
-      ${canPayout?`<button class="payout-btn" onclick="doPayout(${acc.id})"><i class="ti ti-cash" style="font-size:14px;vertical-align:-2px;margin-right:8px" aria-hidden="true"></i>Encaisser le payout</button>`:''}
+      ${canPayout?`<button class="payout-btn" onclick="doPayout(${acc.id})"><i class="ti ti-cash" style="font-size:14px;vertical-align:-2px;margin-right:8px"></i>Encaisser le payout</button>`:''}
       <div class="entry-row">
         <input class="entry-input" type="number" id="${iid}" placeholder="P&L du jour ($)" step="1">
         <button class="btn-validate" onclick="submitEntry(${acc.id},'${iid}')">Valider</button>
-        <button class="btn-icon" onclick="openModal(${acc.id})" aria-label="Modifier"><i class="ti ti-edit" style="font-size:15px" aria-hidden="true"></i></button>
-        <button class="btn-icon danger" onclick="askDelete(${acc.id})" aria-label="Supprimer"><i class="ti ti-trash" style="font-size:15px" aria-hidden="true"></i></button>
+        <button class="btn-icon" onclick="openModal(${acc.id})"><i class="ti ti-edit" style="font-size:15px"></i></button>
+        <button class="btn-icon danger" onclick="askDelete(${acc.id})"><i class="ti ti-trash" style="font-size:15px"></i></button>
       </div>
+      ${cp?`<div class="crash-confirm">
+        <div class="crash-confirm-title"><i class="ti ti-alert-triangle" style="font-size:15px"></i> Compte cramé</div>
+        <div class="crash-confirm-sub">La balance (${fmt(acc.balance)} $) a atteint le seuil de liquidation (${fmt(ct)} $).<br>Archiver ce compte ou annuler le jour saisi ?</div>
+        <div class="crash-confirm-btns">
+          <button class="btn-crash-cancel" onclick="cancelCrash(${acc.id})">Annuler le jour</button>
+          <button class="btn-crash-archive" onclick="archiveAccount(${acc.id})">Archiver</button>
+        </div>
+      </div>`:''}
       ${cd?`<div class="delete-confirm"><span>Supprimer ce compte ?</span><button class="btn-confirm-no" onclick="cancelDelete(${acc.id})">Non</button><button class="btn-confirm-yes" onclick="confirmDeleteAccount(${acc.id})">Supprimer</button></div>`:''}
       <button class="hist-toggle" onclick="toggleHist(${acc.id})">
-        <i class="ti ti-${hs?'chevron-up':'chevron-down'}" style="font-size:12px" aria-hidden="true"></i>
+        <i class="ti ti-${hs?'chevron-up':'chevron-down'}" style="font-size:12px"></i>
         ${acc.history.length>0?`Historique (${acc.history.length})`:"Pas encore d'entrées"}
       </button>
       ${hHTML}
@@ -804,20 +736,15 @@ function renderAccounts() {
   updateNav();
 }
 
-function updateNav() {
+function updateNav(){
   document.getElementById('nav-sub').textContent=`${accounts.length} compte${accounts.length>1?'s':''} · 90% split · 5j requis`;
-  updateNavPill();
 }
 
-function askDelete(id)    { confirmDelete[id]=true;  renderAccounts(); }
-function cancelDelete(id) { confirmDelete[id]=false; renderAccounts(); }
-function confirmDeleteAccount(id) {
-  accounts=accounts.filter(a=>a.id!==id);
-  delete confirmDelete[id];
-  saveAll(); renderAccounts();
-}
+function askDelete(id){confirmDelete[id]=true;renderAccounts();}
+function cancelDelete(id){confirmDelete[id]=false;renderAccounts();}
+function confirmDeleteAccount(id){accounts=accounts.filter(a=>a.id!==id);delete confirmDelete[id];saveAll();renderAccounts();}
 
-function submitEntry(id, iid) {
+function submitEntry(id,iid){
   const inp=document.getElementById(iid);
   const val=parseFloat(inp.value);
   if(isNaN(val)) return;
@@ -825,14 +752,22 @@ function submitEntry(id, iid) {
   if(!acc) return;
   const isWin=val>=WIN_THR;
   acc.balance=Math.round((acc.balance+val)*100)/100;
+  // Update balanceMax
+  if(acc.balance>(acc.balanceMax||0)) acc.balanceMax=acc.balance;
   if(isWin) acc.gainDays=Math.min(acc.gainDays+1,DAYS_REQ);
   const d=new Date();
   acc.history.unshift({date:d.toLocaleDateString('fr-FR',{day:'2-digit',month:'2-digit'}),val:Math.round(val),win:isWin,payout:false});
   inp.value='';
+  // Check crash
+  const ct=crashThreshold(acc);
+  if(acc.balance<=ct){
+    pendingCrash[id]=true;
+    saveAll(); renderAccounts(); return;
+  }
   saveAll(); renderAccounts();
 }
 
-function doPayout(id) {
+function doPayout(id){
   const acc=accounts.find(a=>a.id===id);
   if(!acc) return;
   const payoutEur=Math.round(acc.balance*0.5*SPLIT*getFx());
@@ -841,31 +776,27 @@ function doPayout(id) {
   acc.history.unshift({date:d.toLocaleDateString('fr-FR',{day:'2-digit',month:'2-digit'}),payout:true,payoutEur,win:false});
   acc.hasPayout=true; acc.payoutBalance=newBalance;
   acc.cycleCount=(acc.cycleCount||1)+1; acc.gainDays=0; acc.balance=newBalance;
+  // After payout, balanceMax resets to new balance (new cycle)
+  acc.balanceMax=newBalance;
   saveAll(); renderAccounts();
 }
 
-function toggleHist(id) { showHist[id]=!showHist[id]; renderAccounts(); }
-
-function undoLast(id) {
-  const acc = accounts.find(a=>a.id===id);
-  if (!acc) return;
-  // Find index of last non-payout entry
-  const idx = acc.history.findIndex(h=>!h.payout);
-  if (idx === -1) return;
-  const entry = acc.history[idx];
-  // Reverse balance
-  acc.balance = Math.round((acc.balance - entry.val) * 100) / 100;
-  // Reverse gain day if it was a win
-  if (entry.win) acc.gainDays = Math.max(0, acc.gainDays - 1);
-  // Remove from history
-  acc.history.splice(idx, 1);
+function undoLast(id){
+  const acc=accounts.find(a=>a.id===id);
+  if(!acc) return;
+  const idx=acc.history.findIndex(h=>!h.payout);
+  if(idx===-1) return;
+  const entry=acc.history[idx];
+  acc.balance=Math.round((acc.balance-entry.val)*100)/100;
+  if(entry.win) acc.gainDays=Math.max(0,acc.gainDays-1);
+  acc.history.splice(idx,1);
   saveAll(); renderAccounts();
 }
-function togglePayoutField() {
-  document.getElementById('payout-balance-group').style.display=document.getElementById('f-has-payout').checked?'block':'none';
-}
 
-function openModal(id) {
+function toggleHist(id){showHist[id]=!showHist[id];renderAccounts();}
+function togglePayoutField(){document.getElementById('payout-balance-group').style.display=document.getElementById('f-has-payout').checked?'block':'none';}
+
+function openModal(id){
   editingId=id||null;
   document.getElementById('modal-title').textContent=id?'Modifier le compte':'Nouveau compte';
   if(id){
@@ -884,26 +815,24 @@ function openModal(id) {
   }
   document.getElementById('overlay').classList.add('open');
 }
-function closeModal() { document.getElementById('overlay').classList.remove('open'); }
+function closeModal(){document.getElementById('overlay').classList.remove('open');}
 
-function saveAccount() {
+function saveAccount(){
   const firm=document.getElementById('f-firm').value;
-  const balance=parseFloat(document.getElementById('f-balance').value);
+  const balance=parseFloat(document.getElementById('f-balance').value)||0;
   const days=Math.min(4,parseInt(document.getElementById('f-days').value)||0);
   const hasPayout=document.getElementById('f-has-payout').checked;
-  const payoutBalance=hasPayout?parseFloat(document.getElementById('f-payout-balance').value):0;
-  if(!firm||isNaN(balance)) return;
-  if(hasPayout&&isNaN(payoutBalance)) return;
+  const payoutBalance=hasPayout?parseFloat(document.getElementById('f-payout-balance').value)||0:0;
+  if(hasPayout&&!payoutBalance) return;
   if(editingId){
     const idx=accounts.findIndex(a=>a.id===editingId);
     accounts[idx]={...accounts[idx],firm,balance,gainDays:days,hasPayout,payoutBalance:hasPayout?payoutBalance:0};
   } else {
-    accounts.push({id:nextId++,firm,balance,gainDays:days,hasPayout,payoutBalance:hasPayout?payoutBalance:0,cycleCount:hasPayout?2:1,history:[]});
+    accounts.push({id:nextId++,firm,balance,gainDays:days,hasPayout,payoutBalance:hasPayout?payoutBalance:0,cycleCount:hasPayout?2:1,history:[],balanceMax:balance});
   }
   closeModal(); saveAll(); renderAccounts();
 }
 
-// ── INIT ──
 loadAll();
 applyTheme(currentTheme);
 renderAccounts();
