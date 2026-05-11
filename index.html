@@ -1,52 +1,85 @@
 <!DOCTYPE html>
-<html lang="fr">
+<html lang="fr" data-theme="dark">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="Prop Tracker">
-<meta name="theme-color" content="#080b0f">
 <title>Prop Firm Tracker</title>
 <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/tabler-icons.min.css">
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 <style>
-:root {
-  --bg:       #080b0f;
-  --bg2:      #0e1318;
-  --bg3:      #141c24;
-  --bg4:      #1a2530;
-  --border:   rgba(0,230,118,0.08);
-  --border2:  rgba(0,230,118,0.18);
-  --border3:  rgba(0,230,118,0.35);
-  --text:     #e8f0fe;
-  --text2:    #6b8099;
-  --text3:    #354555;
-  --green:    #00e676;
-  --green2:   #00c864;
-  --green-bg: rgba(0,230,118,0.07);
-  --amber:    #ffb74d;
-  --amber-bg: rgba(255,183,77,0.08);
-  --red:      #ff5252;
-  --red-bg:   rgba(255,82,82,0.08);
-  --red-bdr:  rgba(255,82,82,0.25);
-  --blue:     #64b5f6;
-  --blue-bg:  rgba(100,181,246,0.08);
-  --radius:   16px;
-  --radius-sm:10px;
-  --glow:     0 0 20px rgba(0,230,118,0.12);
+/* ── DARK THEME ── */
+[data-theme="dark"] {
+  --bg:        #080b0f;
+  --bg2:       #0e1318;
+  --bg3:       #141c24;
+  --bg4:       #1a2530;
+  --border:    rgba(0,230,118,0.08);
+  --border2:   rgba(0,230,118,0.18);
+  --border3:   rgba(0,230,118,0.35);
+  --text:      #e8f0fe;
+  --text2:     #6b8099;
+  --text3:     #354555;
+  --green:     #00e676;
+  --green2:    #00c864;
+  --green-bg:  rgba(0,230,118,0.07);
+  --green-dim: rgba(0,230,118,0.13);
+  --amber:     #ffb74d;
+  --amber-bg:  rgba(255,183,77,0.08);
+  --red:       #ff5252;
+  --red-bg:    rgba(255,82,82,0.08);
+  --red-bdr:   rgba(255,82,82,0.25);
+  --blue:      #64b5f6;
+  --blue-bg:   rgba(100,181,246,0.08);
+  --shadow:    none;
+  --glow:      0 0 20px rgba(0,230,118,0.12);
+  --card-top:  linear-gradient(90deg,transparent,rgba(0,230,118,0.18),transparent);
+  --theme-icon: "☀️";
 }
+
+/* ── LIGHT THEME ── */
+[data-theme="light"] {
+  --bg:        #f2f4f6;
+  --bg2:       #ffffff;
+  --bg3:       #f7f8fa;
+  --bg4:       #eef0f3;
+  --border:    rgba(0,150,80,0.1);
+  --border2:   rgba(0,150,80,0.2);
+  --border3:   rgba(0,150,80,0.4);
+  --text:      #111820;
+  --text2:     #5a6a78;
+  --text3:     #a0b0bc;
+  --green:     #00966e;
+  --green2:    #007a58;
+  --green-bg:  rgba(0,150,110,0.07);
+  --green-dim: rgba(0,150,110,0.13);
+  --amber:     #d08000;
+  --amber-bg:  rgba(208,128,0,0.07);
+  --red:       #d93025;
+  --red-bg:    rgba(217,48,37,0.06);
+  --red-bdr:   rgba(217,48,37,0.2);
+  --blue:      #1a73e8;
+  --blue-bg:   rgba(26,115,232,0.07);
+  --shadow:    0 2px 12px rgba(0,0,0,0.07);
+  --glow:      0 2px 12px rgba(0,150,110,0.1);
+  --card-top:  linear-gradient(90deg,transparent,rgba(0,150,110,0.15),transparent);
+  --theme-icon: "🌙";
+}
+
 * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
-html, body { height: 100%; background: var(--bg); color: var(--text); font-family: 'Poppins', sans-serif; }
+html, body { height: 100%; background: var(--bg); color: var(--text); font-family: 'Poppins', sans-serif; transition: background 0.3s, color 0.3s; }
 body { overflow-x: hidden; }
 .app { max-width: 430px; margin: 0 auto; padding-bottom: 110px; }
 
 /* NAV */
 .nav {
   position: sticky; top: 0; z-index: 50;
-  background: linear-gradient(180deg, #080b0f 80%, transparent);
-  padding: 18px 20px 14px;
+  background: var(--bg);
+  border-bottom: 0.5px solid var(--border);
+  padding: 16px 20px 12px;
   display: flex; justify-content: space-between; align-items: center;
 }
 .nav-brand { display: flex; align-items: center; gap: 10px; }
@@ -56,283 +89,242 @@ body { overflow-x: hidden; }
   display: flex; align-items: center; justify-content: center;
 }
 .nav-icon i { font-size: 16px; color: var(--green); }
-.nav-title { font-size: 16px; font-weight: 700; letter-spacing: -0.3px; color: var(--text); }
-.nav-sub { font-size: 10px; color: var(--text2); font-family: 'Poppins', sans-serif; margin-top: 1px; }
+.nav-title { font-size: 16px; font-weight: 700; letter-spacing: -0.3px; }
+.nav-sub { font-size: 10px; color: var(--text2); margin-top: 1px; }
+.nav-right { display: flex; align-items: center; gap: 8px; }
 .nav-pill {
   background: var(--green-bg); border: 0.5px solid var(--border2);
   border-radius: 20px; padding: 5px 14px;
   font-size: 12px; font-weight: 600; color: var(--green);
-  font-family: 'Poppins', sans-serif;
+  font-family: 'DM Mono', monospace;
 }
+.theme-toggle {
+  width: 34px; height: 34px; border-radius: 50%;
+  background: var(--bg3); border: 0.5px solid var(--border2);
+  cursor: pointer; display: flex; align-items: center; justify-content: center;
+  font-size: 16px; transition: all 0.2s;
+}
+.theme-toggle:hover { border-color: var(--border3); }
 
 /* TABS */
-.tabs { display: flex; padding: 0 20px 16px; gap: 8px; }
+.tabs { display: flex; padding: 12px 20px 16px; gap: 8px; }
 .tab {
   flex: 1; padding: 10px 0; font-size: 13px; font-weight: 500;
-  border: 0.5px solid var(--border); border-radius: var(--radius-sm);
+  border: 0.5px solid var(--border); border-radius: 10px;
   background: transparent; color: var(--text2); cursor: pointer;
-  transition: all 0.2s; font-family: 'Poppins', sans-serif; letter-spacing: 0.01em;
+  transition: all 0.2s; font-family: 'Poppins', sans-serif;
 }
-.tab.active {
-  background: var(--green-bg); color: var(--green);
-  border-color: var(--border2); box-shadow: var(--glow);
-}
+.tab.active { background: var(--green-bg); color: var(--green); border-color: var(--border2); box-shadow: var(--glow); }
 
-/* SECTION */
+/* SECTION LABEL */
 .section { padding: 0 20px; }
 .section-label {
-  font-size: 9px; font-weight: 600; letter-spacing: 0.14em;
+  font-size: 9px; font-weight: 700; letter-spacing: 0.14em;
   color: var(--text3); text-transform: uppercase;
   margin: 20px 0 12px; display: flex; align-items: center; gap: 8px;
 }
-.section-label::after {
-  content: ''; flex: 1; height: 0.5px; background: var(--border);
-}
+.section-label::after { content: ''; flex: 1; height: 0.5px; background: var(--border); }
 
 /* CARDS */
 .card {
-  background: var(--bg2);
-  border: 0.5px solid var(--border);
-  border-radius: var(--radius);
-  padding: 18px; margin-bottom: 12px;
+  background: var(--bg2); border: 0.5px solid var(--border);
+  border-radius: 16px; padding: 18px; margin-bottom: 12px;
   position: relative; overflow: hidden;
+  box-shadow: var(--shadow);
 }
 .card::before {
   content: ''; position: absolute; top: 0; left: 0; right: 0; height: 1px;
-  background: linear-gradient(90deg, transparent, var(--green2), transparent);
-  opacity: 0.3;
+  background: var(--card-top); opacity: 0.6;
 }
 .card-top { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 16px; }
-.firm-name { font-size: 17px; font-weight: 700; color: var(--text); letter-spacing: -0.3px; }
-.firm-sub { font-size: 10px; color: var(--text2); margin-top: 2px; font-family: 'Poppins', sans-serif; }
+.firm-name { font-size: 17px; font-weight: 700; letter-spacing: -0.3px; }
+.firm-sub { font-size: 10px; color: var(--text2); margin-top: 2px; }
 .badge { font-size: 10px; font-weight: 600; padding: 4px 12px; border-radius: 20px; letter-spacing: 0.04em; }
-.badge-ready  { background: var(--green-bg); color: var(--green); border: 0.5px solid var(--border2); }
-.badge-progress { background: rgba(255,183,77,0.08); color: var(--amber); border: 0.5px solid rgba(255,183,77,0.2); }
+.badge-ready    { background: var(--green-bg); color: var(--green); border: 0.5px solid var(--border2); }
+.badge-progress { background: var(--amber-bg); color: var(--amber); border: 0.5px solid rgba(208,128,0,0.2); }
 
 /* STATS */
 .stats-grid { display: grid; grid-template-columns: repeat(2,1fr); gap: 8px; margin-bottom: 16px; }
-.stat { background: var(--bg3); border-radius: var(--radius-sm); padding: 12px; border: 0.5px solid var(--border); }
+.stat { background: var(--bg3); border-radius: 10px; padding: 12px; border: 0.5px solid var(--border); }
 .stat-label { font-size: 9px; font-weight: 600; color: var(--text3); margin-bottom: 4px; letter-spacing: 0.08em; text-transform: uppercase; }
 .stat-val { font-size: 16px; font-weight: 700; font-family: 'DM Mono', monospace; }
-.stat-val.pos { color: var(--green); }
+.stat-val.pos     { color: var(--green); }
 .stat-val.neutral { color: var(--text); }
 
 /* DOTS */
 .dots-row { margin-bottom: 16px; }
-.dots-label { font-size: 10px; color: var(--text2); margin-bottom: 10px; font-family: 'Poppins', sans-serif; }
+.dots-label { font-size: 11px; color: var(--text2); margin-bottom: 10px; }
 .dots { display: flex; gap: 7px; }
 .dot {
   width: 30px; height: 30px; border-radius: 50%;
   border: 0.5px solid var(--border2); background: var(--bg3);
   display: flex; align-items: center; justify-content: center;
-  font-size: 11px; color: var(--text3); font-family: 'Poppins', sans-serif;
+  font-size: 11px; color: var(--text3); font-family: 'DM Mono', monospace;
   transition: all 0.25s;
 }
-.dot.win {
-  background: var(--green); border-color: var(--green);
-  color: #000; font-weight: 700;
-  box-shadow: 0 0 10px rgba(0,230,118,0.4);
-}
+.dot.win { background: var(--green); border-color: var(--green); color: #fff; font-weight: 700; box-shadow: 0 0 10px var(--green-dim); }
+[data-theme="dark"] .dot.win { color: #000; }
 
 /* ENTRY */
 .entry-row { display: flex; gap: 6px; align-items: center; margin-bottom: 12px; }
 .entry-input {
   flex: 1; min-width: 0; background: var(--bg3); border: 0.5px solid var(--border2);
-  border-radius: var(--radius-sm); color: var(--text);
+  border-radius: 10px; color: var(--text);
   font-size: 13px; font-family: 'Poppins', sans-serif;
   padding: 0 10px; height: 40px; outline: none; transition: border-color 0.2s;
 }
-.entry-input:focus { border-color: var(--green); box-shadow: 0 0 0 3px rgba(0,230,118,0.08); }
+.entry-input:focus { border-color: var(--green); box-shadow: 0 0 0 3px var(--green-bg); }
 .entry-input::placeholder { color: var(--text3); font-size: 12px; }
 .btn-validate {
   height: 40px; padding: 0 14px; background: var(--green); color: #000;
-  border: none; border-radius: var(--radius-sm);
+  border: none; border-radius: 10px;
   font-size: 12px; font-weight: 700; cursor: pointer;
   font-family: 'Poppins', sans-serif; white-space: nowrap; flex-shrink: 0;
-  box-shadow: 0 0 16px rgba(0,230,118,0.3); transition: all 0.2s;
+  box-shadow: 0 0 16px var(--green-dim); transition: all 0.2s;
 }
 .btn-validate:active { opacity: 0.85; transform: scale(0.97); }
 .btn-icon {
   height: 40px; width: 40px; background: var(--bg3);
-  border: 0.5px solid var(--border); border-radius: var(--radius-sm);
+  border: 0.5px solid var(--border); border-radius: 10px;
   color: var(--text2); cursor: pointer;
-  display: flex; align-items: center; justify-content: center; flex-shrink: 0;
-  transition: all 0.2s;
+  display: flex; align-items: center; justify-content: center; flex-shrink: 0; transition: all 0.2s;
 }
 .btn-icon:hover { border-color: var(--border2); color: var(--text); }
 .btn-icon.danger:hover { color: var(--red); border-color: var(--red-bdr); }
 
-/* DELETE */
+/* DELETE CONFIRM */
 .delete-confirm {
   display: flex; gap: 8px; align-items: center;
   background: var(--red-bg); border: 0.5px solid var(--red-bdr);
-  border-radius: var(--radius-sm); padding: 10px 14px; margin-bottom: 12px;
+  border-radius: 10px; padding: 10px 14px; margin-bottom: 12px;
 }
 .delete-confirm span { flex: 1; font-size: 12px; color: var(--red); font-weight: 500; }
 .btn-confirm-yes { padding: 7px 14px; background: var(--red); color: #fff; border: none; border-radius: 8px; font-size: 12px; font-weight: 600; cursor: pointer; font-family: 'Poppins', sans-serif; }
 .btn-confirm-no  { padding: 7px 14px; background: var(--bg4); color: var(--text2); border: 0.5px solid var(--border); border-radius: 8px; font-size: 12px; cursor: pointer; font-family: 'Poppins', sans-serif; }
 
 /* HISTORY */
-.hist-toggle { font-size: 11px; color: var(--text3); cursor: pointer; background: none; border: none; display: flex; align-items: center; gap: 4px; font-family: 'Poppins', sans-serif; padding: 2px 0; }
+.hist-toggle { font-size: 11px; color: var(--text3); cursor: pointer; background: none; border: none; display: flex; align-items: center; gap: 4px; padding: 2px 0; }
 .hist-list { margin-top: 12px; border-top: 0.5px solid var(--border); padding-top: 12px; }
-.hist-item { display: flex; justify-content: space-between; align-items: center; padding: 6px 0; border-bottom: 0.5px solid var(--border); font-size: 11px; font-family: 'Poppins', sans-serif; }
+.hist-item { display: flex; justify-content: space-between; align-items: center; padding: 6px 0; border-bottom: 0.5px solid var(--border); font-size: 11px; }
 .hist-item:last-child { border-bottom: none; }
-.hist-date { color: var(--text2); }
-.hist-val.pos  { color: var(--green); font-weight: 500; }
-.hist-val.neg  { color: var(--red);   font-weight: 500; }
-.hist-val.blue { color: var(--blue);  font-weight: 700; }
-.hist-tag { font-size: 9px; padding: 2px 8px; border-radius: 10px; font-weight: 600; letter-spacing: 0.04em; }
+.hist-date { color: var(--text2); font-family: 'DM Mono', monospace; }
+.hist-val.pos  { color: var(--green); font-weight: 600; font-family: 'DM Mono', monospace; }
+.hist-val.neg  { color: var(--red);   font-weight: 600; font-family: 'DM Mono', monospace; }
+.hist-val.blue { color: var(--blue);  font-weight: 700; font-family: 'DM Mono', monospace; }
+.hist-tag { font-size: 9px; padding: 2px 8px; border-radius: 10px; font-weight: 600; }
 .hist-tag.win    { background: var(--green-bg); color: var(--green); border: 0.5px solid var(--border2); }
 .hist-tag.loss   { background: var(--bg3); color: var(--text3); }
 .hist-tag.payout { background: var(--blue-bg); color: var(--blue); border: 0.5px solid rgba(100,181,246,0.25); }
 
 /* CYCLE INFO */
-.cycle-info {
-  background: var(--blue-bg); border: 0.5px solid rgba(100,181,246,0.2);
-  border-radius: var(--radius-sm); padding: 10px 14px; margin-bottom: 16px;
-  font-size: 11px; color: var(--blue); font-family: 'Poppins', sans-serif;
-}
+.cycle-info { background: var(--blue-bg); border: 0.5px solid rgba(100,181,246,0.2); border-radius: 10px; padding: 10px 14px; margin-bottom: 16px; font-size: 11px; color: var(--blue); }
 
 /* PAYOUT BTN */
-.payout-btn {
-  width: 100%; padding: 12px; margin-bottom: 12px;
-  background: var(--blue-bg); border: 0.5px solid rgba(100,181,246,0.3);
-  border-radius: var(--radius-sm); color: var(--blue);
-  font-size: 13px; font-weight: 600; cursor: pointer;
-  font-family: 'Poppins', sans-serif; transition: all 0.2s;
-}
+.payout-btn { width: 100%; padding: 12px; margin-bottom: 12px; background: var(--blue-bg); border: 0.5px solid rgba(100,181,246,0.3); border-radius: 10px; color: var(--blue); font-size: 13px; font-weight: 600; cursor: pointer; font-family: 'Poppins', sans-serif; transition: all 0.2s; }
 .payout-btn:active { opacity: 0.7; }
 
 /* ADD BTN */
-.btn-add {
-  width: 100%; padding: 15px; margin-bottom: 12px;
-  border: 0.5px dashed var(--border2); border-radius: var(--radius);
-  background: transparent; color: var(--text2); cursor: pointer;
-  font-size: 13px; font-family: 'DM Mono', monospace;
-  display: flex; align-items: center; justify-content: center; gap: 8px;
-  transition: all 0.2s;
-}
+.btn-add { width: 100%; padding: 15px; margin-bottom: 12px; border: 0.5px dashed var(--border2); border-radius: 16px; background: transparent; color: var(--text2); cursor: pointer; font-size: 13px; font-family: 'Poppins', sans-serif; display: flex; align-items: center; justify-content: center; gap: 8px; transition: all 0.2s; }
 .btn-add:hover { background: var(--green-bg); color: var(--green); border-color: var(--border3); }
 
-/* SETTINGS */
-.settings-block {
+/* COLLAPSIBLE PARAMS */
+.collapsible-header {
+  display: flex; align-items: center; justify-content: space-between;
+  cursor: pointer; padding: 12px 16px;
   background: var(--bg2); border: 0.5px solid var(--border);
-  border-radius: var(--radius); padding: 4px 18px; margin-bottom: 12px;
+  border-radius: 12px; margin-bottom: 8px;
+  transition: all 0.2s; user-select: none;
 }
-.setting-row { display: flex; align-items: center; padding: 12px 0; border-bottom: 0.5px solid var(--border); gap: 10px; }
+.collapsible-header:hover { border-color: var(--border2); }
+.collapsible-header.open { border-radius: 12px 12px 0 0; border-bottom-color: transparent; margin-bottom: 0; }
+.collapsible-title { font-size: 13px; font-weight: 600; color: var(--text2); display: flex; align-items: center; gap: 8px; }
+.collapsible-title i { font-size: 15px; color: var(--green); }
+.collapsible-chevron { font-size: 14px; color: var(--text3); transition: transform 0.25s; }
+.collapsible-header.open .collapsible-chevron { transform: rotate(180deg); }
+.collapsible-body {
+  background: var(--bg2); border: 0.5px solid var(--border);
+  border-top: none; border-radius: 0 0 12px 12px;
+  overflow: hidden; max-height: 0; transition: max-height 0.3s ease, padding 0.3s;
+  margin-bottom: 12px;
+}
+.collapsible-body.open { max-height: 600px; }
+
+/* SETTINGS */
+.settings-inner { padding: 4px 16px 8px; }
+.setting-row { display: flex; align-items: center; padding: 10px 0; border-bottom: 0.5px solid var(--border); gap: 10px; }
 .setting-row:last-child { border-bottom: none; }
 .setting-label { font-size: 13px; color: var(--text2); flex: 1; font-weight: 400; }
-.setting-label small { display: block; font-size: 9px; color: var(--text3); font-family: 'Poppins', sans-serif; margin-top: 2px; }
-.setting-input {
-  background: var(--bg3); border: 0.5px solid var(--border2);
-  border-radius: var(--radius-sm); color: var(--text);
-  font-size: 13px; font-family: 'DM Mono', monospace;
-  padding: 7px 10px; width: 88px; outline: none; text-align: right;
-  transition: border-color 0.2s;
-}
+.setting-label small { display: block; font-size: 9px; color: var(--text3); margin-top: 2px; }
+.setting-input { background: var(--bg3); border: 0.5px solid var(--border2); border-radius: 8px; color: var(--text); font-size: 13px; font-family: 'DM Mono', monospace; padding: 7px 10px; width: 88px; outline: none; text-align: right; transition: border-color 0.2s; }
 .setting-input:focus { border-color: var(--green); }
-.setting-unit { font-size: 11px; color: var(--text3); font-family: 'Poppins', sans-serif; min-width: 16px; }
-
-/* SCENARIO PARAMS */
-.sc-params-row { display: flex; align-items: center; gap: 10px; padding: 12px 0; border-bottom: 0.5px solid var(--border); }
+.setting-unit { font-size: 11px; color: var(--text3); min-width: 16px; }
+.sc-params-row { display: flex; align-items: center; gap: 10px; padding: 10px 0; border-bottom: 0.5px solid var(--border); }
 .sc-params-row:last-child { border-bottom: none; }
 .sc-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
 .sc-params-name { font-size: 13px; font-weight: 600; flex: 1; }
 .sc-params-name.opt  { color: var(--green); }
 .sc-params-name.safe { color: var(--amber); }
 .sc-params-name.pes  { color: var(--red); }
-.sc-params-esp { font-size: 9px; font-family: 'Poppins', sans-serif; color: var(--text3); min-width: 90px; text-align: right; line-height: 1.4; }
+.sc-params-esp { font-size: 9px; color: var(--text3); min-width: 90px; text-align: right; line-height: 1.4; }
 
 /* GRAPH */
-.graph-card {
-  background: var(--bg2); border: 0.5px solid var(--border);
-  border-radius: var(--radius); padding: 18px; margin-bottom: 12px;
-  position: relative; overflow: hidden;
-}
-.graph-card::before {
-  content: ''; position: absolute; top: 0; left: 0; right: 0; height: 1px;
-  background: linear-gradient(90deg, transparent, var(--green2), transparent);
-  opacity: 0.25;
-}
+.graph-card { background: var(--bg2); border: 0.5px solid var(--border); border-radius: 16px; padding: 18px; margin-bottom: 12px; position: relative; overflow: hidden; box-shadow: var(--shadow); }
+.graph-card::before { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 1px; background: var(--card-top); opacity: 0.5; }
 .graph-title { font-size: 13px; font-weight: 600; margin-bottom: 3px; }
-.graph-sub { font-size: 10px; color: var(--text3); font-family: 'Poppins', sans-serif; margin-bottom: 14px; }
+.graph-sub { font-size: 10px; color: var(--text3); margin-bottom: 14px; }
 .graph-legend { display: flex; gap: 18px; margin-bottom: 16px; flex-wrap: wrap; }
-.legend-item { display: flex; align-items: center; gap: 6px; font-size: 10px; color: var(--text2); font-family: 'Poppins', sans-serif; }
+.legend-item { display: flex; align-items: center; gap: 6px; font-size: 10px; color: var(--text2); }
 .legend-dot { width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0; }
 
 /* SCENARIO CARDS */
-.scenario-card {
-  background: var(--bg2); border: 0.5px solid var(--border);
-  border-radius: var(--radius); padding: 18px; margin-bottom: 12px;
-  position: relative; overflow: hidden;
-}
-.sc-accent { position: absolute; top: 0; left: 0; right: 0; height: 2px; border-radius: var(--radius) var(--radius) 0 0; }
-.sc-name { font-size: 14px; font-weight: 700; margin-bottom: 2px; }
+.scenario-card { background: var(--bg2); border: 0.5px solid var(--border); border-radius: 16px; padding: 16px 18px; margin-bottom: 10px; position: relative; overflow: hidden; box-shadow: var(--shadow); }
+.sc-accent { position: absolute; top: 0; left: 0; right: 0; height: 2px; border-radius: 16px 16px 0 0; }
+.sc-header { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 2px; }
+.sc-name { font-size: 13px; font-weight: 700; }
 .sc-name.opt  { color: var(--green); }
 .sc-name.safe { color: var(--amber); }
 .sc-name.pes  { color: var(--red); }
-.sc-esp { font-size: 10px; font-family: 'Poppins', sans-serif; color: var(--text3); margin-bottom: 14px; }
-.sc-base-row { display: flex; justify-content: space-between; font-size: 11px; padding: 8px 0; border-bottom: 0.5px solid var(--border); margin-bottom: 6px; font-family: 'Poppins', sans-serif; }
-.sc-base-label { color: var(--text2); }
-.sc-base-val { color: var(--text); font-weight: 500; }
-.sc-account-row { display: flex; justify-content: space-between; align-items: center; padding: 8px 0; border-bottom: 0.5px solid var(--border); }
+.sc-esp { font-size: 9px; color: var(--text3); margin-bottom: 10px; }
+.sc-rows { display: flex; flex-direction: column; gap: 0; }
+.sc-account-row { display: flex; justify-content: space-between; align-items: center; padding: 5px 0; border-bottom: 0.5px solid var(--border); }
 .sc-account-row:last-of-type { border-bottom: none; }
-.sc-acc-left { font-size: 12px; color: var(--text2); font-family: 'Poppins', sans-serif; }
-.sc-acc-detail { font-size: 9px; color: var(--text3); margin-top: 2px; font-family: 'Poppins', sans-serif; }
-.sc-acc-val { font-size: 13px; font-weight: 700; font-family: 'DM Mono', monospace; }
+.sc-acc-left { font-size: 11px; color: var(--text2); }
+.sc-acc-detail { font-size: 9px; color: var(--text3); margin-top: 1px; font-family: 'DM Mono', monospace; }
+.sc-acc-val { font-size: 12px; font-weight: 700; font-family: 'DM Mono', monospace; }
 .sc-acc-val.pos { color: var(--green); }
 .sc-acc-val.blocked { color: var(--text3); }
-.sc-total-row { display: flex; justify-content: space-between; align-items: baseline; padding-top: 14px; margin-top: 10px; border-top: 0.5px solid var(--border2); }
+.sc-total-row { display: flex; justify-content: space-between; align-items: center; padding-top: 10px; margin-top: 8px; border-top: 0.5px solid var(--border2); }
 .sc-total-label { font-size: 11px; color: var(--text2); }
-.sc-total-val { font-size: 24px; font-weight: 700; font-family: 'DM Mono', monospace; }
-.sc-total-val.green { color: var(--green); text-shadow: 0 0 20px rgba(0,230,118,0.25); }
+.sc-total-val { font-size: 20px; font-weight: 700; font-family: 'DM Mono', monospace; }
+.sc-total-val.green { color: var(--green); }
 .sc-total-val.amber { color: var(--amber); }
 
 /* MODAL */
-.overlay { display: none; position: fixed; inset: 0; background: rgba(4,8,12,0.85); z-index: 100; align-items: flex-end; justify-content: center; backdrop-filter: blur(4px); }
+.overlay { display: none; position: fixed; inset: 0; background: rgba(4,8,12,0.8); z-index: 100; align-items: flex-end; justify-content: center; backdrop-filter: blur(4px); }
+[data-theme="light"] .overlay { background: rgba(0,0,0,0.4); }
 .overlay.open { display: flex; }
-.modal {
-  background: var(--bg2); border-radius: var(--radius) var(--radius) 0 0;
-  border-top: 0.5px solid var(--border2);
-  padding: 20px 20px 44px; width: 100%; max-height: 90vh; overflow-y: auto;
-}
+.modal { background: var(--bg2); border-radius: 16px 16px 0 0; border-top: 0.5px solid var(--border2); padding: 20px 20px 44px; width: 100%; max-height: 90vh; overflow-y: auto; }
 .modal-handle { width: 36px; height: 4px; background: var(--border2); border-radius: 2px; margin: 0 auto 22px; }
 .modal-title { font-size: 18px; font-weight: 700; margin-bottom: 22px; letter-spacing: -0.3px; }
 .form-group { margin-bottom: 14px; }
-.form-label { font-size: 10px; font-weight: 600; color: var(--text2); margin-bottom: 7px; display: block; letter-spacing: 0.08em; text-transform: uppercase; font-family: 'Poppins', sans-serif; }
-.form-input {
-  width: 100%; background: var(--bg3); border: 0.5px solid var(--border2);
-  border-radius: var(--radius-sm); color: var(--text);
-  font-size: 15px; padding: 13px 15px; outline: none;
-  font-family: 'Poppins', sans-serif; transition: border-color 0.2s;
-}
-.form-input:focus { border-color: var(--green); box-shadow: 0 0 0 3px rgba(0,230,118,0.07); }
-.form-select {
-  width: 100%; background: var(--bg3); border: 0.5px solid var(--border2);
-  border-radius: var(--radius-sm); color: var(--text);
-  font-size: 15px; padding: 13px 15px; outline: none;
-  font-family: 'Poppins', sans-serif; appearance: none;
-}
-.toggle-row {
-  display: flex; align-items: center; justify-content: space-between;
-  background: var(--bg3); border: 0.5px solid var(--border2);
-  border-radius: var(--radius-sm); padding: 13px 15px;
-}
+.form-label { font-size: 10px; font-weight: 600; color: var(--text2); margin-bottom: 7px; display: block; letter-spacing: 0.08em; text-transform: uppercase; }
+.form-input { width: 100%; background: var(--bg3); border: 0.5px solid var(--border2); border-radius: 10px; color: var(--text); font-size: 15px; padding: 13px 15px; outline: none; font-family: 'Poppins', sans-serif; transition: border-color 0.2s; }
+.form-input:focus { border-color: var(--green); box-shadow: 0 0 0 3px var(--green-bg); }
+.form-select { width: 100%; background: var(--bg3); border: 0.5px solid var(--border2); border-radius: 10px; color: var(--text); font-size: 15px; padding: 13px 15px; outline: none; font-family: 'Poppins', sans-serif; appearance: none; }
+.toggle-row { display: flex; align-items: center; justify-content: space-between; background: var(--bg3); border: 0.5px solid var(--border2); border-radius: 10px; padding: 13px 15px; }
 .toggle-label { font-size: 14px; color: var(--text2); }
 .toggle { position: relative; width: 46px; height: 26px; cursor: pointer; }
 .toggle input { opacity: 0; width: 0; height: 0; }
-.toggle-slider { position: absolute; inset: 0; background: var(--bg); border: 0.5px solid var(--border2); border-radius: 13px; transition: 0.2s; }
+.toggle-slider { position: absolute; inset: 0; background: var(--bg4); border: 0.5px solid var(--border2); border-radius: 13px; transition: 0.2s; }
 .toggle-slider:before { content: ''; position: absolute; width: 20px; height: 20px; left: 3px; top: 3px; background: var(--text3); border-radius: 50%; transition: 0.2s; }
 .toggle input:checked + .toggle-slider { background: var(--green-bg); border-color: var(--border3); }
-.toggle input:checked + .toggle-slider:before { background: var(--green); transform: translateX(20px); box-shadow: 0 0 8px rgba(0,230,118,0.5); }
+.toggle input:checked + .toggle-slider:before { background: var(--green); transform: translateX(20px); }
 .modal-btns { display: flex; gap: 10px; margin-top: 22px; }
-.btn-save { flex: 1; padding: 14px; background: var(--green); color: #000; border: none; border-radius: var(--radius-sm); font-size: 15px; font-weight: 700; cursor: pointer; font-family: 'Poppins', sans-serif; box-shadow: 0 0 20px rgba(0,230,118,0.25); }
-.btn-cancel { flex: 1; padding: 14px; background: var(--bg3); color: var(--text2); border: 0.5px solid var(--border); border-radius: var(--radius-sm); font-size: 15px; cursor: pointer; font-family: 'Poppins', sans-serif; }
+.btn-save { flex: 1; padding: 14px; background: var(--green); color: #000; border: none; border-radius: 10px; font-size: 15px; font-weight: 700; cursor: pointer; font-family: 'Poppins', sans-serif; }
+.btn-cancel { flex: 1; padding: 14px; background: var(--bg3); color: var(--text2); border: 0.5px solid var(--border); border-radius: 10px; font-size: 15px; cursor: pointer; font-family: 'Poppins', sans-serif; }
 
-/* EMPTY */
 .empty { text-align: center; padding: 50px 20px; color: var(--text3); font-size: 14px; }
-.empty i { font-size: 36px; display: block; margin-bottom: 14px; color: var(--text3); }
-
+.empty i { font-size: 36px; display: block; margin-bottom: 14px; }
 .page { display: none; }
 .page.active { display: block; }
 </style>
@@ -348,7 +340,10 @@ body { overflow-x: hidden; }
         <div class="nav-sub" id="nav-sub">0 compte · 90% split · 5j requis</div>
       </div>
     </div>
-    <div class="nav-pill" id="nav-pill">— €</div>
+    <div class="nav-right">
+      <div class="nav-pill" id="nav-pill">— €</div>
+      <button class="theme-toggle" onclick="toggleTheme()" id="theme-btn" aria-label="Changer de thème">☀️</button>
+    </div>
   </div>
 
   <div class="tabs">
@@ -371,41 +366,49 @@ body { overflow-x: hidden; }
   <div class="page" id="page-treso">
     <div class="section">
 
-      <div class="section-label">Paramètres généraux</div>
-      <div class="settings-block">
-        <div class="setting-row">
-          <div class="setting-label">Tréso de départ<small>base entreprise</small></div>
-          <input class="setting-input" type="number" id="treso-base" value="10500" step="100" oninput="renderTreso()">
-          <span class="setting-unit">€</span>
-        </div>
-        <div class="setting-row">
-          <div class="setting-label">Taux $/€</div>
-          <input class="setting-input" type="number" id="fx-rate" value="0.93" step="0.01" oninput="renderTreso()">
-          <span class="setting-unit"></span>
-        </div>
-        <div class="setting-row">
-          <div class="setting-label">Jour de gain<small>P&L minimum</small></div>
-          <input class="setting-input" type="number" id="p-win-pnl" value="150" step="10" oninput="renderTreso()">
-          <span class="setting-unit">$</span>
-        </div>
-        <div class="setting-row">
-          <div class="setting-label">Jour de perte<small>P&L négatif type</small></div>
-          <input class="setting-input" type="number" id="p-loss-pnl" value="230" step="10" oninput="renderTreso()">
-          <span class="setting-unit">$</span>
+      <!-- Collapsible params -->
+      <div class="section-label">Paramètres</div>
+
+      <div class="collapsible-header" id="params-header" onclick="toggleParams()">
+        <span class="collapsible-title">
+          <i class="ti ti-settings" aria-hidden="true"></i> Général &amp; Scénarios
+        </span>
+        <i class="ti ti-chevron-down collapsible-chevron" id="params-chevron" aria-hidden="true"></i>
+      </div>
+      <div class="collapsible-body" id="params-body">
+        <div class="settings-inner">
+          <div class="setting-row">
+            <div class="setting-label">Tréso de départ<small>base entreprise</small></div>
+            <input class="setting-input" type="number" id="treso-base" value="10500" step="100" oninput="onSettingChange()">
+            <span class="setting-unit">€</span>
+          </div>
+          <div class="setting-row">
+            <div class="setting-label">Taux $/€</div>
+            <input class="setting-input" type="number" id="fx-rate" value="0.85" step="0.01" oninput="onSettingChange()">
+            <span class="setting-unit"></span>
+          </div>
+          <div class="setting-row">
+            <div class="setting-label">Jour de gain<small>P&L minimum</small></div>
+            <input class="setting-input" type="number" id="p-win-pnl" value="150" step="10" oninput="onSettingChange()">
+            <span class="setting-unit">$</span>
+          </div>
+          <div class="setting-row">
+            <div class="setting-label">Jour de perte<small>P&L négatif type</small></div>
+            <input class="setting-input" type="number" id="p-loss-pnl" value="230" step="10" oninput="onSettingChange()">
+            <span class="setting-unit">$</span>
+          </div>
+          <div id="scenario-params"></div>
         </div>
       </div>
-
-      <div class="section-label">Scénarios</div>
-      <div class="settings-block" id="scenario-params"></div>
 
       <div class="section-label">Projection trésorerie</div>
       <div class="graph-card">
         <div class="graph-title">Évolution après payouts</div>
-        <div class="graph-sub">Base : <span id="graph-base-label">10 500 €</span> · axe X = jours de trading</div>
+        <div class="graph-sub">Base : <span id="graph-base-label">10 500 €</span> · jours de trading</div>
         <div class="graph-legend">
-          <div class="legend-item"><div class="legend-dot" style="background:#00e676"></div>Optimiste</div>
-          <div class="legend-item"><div class="legend-dot" style="background:#ffb74d"></div>Safe</div>
-          <div class="legend-item"><div class="legend-dot" style="background:#ff5252"></div>Pessimiste</div>
+          <div class="legend-item"><div class="legend-dot" style="background:var(--green)"></div>Optimiste</div>
+          <div class="legend-item"><div class="legend-dot" style="background:var(--amber)"></div>Safe</div>
+          <div class="legend-item"><div class="legend-dot" style="background:var(--red)"></div>Pessimiste</div>
         </div>
         <div style="position:relative;height:220px"><canvas id="treso-chart"></canvas></div>
       </div>
@@ -456,53 +459,134 @@ body { overflow-x: hidden; }
 <script>
 const SPLIT=0.9, DAYS_REQ=5, WIN_THR=150;
 
+// Default settings — stored separately so they persist correctly
+const DEFAULT_SETTINGS = { tresoBase:10500, fxRate:0.85, winPnl:150, lossPnl:230 };
+
 let scConfigs = [
-  { key:'opt',  label:'Optimiste',  cls:'opt',  color:'#00e676', pWin:1.0  },
-  { key:'safe', label:'Safe',       cls:'safe', color:'#ffb74d', pWin:2/3  },
-  { key:'pes',  label:'Pessimiste', cls:'pes',  color:'#ff5252', pWin:0.5  }
+  { key:'opt',  label:'Optimiste',  cls:'opt',  pWin:1.0 },
+  { key:'safe', label:'Safe',       cls:'safe', pWin:2/3 },
+  { key:'pes',  label:'Pessimiste', cls:'pes',  pWin:0.5 }
 ];
 
 let accounts=[], nextId=1, showHist={}, confirmDelete={}, editingId=null, chartInstance=null;
+let currentTheme='dark';
 
-function save() {
-  try { localStorage.setItem('pft_v8', JSON.stringify({accounts,nextId,scConfigs})); } catch(e) {}
-}
-function load() {
+// ── PERSISTENCE ──
+function saveAll() {
+  const settings = {
+    tresoBase: parseFloat(document.getElementById('treso-base').value)||10500,
+    fxRate:    parseFloat(document.getElementById('fx-rate').value)||0.85,
+    winPnl:    parseFloat(document.getElementById('p-win-pnl').value)||150,
+    lossPnl:   parseFloat(document.getElementById('p-loss-pnl').value)||230,
+  };
   try {
-    const d=localStorage.getItem('pft_v8');
-    if(d){const p=JSON.parse(d);accounts=p.accounts||[];nextId=p.nextId||1;if(p.scConfigs)scConfigs=p.scConfigs;return;}
-    const old=localStorage.getItem('pft_v7')||localStorage.getItem('pft_v6')||localStorage.getItem('pft_v4');
-    if(old){const p=JSON.parse(old);accounts=p.accounts||[];nextId=p.nextId||1;}
+    localStorage.setItem('pft_v9', JSON.stringify({accounts, nextId, scConfigs, settings, theme: currentTheme}));
   } catch(e) {}
 }
 
+function loadAll() {
+  try {
+    const d = localStorage.getItem('pft_v9');
+    if (d) {
+      const p = JSON.parse(d);
+      accounts  = p.accounts  || [];
+      nextId    = p.nextId    || 1;
+      if (p.scConfigs) scConfigs = p.scConfigs;
+      if (p.theme) currentTheme = p.theme;
+      // Apply saved settings to inputs AFTER DOM ready
+      const s = p.settings || DEFAULT_SETTINGS;
+      document.getElementById('treso-base').value = s.tresoBase ?? 10500;
+      document.getElementById('fx-rate').value    = s.fxRate    ?? 0.85;
+      document.getElementById('p-win-pnl').value  = s.winPnl    ?? 150;
+      document.getElementById('p-loss-pnl').value = s.lossPnl   ?? 230;
+      return;
+    }
+    // Migrate from older versions
+    const old = localStorage.getItem('pft_v8')||localStorage.getItem('pft_v7')||localStorage.getItem('pft_v6');
+    if (old) { const p=JSON.parse(old); accounts=p.accounts||[]; nextId=p.nextId||1; }
+    // Apply defaults
+    document.getElementById('fx-rate').value = DEFAULT_SETTINGS.fxRate;
+  } catch(e) {
+    document.getElementById('fx-rate').value = DEFAULT_SETTINGS.fxRate;
+  }
+}
+
+// ── THEME ──
+function applyTheme(theme) {
+  document.documentElement.setAttribute('data-theme', theme);
+  document.getElementById('theme-btn').textContent = theme === 'dark' ? '☀️' : '🌙';
+  currentTheme = theme;
+}
+function toggleTheme() {
+  applyTheme(currentTheme === 'dark' ? 'light' : 'dark');
+  saveAll();
+  if (chartInstance) renderChart();
+}
+
+// ── COLLAPSIBLE ──
+function toggleParams() {
+  const header = document.getElementById('params-header');
+  const body   = document.getElementById('params-body');
+  header.classList.toggle('open');
+  body.classList.toggle('open');
+}
+
+// ── HELPERS ──
 function getWinPnl()  { return parseFloat(document.getElementById('p-win-pnl').value)||150; }
 function getLossPnl() { return parseFloat(document.getElementById('p-loss-pnl').value)||230; }
 function getBase()    { return parseFloat(document.getElementById('treso-base').value)||10500; }
-function getFx()      { return parseFloat(document.getElementById('fx-rate').value)||0.93; }
-
-function getEsp(sc) {
-  return sc.pWin * getWinPnl() + (1-sc.pWin) * (-getLossPnl());
-}
-function espLabel(sc) {
-  const e=getEsp(sc), sign=e>=0?'+':'';
-  return `${Math.round(sc.pWin*100)}% gagnants → E = ${sign}${e.toFixed(1)} $/j`;
+function getFx()      { return parseFloat(document.getElementById('fx-rate').value)||0.85; }
+function getScColor(sc) {
+  const isDark = currentTheme === 'dark';
+  if (sc.key==='opt')  return isDark ? '#00e676' : '#00966e';
+  if (sc.key==='safe') return isDark ? '#ffb74d' : '#d08000';
+  return isDark ? '#ff5252' : '#d93025';
 }
 
-function fmt(n)     { return Math.round(n).toLocaleString('fr-FR'); }
-function fmtSign(n) { const r=Math.round(n); return(r>=0?'+':'')+r.toLocaleString('fr-FR'); }
+function getEsp(sc)    { return sc.pWin * getWinPnl() + (1-sc.pWin) * (-getLossPnl()); }
+function espLabel(sc)  { const e=getEsp(sc),s=e>=0?'+':''; return `${Math.round(sc.pWin*100)}% gagnants · E=${s}${e.toFixed(0)} $/j`; }
+function fmt(n)        { return Math.round(n).toLocaleString('fr-FR'); }
+function fmtSign(n)    { const r=Math.round(n); return(r>=0?'+':'')+r.toLocaleString('fr-FR'); }
 
+function onSettingChange() { saveAll(); renderTreso(); }
+
+// ── SCENARIO PARAMS (inside collapsible) ──
+function renderScenarioParams() {
+  const block = document.getElementById('scenario-params');
+  if (!block) return;
+  block.innerHTML = scConfigs.map(sc => `
+    <div class="sc-params-row">
+      <div class="sc-dot" style="background:${getScColor(sc)}"></div>
+      <span class="sc-params-name ${sc.cls}">${sc.label}</span>
+      <input class="setting-input" type="number" id="sc-pwiz-${sc.key}"
+        value="${Math.round(sc.pWin*100)}" min="1" max="100" step="1"
+        style="width:72px" oninput="updateScenario('${sc.key}')">
+      <span class="setting-unit">%</span>
+      <span class="sc-params-esp" id="sc-esp-${sc.key}">${espLabel(sc)}</span>
+    </div>`).join('');
+}
+
+function updateScenario(key) {
+  const sc  = scConfigs.find(s=>s.key===key);
+  const val = parseFloat(document.getElementById(`sc-pwiz-${key}`).value);
+  if (isNaN(val)||val<1||val>100) return;
+  sc.pWin = val/100;
+  document.getElementById(`sc-esp-${key}`).textContent = espLabel(sc);
+  saveAll(); renderChart(); renderScenarios(); updateNavPill();
+}
+
+// ── CALC ──
 function calcPayout(acc, sc, fx) {
-  const daysLeft=DAYS_REQ-acc.gainDays;
-  const threshold=(acc.hasPayout&&acc.payoutBalance>0)?acc.payoutBalance:0;
-  const tradingDays=daysLeft/sc.pWin;
-  const finalBalance=acc.balance+tradingDays*getEsp(sc);
-  if(finalBalance<=threshold) return null;
+  const daysLeft    = DAYS_REQ - acc.gainDays;
+  const threshold   = (acc.hasPayout && acc.payoutBalance>0) ? acc.payoutBalance : 0;
+  const tradingDays = daysLeft / sc.pWin;
+  const finalBal    = acc.balance + tradingDays * getEsp(sc);
+  if (finalBal <= threshold) return null;
   return {
-    daysLeft, tradingDays:Math.round(tradingDays*10)/10,
-    finalBalance:Math.round(finalBalance),
-    balanceAfter:Math.round(finalBalance*0.5),
-    payoutEur:Math.round(finalBalance*0.5*SPLIT*fx)
+    daysLeft, tradingDays: Math.round(tradingDays*10)/10,
+    finalBalance: Math.round(finalBal),
+    balanceAfter: Math.round(finalBal*0.5),
+    payoutEur: Math.round(finalBal*0.5*SPLIT*fx)
   };
 }
 
@@ -520,49 +604,22 @@ function buildCurve(sc, base, fx) {
   return curve;
 }
 
-function updateNavPill() {
-  const fx=getFx(), base=getBase();
-  const sc=scConfigs[1]; // safe scenario for nav
-  let total=base;
-  accounts.forEach(acc=>{const r=calcPayout(acc,sc,fx);if(r)total+=r.payoutEur;});
-  document.getElementById('nav-pill').textContent=fmt(total)+' €';
-}
-
-function renderScenarioParams() {
-  const block=document.getElementById('scenario-params');
-  if(!block) return;
-  block.innerHTML=scConfigs.map(sc=>`
-    <div class="sc-params-row">
-      <div class="sc-dot" style="background:${sc.color};box-shadow:0 0 6px ${sc.color}44"></div>
-      <span class="sc-params-name ${sc.cls}">${sc.label}</span>
-      <input class="setting-input" type="number" id="sc-pwiz-${sc.key}"
-        value="${Math.round(sc.pWin*100)}" min="1" max="100" step="1"
-        style="width:72px" oninput="updateScenario('${sc.key}')">
-      <span class="setting-unit">%</span>
-      <span class="sc-params-esp" id="sc-esp-${sc.key}">${espLabel(sc)}</span>
-    </div>`).join('');
-}
-
-function updateScenario(key) {
-  const sc=scConfigs.find(s=>s.key===key);
-  const val=parseFloat(document.getElementById(`sc-pwiz-${key}`).value);
-  if(isNaN(val)||val<1||val>100) return;
-  sc.pWin=val/100;
-  document.getElementById(`sc-esp-${key}`).textContent=espLabel(sc);
-  save(); renderChart(); renderScenarios(); updateNavPill();
-}
-
+// ── CHART ──
 function renderChart() {
   const base=getBase(), fx=getFx();
+  const isDark = currentTheme==='dark';
+  const gridColor = isDark ? 'rgba(0,230,118,0.04)' : 'rgba(0,0,0,0.05)';
+  const tickColor = isDark ? '#354555' : '#a0b0bc';
   const ctx=document.getElementById('treso-chart');
   if(!ctx) return;
   document.getElementById('graph-base-label').textContent=fmt(base)+' €';
   const datasets=scConfigs.map(sc=>{
     const curve=buildCurve(sc,base,fx);
-    return{label:sc.label,data:curve,borderColor:sc.color,backgroundColor:'transparent',
+    const color=getScColor(sc);
+    return{label:sc.label,data:curve,borderColor:color,backgroundColor:'transparent',
       borderWidth:2,tension:0,
       pointRadius:curve.map((p,i)=>i>0&&curve[i-1]&&p.y!==curve[i-1].y?5:0),
-      pointBackgroundColor:sc.color,pointBorderColor:'#080b0f',pointBorderWidth:2};
+      pointBackgroundColor:color,pointBorderColor:isDark?'#080b0f':'#f2f4f6',pointBorderWidth:2};
   });
   if(chartInstance) chartInstance.destroy();
   chartInstance=new Chart(ctx,{
@@ -572,22 +629,30 @@ function renderChart() {
       interaction:{mode:'index',intersect:false},
       plugins:{
         legend:{display:false},
-        tooltip:{backgroundColor:'#0e1318',borderColor:'rgba(0,230,118,0.15)',borderWidth:1,
-          titleColor:'#6b8099',bodyColor:'#e8f0fe',padding:12,
-          titleFont:{family:'DM Mono',size:11},bodyFont:{family:'DM Mono',size:12},
-          callbacks:{title:items=>'Jour '+items[0].parsed.x,label:item=>' '+item.dataset.label+' : '+fmt(item.parsed.y)+' €'}}
+        tooltip:{
+          backgroundColor:isDark?'#0e1318':'#fff',
+          borderColor:isDark?'rgba(0,230,118,0.15)':'rgba(0,0,0,0.1)',
+          borderWidth:1,
+          titleColor:isDark?'#6b8099':'#5a6a78',
+          bodyColor:isDark?'#e8f0fe':'#111820',
+          padding:12,
+          titleFont:{family:'DM Mono',size:11},
+          bodyFont:{family:'DM Mono',size:12},
+          callbacks:{title:i=>'Jour '+i[0].parsed.x,label:i=>' '+i.dataset.label+' : '+fmt(i.parsed.y)+' €'}
+        }
       },
       scales:{
-        x:{type:'linear',grid:{color:'rgba(0,230,118,0.04)'},
-          title:{display:true,text:'jours de trading',color:'#354555',font:{family:'DM Mono',size:10}},
-          ticks:{color:'#354555',font:{family:'DM Mono',size:10},maxTicksLimit:8}},
-        y:{grid:{color:'rgba(0,230,118,0.04)'},
-          ticks:{color:'#354555',font:{family:'DM Mono',size:10},maxTicksLimit:6,callback:v=>fmt(v)+' €'}}
+        x:{type:'linear',grid:{color:gridColor},
+          title:{display:true,text:'jours de trading',color:tickColor,font:{family:'DM Mono',size:10}},
+          ticks:{color:tickColor,font:{family:'DM Mono',size:10},maxTicksLimit:8}},
+        y:{grid:{color:gridColor},
+          ticks:{color:tickColor,font:{family:'DM Mono',size:10},maxTicksLimit:6,callback:v=>fmt(v)+' €'}}
       }
     }
   });
 }
 
+// ── SCENARIOS ──
 function renderScenarios() {
   const base=getBase(), fx=getFx();
   const block=document.getElementById('scenarios-block');
@@ -606,7 +671,7 @@ function renderScenarios() {
         rowsHTML+=`<div class="sc-account-row">
           <div>
             <div class="sc-acc-left">${acc.firm}</div>
-            <div class="sc-acc-detail">~${r.tradingDays}j · finale ${fmt(r.finalBalance)} $ · après payout ${fmt(r.balanceAfter)} $</div>
+            <div class="sc-acc-detail">~${r.tradingDays}j · finale ${fmt(r.finalBalance)} $ · après ${fmt(r.balanceAfter)} $</div>
           </div>
           <div class="sc-acc-val pos">+${fmt(r.payoutEur)} €</div>
         </div>`;
@@ -618,13 +683,14 @@ function renderScenarios() {
       }
     });
     const total=base+totalEur;
-    const accentColor=sc.color;
+    const color=getScColor(sc);
     html+=`<div class="scenario-card">
-      <div class="sc-accent" style="background:linear-gradient(90deg,transparent,${accentColor}55,transparent)"></div>
-      <div class="sc-name ${sc.cls}">${sc.label}</div>
+      <div class="sc-accent" style="background:linear-gradient(90deg,transparent,${color}66,transparent)"></div>
+      <div class="sc-header">
+        <div class="sc-name ${sc.cls}">${sc.label}</div>
+      </div>
       <div class="sc-esp">${espLabel(sc)}</div>
-      <div class="sc-base-row"><span class="sc-base-label">Tréso de départ</span><span class="sc-base-val">${fmt(base)} €</span></div>
-      ${rowsHTML}
+      <div class="sc-rows">${rowsHTML}</div>
       <div class="sc-total-row">
         <span class="sc-total-label">Tréso après payout(s)</span>
         <span class="sc-total-val ${total>base?'green':'amber'}">${fmt(total)} €</span>
@@ -634,10 +700,16 @@ function renderScenarios() {
   block.innerHTML=html;
 }
 
-function renderTreso() {
-  renderScenarioParams(); renderChart(); renderScenarios(); updateNavPill();
+function renderTreso() { renderScenarioParams(); renderChart(); renderScenarios(); updateNavPill(); }
+
+function updateNavPill() {
+  const fx=getFx(), base=getBase();
+  let total=base;
+  accounts.forEach(acc=>{const r=calcPayout(acc,scConfigs[1],fx);if(r)total+=r.payoutEur;});
+  document.getElementById('nav-pill').textContent=fmt(total)+' €';
 }
 
+// ── TAB SWITCH ──
 function switchTab(tab) {
   document.querySelectorAll('.tab').forEach((t,i)=>t.classList.toggle('active',(i===0&&tab==='comptes')||(i===1&&tab==='treso')));
   document.getElementById('page-comptes').classList.toggle('active',tab==='comptes');
@@ -645,6 +717,7 @@ function switchTab(tab) {
   if(tab==='treso') setTimeout(renderTreso,50);
 }
 
+// ── ACCOUNTS ──
 function renderAccounts() {
   const list=document.getElementById('accounts-list');
   if(accounts.length===0){
@@ -655,8 +728,6 @@ function renderAccounts() {
   accounts.forEach(acc=>{
     const threshold=(acc.hasPayout&&acc.payoutBalance>0)?acc.payoutBalance:0;
     const canPayout=acc.gainDays>=DAYS_REQ&&acc.balance>threshold;
-    const bCls=canPayout?'ready':'progress';
-    const bLbl=canPayout?'PAYOUT DISPO':acc.gainDays+'/5 jours';
     const dots=Array.from({length:DAYS_REQ},(_,i)=>
       `<div class="dot${i<acc.gainDays?' win':''}">${i<acc.gainDays?'✓':i+1}</div>`
     ).join('');
@@ -675,7 +746,7 @@ function renderAccounts() {
     <div class="card">
       <div class="card-top">
         <div><div class="firm-name">${acc.firm}</div><div class="firm-sub">cycle ${acc.cycleCount||1} · 90% split</div></div>
-        <span class="badge badge-${bCls}">${bLbl}</span>
+        <span class="badge badge-${canPayout?'ready':'progress'}">${canPayout?'PAYOUT DISPO':acc.gainDays+'/5 jours'}</span>
       </div>
       ${acc.hasPayout?`<div class="cycle-info">Seuil : > ${fmt(acc.payoutBalance)} $ · P&L cycle : ${fmtSign(acc.balance-acc.payoutBalance)} $</div>`:''}
       <div class="stats-grid">
@@ -690,8 +761,8 @@ function renderAccounts() {
       <div class="entry-row">
         <input class="entry-input" type="number" id="${iid}" placeholder="P&L du jour ($)" step="1">
         <button class="btn-validate" onclick="submitEntry(${acc.id},'${iid}')">Valider</button>
-        <button class="btn-icon" onclick="openModal(${acc.id})" aria-label="Modifier"><i class="ti ti-edit" style="font-size:16px" aria-hidden="true"></i></button>
-        <button class="btn-icon danger" onclick="askDelete(${acc.id})" aria-label="Supprimer"><i class="ti ti-trash" style="font-size:16px" aria-hidden="true"></i></button>
+        <button class="btn-icon" onclick="openModal(${acc.id})" aria-label="Modifier"><i class="ti ti-edit" style="font-size:15px" aria-hidden="true"></i></button>
+        <button class="btn-icon danger" onclick="askDelete(${acc.id})" aria-label="Supprimer"><i class="ti ti-trash" style="font-size:15px" aria-hidden="true"></i></button>
       </div>
       ${cd?`<div class="delete-confirm"><span>Supprimer ce compte ?</span><button class="btn-confirm-no" onclick="cancelDelete(${acc.id})">Non</button><button class="btn-confirm-yes" onclick="confirmDeleteAccount(${acc.id})">Supprimer</button></div>`:''}
       <button class="hist-toggle" onclick="toggleHist(${acc.id})">
@@ -714,7 +785,7 @@ function cancelDelete(id) { confirmDelete[id]=false; renderAccounts(); }
 function confirmDeleteAccount(id) {
   accounts=accounts.filter(a=>a.id!==id);
   delete confirmDelete[id];
-  save(); renderAccounts();
+  saveAll(); renderAccounts();
 }
 
 function submitEntry(id, iid) {
@@ -729,7 +800,7 @@ function submitEntry(id, iid) {
   const d=new Date();
   acc.history.unshift({date:d.toLocaleDateString('fr-FR',{day:'2-digit',month:'2-digit'}),val:Math.round(val),win:isWin,payout:false});
   inp.value='';
-  save(); renderAccounts();
+  saveAll(); renderAccounts();
 }
 
 function doPayout(id) {
@@ -741,7 +812,7 @@ function doPayout(id) {
   acc.history.unshift({date:d.toLocaleDateString('fr-FR',{day:'2-digit',month:'2-digit'}),payout:true,payoutEur,win:false});
   acc.hasPayout=true; acc.payoutBalance=newBalance;
   acc.cycleCount=(acc.cycleCount||1)+1; acc.gainDays=0; acc.balance=newBalance;
-  save(); renderAccounts();
+  saveAll(); renderAccounts();
 }
 
 function toggleHist(id) { showHist[id]=!showHist[id]; renderAccounts(); }
@@ -784,10 +855,13 @@ function saveAccount() {
   } else {
     accounts.push({id:nextId++,firm,balance,gainDays:days,hasPayout,payoutBalance:hasPayout?payoutBalance:0,cycleCount:hasPayout?2:1,history:[]});
   }
-  closeModal(); save(); renderAccounts();
+  closeModal(); saveAll(); renderAccounts();
 }
 
-load(); renderAccounts();
+// ── INIT ──
+loadAll();
+applyTheme(currentTheme);
+renderAccounts();
 </script>
 </body>
 </html>
