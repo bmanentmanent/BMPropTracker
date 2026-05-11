@@ -318,9 +318,21 @@ body{overflow-x:hidden}
       <div class="section-label">Par prop firm</div>
       <div id="firm-stats"></div>
       <div class="section-label">Historique des payouts</div>
-      <div id="payout-archive"></div>
+      <div class="collapsible-header" id="payouts-header" onclick="toggleSection('payouts')">
+        <span class="collapsible-title"><i class="ti ti-cash"></i> Tous les payouts</span>
+        <i class="ti ti-chevron-down collapsible-chevron" id="payouts-chevron"></i>
+      </div>
+      <div class="collapsible-body" id="payouts-body" style="margin-bottom:12px">
+        <div style="padding:8px 4px 4px"><div id="payout-archive"></div></div>
+      </div>
       <div class="section-label">Comptes archivés</div>
-      <div id="archived-list"></div>
+      <div class="collapsible-header" id="archived-header" onclick="toggleSection('archived')">
+        <span class="collapsible-title"><i class="ti ti-archive"></i> Comptes clôturés</span>
+        <i class="ti ti-chevron-down collapsible-chevron" id="archived-chevron"></i>
+      </div>
+      <div class="collapsible-body" id="archived-body" style="margin-bottom:12px">
+        <div style="padding:8px 4px 4px"><div id="archived-list"></div></div>
+      </div>
     </div>
   </div>
 </div>
@@ -459,6 +471,10 @@ function toggleParams(){
   document.getElementById('params-header').classList.toggle('open');
   document.getElementById('params-body').classList.toggle('open');
 }
+function toggleSection(key){
+  document.getElementById(key+'-header').classList.toggle('open');
+  document.getElementById(key+'-body').classList.toggle('open');
+}
 
 // ── HELPERS ──
 function getWinPnl(){return parseFloat(document.getElementById('p-win-pnl').value)||150;}
@@ -573,6 +589,22 @@ function renderStats(){
   // Active accounts payout total
   const activePayoutTotal=accounts.reduce((s,acc)=>s+acc.history.filter(h=>h.payout).reduce((ss,h)=>ss+(h.payoutEur||0),0),0);
   const grandTotal=totalPayouts+activePayoutTotal;
+
+  // Payouts du mois en cours
+  const now=new Date();
+  const currentMonth=now.getMonth()+1; // 1-12
+  const currentYear=now.getFullYear();
+  function isCurrentMonth(dateStr){
+    // dateStr format: dd/mm
+    const parts=dateStr.split('/');
+    if(parts.length<2) return false;
+    const m=parseInt(parts[1]);
+    // We don't store year, so match on month only — acceptable approximation
+    return m===currentMonth;
+  }
+  const allPayouts=getAllPayouts();
+  const monthPayouts=allPayouts.filter(p=>isCurrentMonth(p.date));
+  const monthTotal=monthPayouts.reduce((s,p)=>s+(p.payoutEur||0),0);
   // Active win rates
   const activeWinRates=accounts.map(acc=>{
     const real=acc.history.filter(h=>!h.payout);
@@ -588,12 +620,12 @@ function renderStats(){
         <div class="stat-hero-label">Total encaissé (tous comptes)</div>
       </div>
       <div class="stat-hero">
-        <div class="stat-hero-val">${allArchived.length}</div>
-        <div class="stat-hero-label">Comptes archivés</div>
+        <div class="stat-hero-val" style="color:var(--green)">${fmt(monthTotal)} €</div>
+        <div class="stat-hero-label">Payouts ce mois-ci</div>
       </div>
       <div class="stat-hero">
-        <div class="stat-hero-val">${avgPayoutPerAccount>0?fmt(avgPayoutPerAccount)+' €':'—'}</div>
-        <div class="stat-hero-label">Payout moyen / compte</div>
+        <div class="stat-hero-val">${allArchived.length}</div>
+        <div class="stat-hero-label">Comptes archivés</div>
       </div>
       <div class="stat-hero">
         <div class="stat-hero-val">${liveAvgWinRate!==null?liveAvgWinRate+'%':'—'}</div>
@@ -867,8 +899,7 @@ function doPayout(id){
   acc.history.unshift({date:d.toLocaleDateString('fr-FR',{day:'2-digit',month:'2-digit'}),payout:true,payoutEur,win:false});
   acc.hasPayout=true; acc.payoutBalance=newBalance;
   acc.cycleCount=(acc.cycleCount||1)+1; acc.gainDays=0; acc.balance=newBalance;
-  // After payout, balanceMax resets to new balance (new cycle)
-  acc.balanceMax=newBalance;
+  // balanceMax stays — it's the all-time high, not reset on payout
   saveAll(); renderAccounts();
 }
 
