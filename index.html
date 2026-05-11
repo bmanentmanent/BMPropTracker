@@ -100,11 +100,11 @@ body { overflow-x: hidden; }
 }
 .theme-toggle {
   width: 34px; height: 34px; border-radius: 50%;
-  background: var(--bg3); border: 0.5px solid var(--border2);
+  background: var(--green-bg); border: 0.5px solid var(--border2);
   cursor: pointer; display: flex; align-items: center; justify-content: center;
-  font-size: 16px; transition: all 0.2s;
+  font-size: 17px; color: var(--green); transition: all 0.2s;
 }
-.theme-toggle:hover { border-color: var(--border3); }
+.theme-toggle:hover { border-color: var(--border3); background: var(--green-dim); }
 
 /* TABS */
 .tabs { display: flex; padding: 12px 20px 16px; gap: 8px; }
@@ -342,7 +342,7 @@ body { overflow-x: hidden; }
     </div>
     <div class="nav-right">
       <div class="nav-pill" id="nav-pill">— €</div>
-      <button class="theme-toggle" onclick="toggleTheme()" id="theme-btn" aria-label="Changer de thème">☀️</button>
+      <button class="theme-toggle" onclick="toggleTheme()" id="theme-btn" aria-label="Changer de thème"><i class="ti ti-sun" id="theme-icon"></i></button>
     </div>
   </div>
 
@@ -514,7 +514,8 @@ function loadAll() {
 // ── THEME ──
 function applyTheme(theme) {
   document.documentElement.setAttribute('data-theme', theme);
-  document.getElementById('theme-btn').textContent = theme === 'dark' ? '☀️' : '🌙';
+  const icon = document.getElementById('theme-icon');
+  if (icon) icon.className = theme === 'dark' ? 'ti ti-sun' : 'ti ti-moon';
   currentTheme = theme;
 }
 function toggleTheme() {
