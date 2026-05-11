@@ -109,6 +109,15 @@ body{overflow-x:hidden}
 .btn-hist-cancel{flex:1;padding:7px;background:var(--bg4);color:var(--text2);border:0.5px solid var(--border);border-radius:7px;font-size:11px;cursor:pointer;font-family:'Poppins',sans-serif}
 /* PAYOUT ARCHIVE */
 .payout-archive-item{display:flex;justify-content:space-between;align-items:center;padding:10px 14px;background:var(--bg2);border:0.5px solid var(--border);border-radius:12px;margin-bottom:8px;gap:8px}
+.net-month-card{background:var(--bg2);border:0.5px solid var(--border2);border-radius:16px;padding:16px 18px;margin-bottom:12px;position:relative;overflow:hidden;box-shadow:var(--shadow)}
+.net-month-card::before{content:'';position:absolute;top:0;left:0;right:0;height:1px;background:var(--card-top);opacity:0.6}
+.net-month-row{display:flex;justify-content:space-between;align-items:baseline;padding:5px 0;border-bottom:0.5px solid var(--border);font-size:12px}
+.net-month-row:last-of-type{border-bottom:none}
+.net-month-label{color:var(--text2)}
+.net-month-val{font-family:'DM Mono',monospace;font-weight:600}
+.net-month-total-row{display:flex;justify-content:space-between;align-items:baseline;padding-top:10px;margin-top:8px;border-top:0.5px solid var(--border2)}
+.net-month-total-label{font-size:12px;font-weight:600;color:var(--text2)}
+.net-month-total-val{font-size:22px;font-weight:700;font-family:'DM Mono',monospace}
 .payout-archive-left .pa-firm{font-size:12px;font-weight:600}
 .payout-archive-left .pa-date{font-size:10px;color:var(--text2);font-family:'DM Mono',monospace;margin-top:2px}
 .payout-archive-left .pa-status{font-size:9px;color:var(--text3);margin-top:1px}
@@ -315,6 +324,45 @@ body{overflow-x:hidden}
     <div class="section">
       <div class="section-label">Vue globale</div>
       <div id="global-stats"></div>
+      <div class="section-label">Résultat du mois</div>
+      <div id="net-month-block"></div>
+      <div class="collapsible-header" id="expenses-header" onclick="toggleSection('expenses')">
+        <span class="collapsible-title"><i class="ti ti-receipt"></i> Dépenses du mois</span>
+        <i class="ti ti-chevron-down collapsible-chevron" id="expenses-chevron"></i>
+      </div>
+      <div class="collapsible-body" id="expenses-body" style="margin-bottom:12px">
+        <div class="settings-inner" id="expenses-block">
+          <div class="setting-row">
+            <div class="setting-label">Évals Topstep<small>prix unitaire ($)</small></div>
+            <input class="setting-input" type="number" id="eval-price-Topstep" value="111" step="1" style="width:72px" oninput="saveExpenses();renderStats()">
+            <span class="setting-unit" style="margin:0 4px">×</span>
+            <input class="setting-input" type="number" id="eval-qty-Topstep" value="0" min="0" step="1" style="width:52px" oninput="saveExpenses();renderStats()">
+          </div>
+          <div class="setting-row">
+            <div class="setting-label">Évals Lucid<small>prix unitaire ($)</small></div>
+            <input class="setting-input" type="number" id="eval-price-Lucid" value="95" step="1" style="width:72px" oninput="saveExpenses();renderStats()">
+            <span class="setting-unit" style="margin:0 4px">×</span>
+            <input class="setting-input" type="number" id="eval-qty-Lucid" value="0" min="0" step="1" style="width:52px" oninput="saveExpenses();renderStats()">
+          </div>
+          <div class="setting-row">
+            <div class="setting-label">Évals MyFundedFX<small>prix unitaire ($)</small></div>
+            <input class="setting-input" type="number" id="eval-price-MyFundedFX" value="127" step="1" style="width:72px" oninput="saveExpenses();renderStats()">
+            <span class="setting-unit" style="margin:0 4px">×</span>
+            <input class="setting-input" type="number" id="eval-qty-MyFundedFX" value="0" min="0" step="1" style="width:52px" oninput="saveExpenses();renderStats()">
+          </div>
+          <div class="setting-row">
+            <div class="setting-label">Évals Tradeify<small>prix unitaire ($)</small></div>
+            <input class="setting-input" type="number" id="eval-price-Tradeify" value="98" step="1" style="width:72px" oninput="saveExpenses();renderStats()">
+            <span class="setting-unit" style="margin:0 4px">×</span>
+            <input class="setting-input" type="number" id="eval-qty-Tradeify" value="0" min="0" step="1" style="width:52px" oninput="saveExpenses();renderStats()">
+          </div>
+          <div class="setting-row">
+            <div class="setting-label">Frais annexes<small>compta, café, divers…</small></div>
+            <input class="setting-input" type="number" id="misc-expenses" value="0" step="1" style="width:88px" oninput="saveExpenses();renderStats()">
+            <span class="setting-unit">€</span>
+          </div>
+        </div>
+      </div>
       <div class="section-label">Par prop firm</div>
       <div id="firm-stats"></div>
       <div class="section-label">Historique des payouts</div>
@@ -466,7 +514,75 @@ function applyTheme(t){
 }
 function toggleTheme(){ applyTheme(currentTheme==='dark'?'light':'dark'); saveAll(); if(chartInstance) renderChart(); }
 
-// ── COLLAPSIBLE ──
+// ── EXPENSES ──
+const EVAL_FIRMS=['Topstep','Lucid','MyFundedFX','Tradeify'];
+const EVAL_DEFAULT_PRICES={Topstep:111,Lucid:95,MyFundedFX:127,Tradeify:98};
+
+function saveExpenses(){
+  const exp={misc:parseFloat(document.getElementById('misc-expenses').value)||0};
+  EVAL_FIRMS.forEach(f=>{
+    exp['price_'+f]=parseFloat(document.getElementById('eval-price-'+f).value)||EVAL_DEFAULT_PRICES[f];
+    exp['qty_'+f]=parseFloat(document.getElementById('eval-qty-'+f).value)||0;
+  });
+  try{const d=JSON.parse(localStorage.getItem('pft_v10')||'{}');d.expenses=exp;localStorage.setItem('pft_v10',JSON.stringify(d));}catch(e){}
+}
+
+function loadExpenses(){
+  try{
+    const d=JSON.parse(localStorage.getItem('pft_v10')||'{}');
+    const exp=d.expenses||{};
+    EVAL_FIRMS.forEach(f=>{
+      const priceEl=document.getElementById('eval-price-'+f);
+      const qtyEl=document.getElementById('eval-qty-'+f);
+      if(priceEl) priceEl.value=exp['price_'+f]??EVAL_DEFAULT_PRICES[f];
+      if(qtyEl)   qtyEl.value=exp['qty_'+f]??0;
+    });
+    const miscEl=document.getElementById('misc-expenses');
+    if(miscEl) miscEl.value=exp.misc??0;
+  }catch(e){}
+}
+
+function getExpensesEur(){
+  const fx=getFx();
+  let totalUsd=0;
+  EVAL_FIRMS.forEach(f=>{
+    const price=parseFloat(document.getElementById('eval-price-'+f)?.value)||EVAL_DEFAULT_PRICES[f];
+    const qty=parseFloat(document.getElementById('eval-qty-'+f)?.value)||0;
+    totalUsd+=price*qty;
+  });
+  const evalEur=Math.round(totalUsd*fx);
+  const misc=parseFloat(document.getElementById('misc-expenses')?.value)||0;
+  return{evalEur,misc,totalEur:evalEur+misc};
+}
+
+function renderNetMonth(monthTotal){
+  const block=document.getElementById('net-month-block');
+  if(!block) return;
+  const {evalEur,misc,totalEur}=getExpensesEur();
+  const net=monthTotal-totalEur;
+  const netColor=net>=0?'var(--green)':'var(--red)';
+
+  // Eval breakdown
+  const evalRows=EVAL_FIRMS.map(f=>{
+    const price=parseFloat(document.getElementById('eval-price-'+f)?.value)||EVAL_DEFAULT_PRICES[f];
+    const qty=parseFloat(document.getElementById('eval-qty-'+f)?.value)||0;
+    if(qty===0) return '';
+    const eur=Math.round(price*qty*getFx());
+    return `<div class="net-month-row"><span class="net-month-label">Évals ${f} (${qty}×${price}$)</span><span class="net-month-val neg">−${fmt(eur)} €</span></div>`;
+  }).join('');
+
+  block.innerHTML=`
+  <div class="net-month-card">
+    <div style="font-size:12px;font-weight:600;color:var(--text2);margin-bottom:10px">Résultat du mois</div>
+    <div class="net-month-row"><span class="net-month-label">Payouts encaissés</span><span class="net-month-val pos">+${fmt(monthTotal)} €</span></div>
+    ${evalRows}
+    ${misc>0?`<div class="net-month-row"><span class="net-month-label">Frais annexes</span><span class="net-month-val neg">−${fmt(misc)} €</span></div>`:''}
+    <div class="net-month-total-row">
+      <span class="net-month-total-label">Bénéfice net</span>
+      <span class="net-month-total-val" style="color:${netColor}">${net>=0?'+':'−'}${fmt(Math.abs(net))} €</span>
+    </div>
+  </div>`;
+}
 function toggleParams(){
   document.getElementById('params-header').classList.toggle('open');
   document.getElementById('params-body').classList.toggle('open');
@@ -493,14 +609,14 @@ function fmt(n){
   const s=Math.round(Math.abs(n)).toString();
   const groups=[];
   for(let i=s.length;i>0;i-=3) groups.unshift(s.slice(Math.max(0,i-3),i));
-  return (n<0?'−':'')+groups.join('\u2009');
+  return (n<0?'−':'')+groups.join(',');
 }
 function fmtSign(n){
   const r=Math.round(n);
   const s=Math.abs(r).toString();
   const groups=[];
   for(let i=s.length;i>0;i-=3) groups.unshift(s.slice(Math.max(0,i-3),i));
-  return (r>=0?'+':'−')+groups.join('\u2009');
+  return (r>=0?'+':'−')+groups.join(',');
 }
 function onSettingChange(){ saveAll(); renderTreso(); }
 
@@ -616,6 +732,7 @@ function renderStats(){
   const allPayouts=getAllPayouts();
   const monthPayouts=allPayouts.filter(p=>isCurrentMonth(p.date));
   const monthTotal=monthPayouts.reduce((s,p)=>s+(p.payoutEur||0),0);
+  renderNetMonth(monthTotal);
   // Active win rates
   const activeWinRates=accounts.map(acc=>{
     const real=acc.history.filter(h=>!h.payout);
@@ -1122,6 +1239,8 @@ function saveAccount(){
 loadAll();
 applyTheme(currentTheme);
 renderAccounts();
+// Load expenses after DOM ready (inputs exist)
+setTimeout(loadExpenses, 0);
 </script>
 </body>
 </html>
