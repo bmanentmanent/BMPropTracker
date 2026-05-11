@@ -489,8 +489,19 @@ function getScColor(sc){
   if(sc.key==='safe') return d?'#ffb74d':'#d08000';
   return d?'#ff5252':'#d93025';
 }
-function fmt(n){ return Math.round(n).toLocaleString('fr-FR').replace(/\u00a0|\u0020/g,'\u202f'); }
-function fmtSign(n){ const r=Math.round(n); return(r>=0?'+':'−')+Math.abs(r).toLocaleString('fr-FR').replace(/\u00a0|\u0020/g,'\u202f'); }
+function fmt(n){
+  const s=Math.round(Math.abs(n)).toString();
+  const groups=[];
+  for(let i=s.length;i>0;i-=3) groups.unshift(s.slice(Math.max(0,i-3),i));
+  return (n<0?'−':'')+groups.join('\u202f');
+}
+function fmtSign(n){
+  const r=Math.round(n);
+  const s=Math.abs(r).toString();
+  const groups=[];
+  for(let i=s.length;i>0;i-=3) groups.unshift(s.slice(Math.max(0,i-3),i));
+  return (r>=0?'+':'−')+groups.join('\u202f');
+}
 function onSettingChange(){ saveAll(); renderTreso(); }
 
 // ── SCENARIO PARAMS ──
