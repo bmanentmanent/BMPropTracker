@@ -150,6 +150,8 @@ body { overflow-x: hidden; }
 .stat-val { font-size: 16px; font-weight: 700; font-family: 'DM Mono', monospace; }
 .stat-val.pos     { color: var(--green); }
 .stat-val.neutral { color: var(--text); }
+.stat-val.amber   { color: var(--amber); }
+.stat-val.neg     { color: var(--red); }
 
 /* DOTS */
 .dots-row { margin-bottom: 16px; }
@@ -204,6 +206,9 @@ body { overflow-x: hidden; }
 
 /* HISTORY */
 .hist-toggle { font-size: 11px; color: var(--text3); cursor: pointer; background: none; border: none; display: flex; align-items: center; gap: 4px; padding: 2px 0; }
+.hist-undo-row { display: flex; align-items: center; justify-content: space-between; padding: 8px 0 10px; border-bottom: 0.5px solid var(--border); margin-bottom: 4px; }
+.btn-undo { padding: 5px 12px; background: var(--amber-bg); border: 0.5px solid rgba(208,128,0,0.25); border-radius: 8px; color: var(--amber); font-size: 11px; font-weight: 600; cursor: pointer; font-family: 'Poppins', sans-serif; white-space: nowrap; }
+.btn-undo:active { opacity: 0.7; }
 .hist-list { margin-top: 12px; border-top: 0.5px solid var(--border); padding-top: 12px; }
 .hist-item { display: flex; justify-content: space-between; align-items: center; padding: 6px 0; border-bottom: 0.5px solid var(--border); font-size: 11px; }
 .hist-item:last-child { border-bottom: none; }
@@ -733,14 +738,31 @@ function renderAccounts() {
       `<div class="dot${i<acc.gainDays?' win':''}">${i<acc.gainDays?'✓':i+1}</div>`
     ).join('');
     const hs=showHist[acc.id], cd=confirmDelete[acc.id];
+
+    // Win rate from real history (exclude payout events)
+    const realDays = acc.history.filter(h=>!h.payout);
+    const winDays  = realDays.filter(h=>h.win).length;
+    const totalDays= realDays.length;
+    const winRate  = totalDays>0 ? Math.round(winDays/totalDays*100) : null;
+    const winRateColor = winRate===null ? 'neutral' : winRate>=66 ? 'pos' : winRate>=40 ? 'amber' : 'neg';
+
+    // Last non-payout entry for undo
+    const lastEntry = acc.history.find(h=>!h.payout);
+
     let hHTML='';
     if(hs&&acc.history.length>0){
-      hHTML=`<div class="hist-list">${acc.history.slice(0,15).map(h=>
+      hHTML=`<div class="hist-list">
+        ${lastEntry?`<div class="hist-undo-row">
+          <span style="font-size:11px;color:var(--text3)">Dernière entrée : <span style="color:var(--text2)">${lastEntry.val>=0?'+':''}${lastEntry.val} $</span></span>
+          <button class="btn-undo" onclick="undoLast(${acc.id})"><i class="ti ti-arrow-back-up" style="font-size:13px;vertical-align:-2px;margin-right:4px"></i>Annuler</button>
+        </div>`:''}
+        ${acc.history.slice(0,15).map(h=>
         `<div class="hist-item">
           <span class="hist-date">${h.date}</span>
           <span class="hist-val ${h.payout?'blue':h.val>=0?'pos':'neg'}">${h.payout?'PAYOUT':fmtSign(h.val)+' $'}</span>
           <span class="hist-tag ${h.payout?'payout':h.win?'win':'loss'}">${h.payout?'+'+fmt(h.payoutEur)+' €':h.win?'+1 jour':'—'}</span>
-        </div>`).join('')}</div>`;
+        </div>`).join('')}
+      </div>`;
     }
     const iid=`inp-${acc.id}`;
     list.innerHTML+=`
@@ -753,6 +775,8 @@ function renderAccounts() {
       <div class="stats-grid">
         <div class="stat"><div class="stat-label">Balance</div><div class="stat-val neutral">${fmt(acc.balance)} $</div></div>
         <div class="stat"><div class="stat-label">Payout estimé</div><div class="stat-val pos">+${fmt(acc.balance*0.5*SPLIT*getFx())} €</div></div>
+        <div class="stat"><div class="stat-label">Jours tradés</div><div class="stat-val neutral">${totalDays}</div></div>
+        <div class="stat"><div class="stat-label">Taux de réussite</div><div class="stat-val ${winRateColor}">${winRate!==null?winRate+'%':'—'}</div></div>
       </div>
       <div class="dots-row">
         <div class="dots-label">Jours de gain — ${acc.gainDays}/${DAYS_REQ} · seuil ${getWinPnl()} $</div>
@@ -817,6 +841,22 @@ function doPayout(id) {
 }
 
 function toggleHist(id) { showHist[id]=!showHist[id]; renderAccounts(); }
+
+function undoLast(id) {
+  const acc = accounts.find(a=>a.id===id);
+  if (!acc) return;
+  // Find index of last non-payout entry
+  const idx = acc.history.findIndex(h=>!h.payout);
+  if (idx === -1) return;
+  const entry = acc.history[idx];
+  // Reverse balance
+  acc.balance = Math.round((acc.balance - entry.val) * 100) / 100;
+  // Reverse gain day if it was a win
+  if (entry.win) acc.gainDays = Math.max(0, acc.gainDays - 1);
+  // Remove from history
+  acc.history.splice(idx, 1);
+  saveAll(); renderAccounts();
+}
 function togglePayoutField() {
   document.getElementById('payout-balance-group').style.display=document.getElementById('f-has-payout').checked?'block':'none';
 }
