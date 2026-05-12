@@ -908,6 +908,7 @@ function renderAccounts(){
     const dots=Array.from({length:DAYS_REQ},(_,i)=>`<div class="dot${i<acc.gainDays?' win':''}">${i<acc.gainDays?'✓':i+1}</div>`).join('');
     const realDays=acc.history.filter(h=>!h.payout);
     const winDays=realDays.filter(h=>h.win).length;
+    const payoutEvents=acc.history.filter(h=>h.payout);
     const winRate=realDays.length>0?Math.round(winDays/realDays.length*100):null;
     const wrColor=winRate===null?'neutral':winRate>=66?'pos':winRate>=40?'amber':'neg';
     const lastEntry=acc.history.find(h=>!h.payout);
@@ -959,6 +960,7 @@ function renderAccounts(){
         <div class="stat"><div class="stat-label">Payout estimé</div><div class="stat-val pos">+${fmt(acc.balance*0.5*SPLIT*getFx())} €</div></div>
         <div class="stat"><div class="stat-label">Jours tradés</div><div class="stat-val neutral">${realDays.length}</div></div>
         <div class="stat"><div class="stat-label">Taux de réussite</div><div class="stat-val ${wrColor}">${winRate!==null?winRate+'%':'—'}</div></div>
+        ${payoutEvents.length>0?`<div class="stat" style="grid-column:1/-1;display:flex;justify-content:space-between;align-items:center"><div><div class="stat-label">Payouts encaissés</div><div style="font-size:10px;color:var(--text3);margin-top:2px">${payoutEvents.length} payout${payoutEvents.length>1?'s':''}</div></div><div class="stat-val pos">+${fmt(payoutEvents.reduce((s,h)=>s+(h.payoutEur||0),0))} €</div></div>`:''}
       </div>
       <div class="dd-bar-wrap">
         <div class="dd-bar-labels"><span>Drawdown restant</span><span>${fmt(drawdownLeft)} $ / ${fmt(drawdownRange)} $</span></div>
