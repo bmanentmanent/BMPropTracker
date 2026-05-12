@@ -519,18 +519,20 @@ const EVAL_FIRMS=['Topstep','Lucid','MyFundedFX','Tradeify'];
 const EVAL_DEFAULT_PRICES={Topstep:111,Lucid:95,MyFundedFX:127,Tradeify:98};
 
 function saveExpenses(){
-  const exp={misc:parseFloat(document.getElementById('misc-expenses').value)||0};
-  EVAL_FIRMS.forEach(f=>{
-    exp['price_'+f]=parseFloat(document.getElementById('eval-price-'+f).value)||EVAL_DEFAULT_PRICES[f];
-    exp['qty_'+f]=parseFloat(document.getElementById('eval-qty-'+f).value)||0;
-  });
-  try{const d=JSON.parse(localStorage.getItem('pft_v10')||'{}');d.expenses=exp;localStorage.setItem('pft_v10',JSON.stringify(d));}catch(e){}
+  try{
+    const exp={misc:parseFloat(document.getElementById('misc-expenses').value)||0};
+    EVAL_FIRMS.forEach(f=>{
+      exp['price_'+f]=parseFloat(document.getElementById('eval-price-'+f).value)||EVAL_DEFAULT_PRICES[f];
+      exp['qty_'+f]=parseFloat(document.getElementById('eval-qty-'+f).value)||0;
+    });
+    localStorage.setItem('pft_expenses',JSON.stringify(exp));
+  }catch(e){}
 }
 
 function loadExpenses(){
   try{
-    const d=JSON.parse(localStorage.getItem('pft_v10')||'{}');
-    const exp=d.expenses||{};
+    const raw=localStorage.getItem('pft_expenses');
+    const exp=raw?JSON.parse(raw):{};
     EVAL_FIRMS.forEach(f=>{
       const priceEl=document.getElementById('eval-price-'+f);
       const qtyEl=document.getElementById('eval-qty-'+f);
@@ -544,14 +546,19 @@ function loadExpenses(){
 
 function getExpensesEur(){
   const fx=getFx();
+  let exp={};
+  try{const raw=localStorage.getItem('pft_expenses');if(raw)exp=JSON.parse(raw);}catch(e){}
   let totalUsd=0;
   EVAL_FIRMS.forEach(f=>{
-    const price=parseFloat(document.getElementById('eval-price-'+f)?.value)||EVAL_DEFAULT_PRICES[f];
-    const qty=parseFloat(document.getElementById('eval-qty-'+f)?.value)||0;
+    const priceEl=document.getElementById('eval-price-'+f);
+    const qtyEl=document.getElementById('eval-qty-'+f);
+    const price=priceEl?parseFloat(priceEl.value)||(exp['price_'+f]||EVAL_DEFAULT_PRICES[f]):(exp['price_'+f]||EVAL_DEFAULT_PRICES[f]);
+    const qty=qtyEl?parseFloat(qtyEl.value)||(exp['qty_'+f]||0):(exp['qty_'+f]||0);
     totalUsd+=price*qty;
   });
   const evalEur=Math.round(totalUsd*fx);
-  const misc=parseFloat(document.getElementById('misc-expenses')?.value)||0;
+  const miscEl=document.getElementById('misc-expenses');
+  const misc=miscEl?parseFloat(miscEl.value)||0:(exp.misc||0);
   return{evalEur,misc,totalEur:evalEur+misc};
 }
 
