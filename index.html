@@ -109,7 +109,9 @@ body{overflow-x:hidden}
 .btn-hist-cancel{flex:1;padding:7px;background:var(--bg4);color:var(--text2);border:0.5px solid var(--border);border-radius:7px;font-size:11px;cursor:pointer;font-family:'Poppins',sans-serif}
 /* PAYOUT ARCHIVE */
 .payout-archive-item{display:flex;justify-content:space-between;align-items:center;padding:10px 14px;background:var(--bg2);border:0.5px solid var(--border);border-radius:12px;margin-bottom:8px;gap:8px}
-.summary-strip{background:var(--bg2);border:0.5px solid var(--border);border-radius:14px;padding:12px 14px;margin-bottom:4px;margin-top:16px}
+.sort-btn{padding:6px 12px;border:0.5px solid var(--border2);border-radius:20px;background:transparent;color:var(--text2);font-size:11px;font-weight:500;cursor:pointer;font-family:'Poppins',sans-serif;display:flex;align-items:center;gap:4px;transition:all 0.2s;white-space:nowrap}
+.sort-btn.active{background:var(--green-bg);color:var(--green);border-color:var(--border3)}
+.sort-btn i{font-size:12px}border:0.5px solid var(--border);border-radius:14px;padding:12px 14px;margin-bottom:4px;margin-top:16px}
 .summary-strip-title{font-size:9px;font-weight:700;letter-spacing:0.12em;color:var(--text3);text-transform:uppercase;margin-bottom:10px}
 .summary-row{display:flex;align-items:center;justify-content:space-between;padding:6px 0;border-bottom:0.5px solid var(--border)}
 .summary-row:last-child{border-bottom:none;padding-bottom:0}
@@ -274,6 +276,7 @@ body{overflow-x:hidden}
   <!-- COMPTES -->
   <div class="page active" id="page-comptes">
     <div class="section">
+      <div id="sort-controls" style="margin-top:16px;display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px"></div>
       <div id="accounts-summary"></div>
       <div class="section-label">Mes comptes</div>
       <div id="accounts-list"></div>
@@ -524,6 +527,39 @@ function applyTheme(t){
   currentTheme=t;
 }
 function toggleTheme(){ applyTheme(currentTheme==='dark'?'light':'dark'); saveAll(); if(chartInstance) renderChart(); }
+
+// ── SORT ──
+let sortKey='default', sortAsc=true;
+const SORT_OPTIONS=[
+  {key:'default',  label:'Ajout',      icon:'ti-clock'},
+  {key:'balance',  label:'Balance',    icon:'ti-currency-dollar'},
+  {key:'gainDays', label:'Jours gain', icon:'ti-calendar-check'},
+  {key:'traded',   label:'Ancienneté', icon:'ti-history'},
+];
+function getSortedAccounts(){
+  if(sortKey==='default') return sortAsc?[...accounts]:[...accounts].reverse();
+  return [...accounts].sort((a,b)=>{
+    let va,vb;
+    if(sortKey==='balance'){va=a.balance;vb=b.balance;}
+    else if(sortKey==='gainDays'){va=a.gainDays;vb=b.gainDays;}
+    else if(sortKey==='traded'){va=a.history.filter(h=>!h.payout).length;vb=b.history.filter(h=>!h.payout).length;}
+    return sortAsc?va-vb:vb-va;
+  });
+}
+function setSort(key){
+  if(sortKey===key) sortAsc=!sortAsc;
+  else{sortKey=key;sortAsc=true;}
+  renderAccounts();
+}
+function renderSortControls(){
+  const el=document.getElementById('sort-controls');
+  if(!el) return;
+  if(accounts.length===0){el.innerHTML='';return;}
+  el.innerHTML=SORT_OPTIONS.map(o=>`
+    <button class="sort-btn${sortKey===o.key?' active':''}" onclick="setSort('${o.key}')">
+      <i class="ti ${o.icon}"></i>${o.label}${sortKey===o.key?` <i class="ti ti-arrow-${sortAsc?'up':'down'}" style="font-size:10px"></i>`:''}
+    </button>`).join('');
+}
 
 // ── EXPENSES ──
 const EVAL_FIRMS=['Topstep','Lucid','MyFundedFX','Tradeify'];
@@ -902,10 +938,10 @@ function renderAccounts(){
   const list=document.getElementById('accounts-list');
   if(accounts.length===0){
     list.innerHTML=`<div class="empty"><i class="ti ti-chart-line"></i>Aucun compte.<br>Ajoute ton premier compte prop firm.</div>`;
-    updateNav(); renderSummary(); return;
+    updateNav(); renderSummary(); renderSortControls(); return;
   }
   list.innerHTML='';
-  accounts.forEach(acc=>{
+  getSortedAccounts().forEach(acc=>{
     const threshold=(acc.hasPayout&&acc.payoutBalance>0)?acc.payoutBalance:0;
     const canPayout=acc.gainDays>=DAYS_REQ&&acc.balance>threshold;
     const ct=crashThreshold(acc);
@@ -1006,13 +1042,14 @@ function renderAccounts(){
   });
   updateNav();
   renderSummary();
+  renderSortControls();
 }
 
 function renderSummary(){
   const block=document.getElementById('accounts-summary');
   if(!block) return;
   if(accounts.length===0){block.innerHTML='';return;}
-  const rows=accounts.map(acc=>{
+  const rows=getSortedAccounts().map(acc=>{
     const m=firmMeta(acc.firm);
     const canPayout=acc.gainDays>=DAYS_REQ&&acc.balance>(acc.hasPayout&&acc.payoutBalance>0?acc.payoutBalance:0);
     return `<div class="summary-row">
