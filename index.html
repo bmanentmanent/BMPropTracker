@@ -1007,6 +1007,8 @@ function renderAccounts(){
   updateNav();
   renderSummary();
 }
+
+function renderSummary(){
   const block=document.getElementById('accounts-summary');
   if(!block) return;
   if(accounts.length===0){block.innerHTML='';return;}
