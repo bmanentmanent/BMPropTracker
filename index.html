@@ -7,12 +7,12 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="Prop Tracker">
 <title>Prop Tracker</title>
-<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700;800&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/tabler-icons.min.css">
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 <style>
 :root {
-  --font: 'Syne', sans-serif;
+  --font: 'Outfit', sans-serif;
   --mono: 'DM Mono', monospace;
 }
 [data-theme="dark"] {
@@ -418,12 +418,19 @@ body { overflow-x: hidden; }
           <span class="mini-chart-title">Projection du mois</span>
           <span class="mini-chart-total" id="chart-total">0 €</span>
         </div>
-        <div class="graph-legend" style="margin-bottom:10px">
-          <div class="legend-item" style="display:flex;align-items:center;gap:5px;font-size:10px;color:var(--text2)"><div style="width:7px;height:7px;border-radius:50%;background:var(--green)"></div>Optimiste</div>
-          <div class="legend-item" style="display:flex;align-items:center;gap:5px;font-size:10px;color:var(--text2)"><div style="width:7px;height:7px;border-radius:50%;background:var(--amber)"></div>Safe</div>
-          <div class="legend-item" style="display:flex;align-items:center;gap:5px;font-size:10px;color:var(--text2)"><div style="width:7px;height:7px;border-radius:50%;background:var(--red)"></div>Pessimiste</div>
+        <div id="dash-scenarios"></div>
+        <div style="margin-top:12px">
+          <div style="display:flex;justify-content:space-between;font-size:10px;color:var(--text2);margin-bottom:5px">
+            <span>Progression du mois</span>
+            <span id="month-progress-label">jour 1 / 31</span>
+          </div>
+          <div style="height:4px;background:var(--bg3);border-radius:2px;overflow:hidden">
+            <div id="month-progress-bar" style="height:100%;border-radius:2px;background:var(--green);transition:width 0.4s"></div>
+          </div>
+          <div style="display:flex;justify-content:space-between;font-size:9px;color:var(--text3);margin-top:4px">
+            <span>1</span><span id="month-days-label">31</span>
+          </div>
         </div>
-        <div style="position:relative;height:150px"><canvas id="mini-chart"></canvas></div>
       </div>
     </div>
 
@@ -441,7 +448,7 @@ body { overflow-x: hidden; }
   <div class="page" id="page-accounts">
     <div class="page-header" style="padding-top:20px">
       <div class="page-title">Comptes</div>
-      <button class="btn-save" style="padding:6px 12px;font-size:11px;font-weight:700;border-radius:8px" onclick="openModal()">+ Ajouter</button>
+      <button class="btn-save" style="width:32px;height:32px;padding:0;font-size:20px;font-weight:300;border-radius:50%;display:flex;align-items:center;justify-content:center;line-height:1" onclick="openModal()">+</button>
     </div>
     <div class="section">
       <div id="sort-bar" style="margin:14px 0 8px;display:flex;gap:8px;align-items:center"></div>
@@ -755,27 +762,34 @@ function renderSortBar(){
 function pickSort(k){sortKey=k;sortDropOpen=false;renderAccounts();}
 
 // ── DOTS ──
-// Shows last DAYS_REQ trading days chronologically left→right
-// win=green, loss=red, empty=border only
-function renderDots(acc, size=6){
-  const realDays=acc.history.filter(h=>!h.payout).slice(0,DAYS_REQ).reverse(); // oldest first
+// Current cycle entries = history entries since last payout (or all if no payout)
+function getCycleDays(acc){
+  const lastPayoutIdx=acc.history.findIndex(h=>h.payout);
+  const cycleDays=lastPayoutIdx===-1
+    ? acc.history.filter(h=>!h.payout)
+    : acc.history.slice(0,lastPayoutIdx).filter(h=>!h.payout);
+  return cycleDays.slice(0,DAYS_REQ).reverse(); // oldest first, max 5
+}
+
+function renderDots(acc){
+  const cycleDays=getCycleDays(acc);
   const dots=[];
   for(let i=0;i<DAYS_REQ;i++){
-    const entry=realDays[i];
+    const entry=cycleDays[i];
     if(entry){
       const color=entry.win?'var(--green)':'var(--red)';
-      dots.push(`<div class="acc-dot" style="background:${color};border-color:${color}${size>6?';width:'+size+'px;height:'+size+'px':''}"></div>`);
+      dots.push(`<div class="acc-dot" style="background:${color};border-color:${color}"></div>`);
     } else {
-      dots.push(`<div class="acc-dot"${size>6?' style="width:'+size+'px;height:'+size+'px"':''}></div>`);
+      dots.push(`<div class="acc-dot"></div>`);
     }
   }
   return`<div class="acc-dots">${dots.join('')}</div>`;
 }
 
 function renderBigDots(acc){
-  const realDays=acc.history.filter(h=>!h.payout).slice(0,DAYS_REQ).reverse();
+  const cycleDays=getCycleDays(acc);
   return Array.from({length:DAYS_REQ},(_,i)=>{
-    const entry=realDays[i];
+    const entry=cycleDays[i];
     if(entry){
       const isWin=entry.win;
       return`<div style="width:26px;height:26px;border-radius:50%;border:0.5px solid ${isWin?'var(--green)':'var(--red)'};background:${isWin?'var(--green)':'var(--red)'};display:flex;align-items:center;justify-content:center;font-size:10px;color:#000;font-family:var(--mono);font-weight:700">${isWin?'✓':'✕'}</div>`;
@@ -806,114 +820,32 @@ function renderDash(){
   document.getElementById('h-total').textContent='+'+fmt(monthTotal)+' €';
   document.getElementById('h-total').style.color='var(--green)';
 
-  // Mini chart — real payouts this month + projection split into 3 scenarios
-  document.getElementById('chart-total').textContent=fmt(monthTotal)+' € ce mois';
-  const ctx=document.getElementById('mini-chart');
-  if(ctx){
-    if(miniChart)miniChart.destroy();
-    const isDark=currentTheme==='dark';
-    const gc=isDark?'rgba(255,255,255,0.03)':'rgba(0,0,0,0.04)';
-    const tc=isDark?'#2a3545':'#b0bcc8';
-    const daysInMonth=new Date(now.getFullYear(),cm,0).getDate();
-    const today=now.getDate();
+  // Simple projection — 3 scenario net totals
+  document.getElementById('chart-total').textContent=fmt(monthTotal)+' € encaissés';
+  const daysInMonth=new Date(now.getFullYear(),cm,0).getDate();
+  const today=now.getDate();
+  const monthPct=Math.round(today/daysInMonth*100);
+  document.getElementById('month-progress-label').textContent=`jour ${today} / ${daysInMonth}`;
+  document.getElementById('month-progress-bar').style.width=monthPct+'%';
+  document.getElementById('month-days-label').textContent=daysInMonth;
 
-    // Real payouts per calendar day this month
-    const realByDay={};
-    monthP.forEach(p=>{
-      const d=parseInt((p.date.split('/')||[])[0]||0);
-      if(d>0)realByDay[d]=(realByDay[d]||0)+(p.payoutEur||0);
-    });
-
-    // Build real curve (days 1 → today)
-    const realCurve=[];
-    let running=0;
-    for(let d=1;d<=today;d++){
-      running+=(realByDay[d]||0);
-      realCurve.push({x:d,y:Math.round(running)});
+  const scenarioBlock=document.getElementById('dash-scenarios');
+  if(scenarioBlock){
+    if(accounts.length===0){
+      scenarioBlock.innerHTML=`<div style="font-size:11px;color:var(--text3);text-align:center;padding:12px 0">Ajoute des comptes pour voir les projections.</div>`;
+    } else {
+      scenarioBlock.innerHTML=`<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:4px">${
+        scConfigs.map(sc=>{
+          let total=monthTotal;
+          accounts.forEach(acc=>{const r=calcPayout(acc,sc,fx);if(r)total+=r.payoutEur;});
+          const color=getScColor(sc);
+          return`<div style="background:var(--bg3);border:0.5px solid var(--border);border-radius:10px;padding:10px 8px;text-align:center">
+            <div style="font-size:9px;font-weight:700;color:${color};letter-spacing:0.06em;text-transform:uppercase;margin-bottom:5px">${sc.label}</div>
+            <div style="font-size:14px;font-weight:800;font-family:var(--mono);color:${color}">${fmt(total)} €</div>
+          </div>`;
+        }).join('')
+      }</div>`;
     }
-
-    // For each scenario, estimate remaining payouts spread over remaining trading days
-    // Convert trading days to calendar days (assume ~5/7 trading days ratio)
-    const TRADING_RATIO=5/7;
-    const buildProjection=sc=>{
-      // Start from today's real total
-      const events=[];
-      accounts.forEach(acc=>{
-        const r=calcPayout(acc,sc,fx);
-        if(r){
-          // Convert trading days to calendar days from today
-          const calDays=Math.round(r.tradingDays/TRADING_RATIO);
-          const targetDay=today+calDays;
-          if(targetDay<=daysInMonth) events.push({day:targetDay,eur:r.payoutEur});
-        }
-      });
-      events.sort((a,b)=>a.day-b.day);
-      // Build curve from today onward
-      const curve=[{x:today,y:Math.round(running)}]; // starts at real value
-      let t=running;
-      for(let d=today+1;d<=daysInMonth;d++){
-        events.forEach(e=>{if(e.day===d)t+=e.eur;});
-        curve.push({x:d,y:Math.round(t)});
-      }
-      return curve;
-    };
-
-    const datasets=[
-      // Real curve (solid, up to today)
-      {
-        label:'Réel',
-        data:realCurve,
-        borderColor:isDark?'#ffffff':'#111820',
-        backgroundColor:'transparent',
-        borderWidth:2.5,tension:0.2,
-        pointRadius:realCurve.map((_,i)=>i===realCurve.length-1?5:0),
-        pointBackgroundColor:isDark?'#fff':'#111',
-        borderDash:[],
-      },
-      // 3 scenario projections (dashed, from today onward)
-      ...scConfigs.map(sc=>({
-        label:sc.label,
-        data:buildProjection(sc),
-        borderColor:getScColor(sc),
-        backgroundColor:'transparent',
-        borderWidth:1.5,tension:0,
-        pointRadius:buildProjection(sc).map((p,i,a)=>i>0&&a[i-1]&&p.y!==a[i-1].y?3:0),
-        pointBackgroundColor:getScColor(sc),
-        borderDash:[4,3],
-      })),
-      // Expense line (horizontal)
-      {
-        label:'Dépenses',
-        data:[{x:1,y:totalEur},{x:daysInMonth,y:totalEur}],
-        borderColor:isDark?'rgba(255,68,102,0.5)':'rgba(238,34,68,0.4)',
-        backgroundColor:'transparent',
-        borderWidth:1,tension:0,
-        pointRadius:0,
-        borderDash:[2,4],
-      }
-    ];
-
-    miniChart=new Chart(ctx,{type:'line',data:{datasets},options:{
-      responsive:true,maintainAspectRatio:false,
-      interaction:{mode:'index',intersect:false},
-      plugins:{
-        legend:{display:false},
-        tooltip:{
-          backgroundColor:isDark?'#0e1520':'#fff',
-          borderColor:isDark?'rgba(0,255,135,0.15)':'rgba(0,0,0,0.1)',
-          borderWidth:1,
-          callbacks:{
-            title:i=>'Jour '+i[0].parsed.x,
-            label:i=>i.dataset.label==='Dépenses'?` Dépenses : ${fmt(i.parsed.y)} €`:` ${i.dataset.label} : ${fmt(i.parsed.y)} €`
-          }
-        },
-        annotation:{} // no plugin needed
-      },
-      scales:{
-        x:{type:'linear',min:1,max:daysInMonth,grid:{color:gc},ticks:{color:tc,font:{size:9},stepSize:5},title:{display:true,text:'jour du mois',color:tc,font:{size:9}}},
-        y:{grid:{color:gc},ticks:{color:tc,font:{size:9},callback:v=>fmt(v)+'€'}}
-      }
-    }});
   }
 
   // Dash accounts
