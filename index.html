@@ -7,12 +7,12 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="Prop Tracker">
 <title>Prop Tracker</title>
-<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/tabler-icons.min.css">
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 <style>
 :root {
-  --font: 'Outfit', sans-serif;
+  --font: 'Space Grotesk', sans-serif;
   --mono: 'DM Mono', monospace;
 }
 [data-theme="dark"] {
@@ -416,7 +416,7 @@ body { overflow-x: hidden; }
       <div class="mini-chart-card">
         <div class="mini-chart-head">
           <span class="mini-chart-title">Projection du mois</span>
-          <span class="mini-chart-total" id="chart-total">0 €</span>
+          <span class="mini-chart-total" id="chart-total" style="font-size:11px;color:var(--text2);font-family:var(--font)"></span>
         </div>
         <div id="dash-scenarios"></div>
         <div style="margin-top:12px">
@@ -448,11 +448,13 @@ body { overflow-x: hidden; }
   <div class="page" id="page-accounts">
     <div class="page-header" style="padding-top:20px">
       <div class="page-title">Comptes</div>
-      <button class="btn-save" style="width:32px;height:32px;padding:0;font-size:20px;font-weight:300;border-radius:50%;display:flex;align-items:center;justify-content:center;line-height:1" onclick="openModal()">+</button>
     </div>
     <div class="section">
       <div id="sort-bar" style="margin:14px 0 8px;display:flex;gap:8px;align-items:center"></div>
       <div id="accounts-list"></div>
+      <button onclick="openModal()" style="width:100%;padding:14px;margin-top:4px;border:0.5px dashed var(--border2);border-radius:16px;background:transparent;color:var(--text2);cursor:pointer;font-size:13px;font-family:var(--font);display:flex;align-items:center;justify-content:center;gap:8px;transition:all 0.2s" onmouseover="this.style.background='var(--green-bg)';this.style.color='var(--green)'" onmouseout="this.style.background='transparent';this.style.color='var(--text2)'">
+        <i class="ti ti-plus" style="font-size:15px"></i> Ajouter un compte
+      </button>
     </div>
   </div>
 
@@ -820,14 +822,14 @@ function renderDash(){
   document.getElementById('h-total').textContent='+'+fmt(monthTotal)+' €';
   document.getElementById('h-total').style.color='var(--green)';
 
-  // Simple projection — 3 scenario net totals
-  document.getElementById('chart-total').textContent=fmt(monthTotal)+' € encaissés';
+  // Simple projection — 3 scenario net totals (payouts this month + projected - expenses)
   const daysInMonth=new Date(now.getFullYear(),cm,0).getDate();
   const today=now.getDate();
   const monthPct=Math.round(today/daysInMonth*100);
   document.getElementById('month-progress-label').textContent=`jour ${today} / ${daysInMonth}`;
   document.getElementById('month-progress-bar').style.width=monthPct+'%';
   document.getElementById('month-days-label').textContent=daysInMonth;
+  document.getElementById('chart-total').textContent='Bénéfice net projeté';
 
   const scenarioBlock=document.getElementById('dash-scenarios');
   if(scenarioBlock){
@@ -836,12 +838,13 @@ function renderDash(){
     } else {
       scenarioBlock.innerHTML=`<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:4px">${
         scConfigs.map(sc=>{
-          let total=monthTotal;
-          accounts.forEach(acc=>{const r=calcPayout(acc,sc,fx);if(r)total+=r.payoutEur;});
+          let projected=monthTotal; // already encaissés this month
+          accounts.forEach(acc=>{const r=calcPayout(acc,sc,fx);if(r)projected+=r.payoutEur;});
+          const net=projected-totalEur; // deduct monthly expenses
           const color=getScColor(sc);
           return`<div style="background:var(--bg3);border:0.5px solid var(--border);border-radius:10px;padding:10px 8px;text-align:center">
             <div style="font-size:9px;font-weight:700;color:${color};letter-spacing:0.06em;text-transform:uppercase;margin-bottom:5px">${sc.label}</div>
-            <div style="font-size:14px;font-weight:800;font-family:var(--mono);color:${color}">${fmt(total)} €</div>
+            <div style="font-size:14px;font-weight:700;font-family:var(--mono);color:${net>=0?color:'var(--red)'}${net>=0?'':''}">${net>=0?'+':'−'}${fmt(Math.abs(net))} €</div>
           </div>`;
         }).join('')
       }</div>`;
