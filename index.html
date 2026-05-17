@@ -854,16 +854,14 @@ function renderDash(){
   // Dash accounts
   const block=document.getElementById('dash-accounts');
   if(accounts.length===0){block.innerHTML=`<div class="empty"><i class="ti ti-briefcase"></i>Ajoute ton premier compte.</div>`;return;}
-  block.innerHTML=getSorted().slice(0,4).map(acc=>{
-    const lastE=acc.history.find(h=>!h.payout);
-    const dot=lastE?`<div style="width:7px;height:7px;border-radius:50%;background:${lastE.val>=0?'var(--green)':'var(--red)'}"></div>`:'';
+  block.innerHTML=getSorted().map(acc=>{
     return`<div class="acc-row" onclick="switchPage('accounts')" style="cursor:pointer">
       <div class="acc-row-main">
         ${firmAvatar(acc.firm)}
         <div class="acc-info"><div class="acc-name">${acc.firm}</div><div class="acc-meta">Cycle ${acc.cycleCount||1} · 90% split</div></div>
         <div class="acc-right">
           <div class="acc-balance">${fmt(acc.balance)} $</div>
-          <div class="acc-days">${dot}${renderDots(acc)}</div>
+          <div class="acc-days">${renderDots(acc)}</div>
         </div>
       </div>
     </div>`;
@@ -931,7 +929,7 @@ function renderAccounts(){
         </div>
         <div class="acc-right">
           <div class="acc-balance">${fmt(acc.balance)} $</div>
-          <div class="acc-days">${lastDot}${renderDots(acc)}</div>
+          <div class="acc-days">${renderDots(acc)}</div>
         </div>
       </div>
       <div class="acc-expanded">
