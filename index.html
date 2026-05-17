@@ -107,7 +107,7 @@ body { overflow-x: hidden; }
   padding: 20px 20px 0;
   display: flex; justify-content: space-between; align-items: center;
 }
-.page-title { font-size: 22px; font-weight: 800; letter-spacing: -0.5px; }
+.page-title { font-size: 28px; font-weight: 700; letter-spacing: -0.5px; }
 .theme-btn {
   width: 36px; height: 36px; border-radius: 50%;
   background: var(--glass2); border: 0.5px solid var(--border2);
@@ -405,8 +405,8 @@ body { overflow-x: hidden; }
           <div class="hero-stat-label">Réussite</div>
         </div>
         <div class="hero-stat">
-          <div class="hero-stat-val a" id="h-total">0 €</div>
-          <div class="hero-stat-label">Total</div>
+          <div class="hero-stat-val a" id="h-total">0</div>
+          <div class="hero-stat-label">Payouts mois</div>
         </div>
       </div>
     </div>
@@ -416,7 +416,6 @@ body { overflow-x: hidden; }
       <div class="mini-chart-card">
         <div class="mini-chart-head">
           <span class="mini-chart-title">Projection du mois</span>
-          <span class="mini-chart-total" id="chart-total" style="font-size:11px;color:var(--text2);font-family:var(--font)"></span>
         </div>
         <div id="dash-scenarios"></div>
         <div style="margin-top:12px">
@@ -815,12 +814,12 @@ function renderDash(){
   // Hero — month only
   document.getElementById('hero-amount').textContent=(net>=0?'+':'')+fmt(Math.abs(net))+' €';
   document.getElementById('hero-amount').style.color=net>=0?'var(--green)':'var(--red)';
-  document.getElementById('hero-sub').textContent=`${monthP.length} payout${monthP.length>1?'s':''} · ${fmt(totalEur)} € de dépenses`;
+  document.getElementById('hero-sub').textContent=`${monthP.length} payout${monthP.length>1?'s':''} ce mois · ${fmt(totalEur)} € de dépenses`;
   document.getElementById('h-accounts').textContent=accounts.length;
   document.getElementById('h-winrate').textContent=avgWR!==null?avgWR+'%':'—';
   document.getElementById('h-winrate').style.color=avgWR===null?'var(--text)':avgWR>=60?'var(--green)':avgWR>=40?'var(--amber)':'var(--red)';
-  document.getElementById('h-total').textContent='+'+fmt(monthTotal)+' €';
-  document.getElementById('h-total').style.color='var(--green)';
+  document.getElementById('h-total').textContent=monthP.length+' payout'+(monthP.length>1?'s':'');
+  document.getElementById('h-total').style.color='var(--amber)';
 
   // Simple projection — 3 scenario net totals (payouts this month + projected - expenses)
   const daysInMonth=new Date(now.getFullYear(),cm,0).getDate();
@@ -829,7 +828,7 @@ function renderDash(){
   document.getElementById('month-progress-label').textContent=`jour ${today} / ${daysInMonth}`;
   document.getElementById('month-progress-bar').style.width=monthPct+'%';
   document.getElementById('month-days-label').textContent=daysInMonth;
-  document.getElementById('chart-total').textContent='Bénéfice net projeté';
+  document.getElementById('chart-total')&&(document.getElementById('chart-total').textContent='');
 
   const scenarioBlock=document.getElementById('dash-scenarios');
   if(scenarioBlock){
