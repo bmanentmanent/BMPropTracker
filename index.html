@@ -1074,12 +1074,17 @@ function renderSummary(){
   const rows=getSortedAccounts().map(acc=>{
     const m=firmMeta(acc.firm);
     const canPayout=acc.gainDays>=DAYS_REQ&&acc.balance>(acc.hasPayout&&acc.payoutBalance>0?acc.payoutBalance:0);
+    const lastEntry=acc.history.find(h=>!h.payout);
+    const lastDot=lastEntry
+      ? `<div style="width:8px;height:8px;border-radius:50%;background:${lastEntry.val>=0?'var(--green)':'var(--red)'};box-shadow:0 0 6px ${lastEntry.val>=0?'var(--green-dim)':'var(--red-bg)'}"></div>`
+      : `<div style="width:8px;height:8px;border-radius:50%;background:var(--text3)"></div>`;
     return `<div class="summary-row">
       <div class="summary-left">
         <div style="width:8px;height:8px;border-radius:50%;background:${canPayout?'var(--green)':'var(--amber)'};box-shadow:0 0 6px ${canPayout?'var(--green-dim)':'var(--amber-bg)'}"></div>
         <span class="summary-firm">${acc.firm}</span>
       </div>
       <div class="summary-right">
+        ${lastDot}
         <span class="summary-days"><span>${acc.gainDays}</span>/${DAYS_REQ}j</span>
         <span class="summary-balance">${fmt(acc.balance)} $</span>
       </div>
