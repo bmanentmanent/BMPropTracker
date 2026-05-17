@@ -415,10 +415,15 @@ body { overflow-x: hidden; }
     <div class="section">
       <div class="mini-chart-card">
         <div class="mini-chart-head">
-          <span class="mini-chart-title">Payouts encaissés</span>
+          <span class="mini-chart-title">Projection du mois</span>
           <span class="mini-chart-total" id="chart-total">0 €</span>
         </div>
-        <div style="position:relative;height:100px"><canvas id="mini-chart"></canvas></div>
+        <div class="graph-legend" style="margin-bottom:10px">
+          <div class="legend-item" style="display:flex;align-items:center;gap:5px;font-size:10px;color:var(--text2)"><div style="width:7px;height:7px;border-radius:50%;background:var(--green)"></div>Optimiste</div>
+          <div class="legend-item" style="display:flex;align-items:center;gap:5px;font-size:10px;color:var(--text2)"><div style="width:7px;height:7px;border-radius:50%;background:var(--amber)"></div>Safe</div>
+          <div class="legend-item" style="display:flex;align-items:center;gap:5px;font-size:10px;color:var(--text2)"><div style="width:7px;height:7px;border-radius:50%;background:var(--red)"></div>Pessimiste</div>
+        </div>
+        <div style="position:relative;height:150px"><canvas id="mini-chart"></canvas></div>
       </div>
     </div>
 
@@ -436,7 +441,7 @@ body { overflow-x: hidden; }
   <div class="page" id="page-accounts">
     <div class="page-header" style="padding-top:20px">
       <div class="page-title">Comptes</div>
-      <button class="btn-save" style="padding:8px 16px;font-size:12px;border-radius:10px" onclick="openModal()">+ Ajouter</button>
+      <button class="btn-save" style="padding:6px 12px;font-size:11px;font-weight:700;border-radius:8px" onclick="openModal()">+ Ajouter</button>
     </div>
     <div class="section">
       <div id="sort-bar" style="margin:14px 0 8px;display:flex;gap:8px;align-items:center"></div>
@@ -749,61 +754,181 @@ function renderSortBar(){
 }
 function pickSort(k){sortKey=k;sortDropOpen=false;renderAccounts();}
 
+// ── DOTS ──
+// Shows last DAYS_REQ trading days chronologically left→right
+// win=green, loss=red, empty=border only
+function renderDots(acc, size=6){
+  const realDays=acc.history.filter(h=>!h.payout).slice(0,DAYS_REQ).reverse(); // oldest first
+  const dots=[];
+  for(let i=0;i<DAYS_REQ;i++){
+    const entry=realDays[i];
+    if(entry){
+      const color=entry.win?'var(--green)':'var(--red)';
+      dots.push(`<div class="acc-dot" style="background:${color};border-color:${color}${size>6?';width:'+size+'px;height:'+size+'px':''}"></div>`);
+    } else {
+      dots.push(`<div class="acc-dot"${size>6?' style="width:'+size+'px;height:'+size+'px"':''}></div>`);
+    }
+  }
+  return`<div class="acc-dots">${dots.join('')}</div>`;
+}
+
+function renderBigDots(acc){
+  const realDays=acc.history.filter(h=>!h.payout).slice(0,DAYS_REQ).reverse();
+  return Array.from({length:DAYS_REQ},(_,i)=>{
+    const entry=realDays[i];
+    if(entry){
+      const isWin=entry.win;
+      return`<div style="width:26px;height:26px;border-radius:50%;border:0.5px solid ${isWin?'var(--green)':'var(--red)'};background:${isWin?'var(--green)':'var(--red)'};display:flex;align-items:center;justify-content:center;font-size:10px;color:#000;font-family:var(--mono);font-weight:700">${isWin?'✓':'✕'}</div>`;
+    }
+    return`<div style="width:26px;height:26px;border-radius:50%;border:0.5px solid var(--border2);background:var(--bg3);display:flex;align-items:center;justify-content:center;font-size:10px;color:var(--text3);font-family:var(--mono)">${i+1}</div>`;
+  }).join('');
+}
+
 // ── RENDER DASH ──
 function renderDash(){
-  const fx=getFx();
+  const fx=getFx(),base=getBase();
   const allP=getAllPayouts();
   const now=new Date(),cm=now.getMonth()+1;
   const monthP=allP.filter(p=>parseInt((p.date.split('/')||[])[1]||0)===cm);
   const monthTotal=monthP.reduce((s,p)=>s+(p.payoutEur||0),0);
   const {totalEur}=getExpensesEur();
   const net=monthTotal-totalEur;
-  const grandTotal=allP.reduce((s,p)=>s+(p.payoutEur||0),0);
   const activeWR=accounts.map(a=>{const r=a.history.filter(h=>!h.payout);return r.length>0?Math.round(r.filter(h=>h.win).length/r.length*100):null;}).filter(v=>v!==null);
   const avgWR=activeWR.length>0?Math.round(activeWR.reduce((a,b)=>a+b,0)/activeWR.length):null;
+
+  // Hero — month only
   document.getElementById('hero-amount').textContent=(net>=0?'+':'')+fmt(Math.abs(net))+' €';
   document.getElementById('hero-amount').style.color=net>=0?'var(--green)':'var(--red)';
   document.getElementById('hero-sub').textContent=`${monthP.length} payout${monthP.length>1?'s':''} · ${fmt(totalEur)} € de dépenses`;
   document.getElementById('h-accounts').textContent=accounts.length;
   document.getElementById('h-winrate').textContent=avgWR!==null?avgWR+'%':'—';
   document.getElementById('h-winrate').style.color=avgWR===null?'var(--text)':avgWR>=60?'var(--green)':avgWR>=40?'var(--amber)':'var(--red)';
-  document.getElementById('chart-total').textContent='+'+fmt(grandTotal)+' €';
-  document.getElementById('h-total').textContent='+'+fmt(grandTotal)+' €';
+  document.getElementById('h-total').textContent='+'+fmt(monthTotal)+' €';
+  document.getElementById('h-total').style.color='var(--green)';
 
-  // Mini chart — last 6 months of payouts
-  const months={};
-  allP.forEach(p=>{
-    const parts=p.date.split('/');
-    const m=parts[1]||'??';
-    months[m]=(months[m]||0)+(p.payoutEur||0);
-  });
-  const labels=Object.keys(months).slice(-6);
-  const data=labels.map(m=>months[m]||0);
+  // Mini chart — real payouts this month + projection split into 3 scenarios
+  document.getElementById('chart-total').textContent=fmt(monthTotal)+' € ce mois';
   const ctx=document.getElementById('mini-chart');
   if(ctx){
     if(miniChart)miniChart.destroy();
     const isDark=currentTheme==='dark';
-    const gc=ctx.getContext('2d');
-    const grad=gc.createLinearGradient(0,0,0,100);
-    grad.addColorStop(0,isDark?'rgba(0,255,135,0.15)':'rgba(0,168,85,0.12)');
-    grad.addColorStop(1,'rgba(0,0,0,0)');
-    miniChart=new Chart(ctx,{type:'line',data:{labels,datasets:[{data,borderColor:isDark?'#00ff87':'#00a855',backgroundColor:grad,borderWidth:2,tension:0.4,pointRadius:3,pointBackgroundColor:isDark?'#00ff87':'#00a855',fill:true}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{backgroundColor:isDark?'#0e1520':'#fff',borderColor:isDark?'rgba(0,255,135,0.2)':'rgba(0,0,0,0.1)',borderWidth:1,callbacks:{label:i=>'+'+fmt(i.parsed.y)+' €'}}},scales:{x:{grid:{display:false},ticks:{color:isDark?'#2a3545':'#b0bcc8',font:{size:9}}},y:{display:false}}}});
+    const gc=isDark?'rgba(255,255,255,0.03)':'rgba(0,0,0,0.04)';
+    const tc=isDark?'#2a3545':'#b0bcc8';
+    const daysInMonth=new Date(now.getFullYear(),cm,0).getDate();
+    const today=now.getDate();
+
+    // Real payouts per calendar day this month
+    const realByDay={};
+    monthP.forEach(p=>{
+      const d=parseInt((p.date.split('/')||[])[0]||0);
+      if(d>0)realByDay[d]=(realByDay[d]||0)+(p.payoutEur||0);
+    });
+
+    // Build real curve (days 1 → today)
+    const realCurve=[];
+    let running=0;
+    for(let d=1;d<=today;d++){
+      running+=(realByDay[d]||0);
+      realCurve.push({x:d,y:Math.round(running)});
+    }
+
+    // For each scenario, estimate remaining payouts spread over remaining trading days
+    // Convert trading days to calendar days (assume ~5/7 trading days ratio)
+    const TRADING_RATIO=5/7;
+    const buildProjection=sc=>{
+      // Start from today's real total
+      const events=[];
+      accounts.forEach(acc=>{
+        const r=calcPayout(acc,sc,fx);
+        if(r){
+          // Convert trading days to calendar days from today
+          const calDays=Math.round(r.tradingDays/TRADING_RATIO);
+          const targetDay=today+calDays;
+          if(targetDay<=daysInMonth) events.push({day:targetDay,eur:r.payoutEur});
+        }
+      });
+      events.sort((a,b)=>a.day-b.day);
+      // Build curve from today onward
+      const curve=[{x:today,y:Math.round(running)}]; // starts at real value
+      let t=running;
+      for(let d=today+1;d<=daysInMonth;d++){
+        events.forEach(e=>{if(e.day===d)t+=e.eur;});
+        curve.push({x:d,y:Math.round(t)});
+      }
+      return curve;
+    };
+
+    const datasets=[
+      // Real curve (solid, up to today)
+      {
+        label:'Réel',
+        data:realCurve,
+        borderColor:isDark?'#ffffff':'#111820',
+        backgroundColor:'transparent',
+        borderWidth:2.5,tension:0.2,
+        pointRadius:realCurve.map((_,i)=>i===realCurve.length-1?5:0),
+        pointBackgroundColor:isDark?'#fff':'#111',
+        borderDash:[],
+      },
+      // 3 scenario projections (dashed, from today onward)
+      ...scConfigs.map(sc=>({
+        label:sc.label,
+        data:buildProjection(sc),
+        borderColor:getScColor(sc),
+        backgroundColor:'transparent',
+        borderWidth:1.5,tension:0,
+        pointRadius:buildProjection(sc).map((p,i,a)=>i>0&&a[i-1]&&p.y!==a[i-1].y?3:0),
+        pointBackgroundColor:getScColor(sc),
+        borderDash:[4,3],
+      })),
+      // Expense line (horizontal)
+      {
+        label:'Dépenses',
+        data:[{x:1,y:totalEur},{x:daysInMonth,y:totalEur}],
+        borderColor:isDark?'rgba(255,68,102,0.5)':'rgba(238,34,68,0.4)',
+        backgroundColor:'transparent',
+        borderWidth:1,tension:0,
+        pointRadius:0,
+        borderDash:[2,4],
+      }
+    ];
+
+    miniChart=new Chart(ctx,{type:'line',data:{datasets},options:{
+      responsive:true,maintainAspectRatio:false,
+      interaction:{mode:'index',intersect:false},
+      plugins:{
+        legend:{display:false},
+        tooltip:{
+          backgroundColor:isDark?'#0e1520':'#fff',
+          borderColor:isDark?'rgba(0,255,135,0.15)':'rgba(0,0,0,0.1)',
+          borderWidth:1,
+          callbacks:{
+            title:i=>'Jour '+i[0].parsed.x,
+            label:i=>i.dataset.label==='Dépenses'?` Dépenses : ${fmt(i.parsed.y)} €`:` ${i.dataset.label} : ${fmt(i.parsed.y)} €`
+          }
+        },
+        annotation:{} // no plugin needed
+      },
+      scales:{
+        x:{type:'linear',min:1,max:daysInMonth,grid:{color:gc},ticks:{color:tc,font:{size:9},stepSize:5},title:{display:true,text:'jour du mois',color:tc,font:{size:9}}},
+        y:{grid:{color:gc},ticks:{color:tc,font:{size:9},callback:v=>fmt(v)+'€'}}
+      }
+    }});
   }
 
-  // Dash accounts (top 4 sorted)
+  // Dash accounts
   const block=document.getElementById('dash-accounts');
   if(accounts.length===0){block.innerHTML=`<div class="empty"><i class="ti ti-briefcase"></i>Ajoute ton premier compte.</div>`;return;}
   block.innerHTML=getSorted().slice(0,4).map(acc=>{
     const lastE=acc.history.find(h=>!h.payout);
     const dot=lastE?`<div style="width:7px;height:7px;border-radius:50%;background:${lastE.val>=0?'var(--green)':'var(--red)'}"></div>`:'';
-    const canP=acc.gainDays>=DAYS_REQ&&acc.balance>(acc.hasPayout&&acc.payoutBalance>0?acc.payoutBalance:0);
     return`<div class="acc-row" onclick="switchPage('accounts')" style="cursor:pointer">
       <div class="acc-row-main">
         ${firmAvatar(acc.firm)}
         <div class="acc-info"><div class="acc-name">${acc.firm}</div><div class="acc-meta">Cycle ${acc.cycleCount||1} · 90% split</div></div>
         <div class="acc-right">
           <div class="acc-balance">${fmt(acc.balance)} $</div>
-          <div class="acc-days">${dot}<div class="acc-dots">${Array.from({length:DAYS_REQ},(_,i)=>`<div class="acc-dot${i<acc.gainDays?' on':''}"></div>`).join('')}</div></div>
+          <div class="acc-days">${dot}${renderDots(acc)}</div>
         </div>
       </div>
     </div>`;
@@ -835,9 +960,10 @@ function renderAccounts(){
     const isOpen=expandedAcc[acc.id];
     const cp=pendingCrash[acc.id],cd=confirmDel[acc.id];
 
-    // History (editable)
+    // History — collapsed by default (expandedAcc['hist_'+id] must be true to show)
     let histHTML='';
-    if(isOpen&&acc.history.length>0){
+    const histOpen=expandedAcc['hist_'+acc.id];
+    if(histOpen&&acc.history.length>0){
       histHTML=`<div style="margin-top:12px;border-top:0.5px solid var(--border);padding-top:12px">
         ${acc.history.slice(0,20).map((h,i)=>{
           const editing=editingHistEntry&&editingHistEntry.accId===acc.id&&editingHistEntry.idx===i;
@@ -870,7 +996,7 @@ function renderAccounts(){
         </div>
         <div class="acc-right">
           <div class="acc-balance">${fmt(acc.balance)} $</div>
-          <div class="acc-days">${lastDot}<div class="acc-dots">${Array.from({length:DAYS_REQ},(_,i)=>`<div class="acc-dot${i<acc.gainDays?' on':''}"></div>`).join('')}</div></div>
+          <div class="acc-days">${lastDot}${renderDots(acc)}</div>
         </div>
       </div>
       <div class="acc-expanded">
@@ -885,7 +1011,7 @@ function renderAccounts(){
         <div style="font-size:10px;color:var(--text2);margin-bottom:5px;display:flex;justify-content:space-between"><span>Drawdown</span><span style="font-family:var(--mono)">${fmt(ddLeft)} $ / ${fmt(ddRange)} $</span></div>
         <div class="dd-bar" style="margin-bottom:12px"><div class="dd-fill" style="width:${ddPct}%;background:${ddColor}"></div></div>
         <div style="font-size:10px;color:var(--text2);margin-bottom:8px">Jours de gain — ${acc.gainDays}/${DAYS_REQ} · seuil ${getWinPnl()} $</div>
-        <div class="acc-dots" style="gap:6px;margin-bottom:12px">${Array.from({length:DAYS_REQ},(_,i)=>`<div style="width:26px;height:26px;border-radius:50%;border:0.5px solid ${i<acc.gainDays?'var(--green)':'var(--border2)'};background:${i<acc.gainDays?'var(--green)':'var(--bg3)'};display:flex;align-items:center;justify-content:center;font-size:10px;color:${i<acc.gainDays?'#000':'var(--text3)'};font-family:var(--mono);font-weight:700">${i<acc.gainDays?'✓':i+1}</div>`).join('')}</div>
+        <div class="acc-dots" style="gap:6px;margin-bottom:12px">${renderBigDots(acc)}</div>
         ${canP?`<button class="btn-payout" onclick="doPayout(${acc.id})" style="margin-bottom:10px;width:100%"><i class="ti ti-cash" style="font-size:13px;vertical-align:-2px;margin-right:6px"></i>Encaisser le payout</button>`:''}
         ${cp?`<div class="crash-banner"><div class="crash-title"><i class="ti ti-alert-triangle" style="font-size:14px;margin-right:4px"></i>Compte cramé</div><div class="crash-sub">Balance (${fmt(acc.balance)} $) ≤ seuil (${fmt(ct)} $).<br>Archiver ou annuler le jour saisi ?</div><div class="crash-btns"><button class="btn-crash-c" onclick="cancelCrash(${acc.id})">Annuler le jour</button><button class="btn-crash-a" onclick="archiveAccount(${acc.id})">Archiver</button></div></div>`:''}
         ${cd?`<div class="del-confirm"><span>Supprimer ce compte ?</span><button class="btn-del-n" onclick="confirmDel[${acc.id}]=false;renderAccounts()">Non</button><button class="btn-del-y" onclick="confirmDeleteAcc(${acc.id})">Supprimer</button></div>`:''}
