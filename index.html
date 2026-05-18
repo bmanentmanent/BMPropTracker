@@ -1310,10 +1310,28 @@ function submitSheet(){
     const val=parseFloat(inp.value);
     if(isNaN(val))return;
     const isWin=val>=WIN_THR;
-    acc.balance=Math.round((acc.balance+val)*100)/100;
-    if(acc.balance>(acc.balanceMax||0))acc.balanceMax=acc.balance;
-    if(isWin)acc.gainDays=Math.min(acc.gainDays+1,DAYS_REQ);
-    acc.history.unshift({date:dateStr,val:Math.round(val),win:isWin,payout:false});
+
+    // Check if an entry already exists for today
+    const existingIdx=acc.history.findIndex(h=>!h.payout&&h.date===dateStr);
+
+    if(existingIdx>=0){
+      // Update existing entry — reverse previous effect first
+      const prev=acc.history[existingIdx];
+      acc.balance=Math.round((acc.balance-prev.val)*100)/100;
+      if(prev.win)acc.gainDays=Math.max(acc.gainDays-1,0);
+      // Apply new value
+      acc.balance=Math.round((acc.balance+val)*100)/100;
+      if(acc.balance>(acc.balanceMax||0))acc.balanceMax=acc.balance;
+      if(isWin)acc.gainDays=Math.min(acc.gainDays+1,DAYS_REQ);
+      acc.history[existingIdx]={date:dateStr,val:Math.round(val),win:isWin,payout:false};
+    } else {
+      // New entry
+      acc.balance=Math.round((acc.balance+val)*100)/100;
+      if(acc.balance>(acc.balanceMax||0))acc.balanceMax=acc.balance;
+      if(isWin)acc.gainDays=Math.min(acc.gainDays+1,DAYS_REQ);
+      acc.history.unshift({date:dateStr,val:Math.round(val),win:isWin,payout:false});
+    }
+
     // check crash
     const ct=crashThreshold(acc);
     if(acc.balance<=ct)pendingCrash[acc.id]=true;
