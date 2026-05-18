@@ -527,11 +527,11 @@ body { overflow-x: hidden; }
       </div>
       <div class="coll-body" id="exp-b">
         <div class="coll-inner">
-          <div class="setting-row"><div class="setting-label">Évals Topstep<small>prix ($)</small></div><input class="setting-input" type="number" id="eval-price-Topstep" value="111" step="1" style="width:70px" oninput="saveExpenses();renderStats()"><span class="setting-unit" style="margin:0 3px">×</span><input class="setting-input" type="number" id="eval-qty-Topstep" value="0" min="0" step="1" style="width:50px" oninput="saveExpenses();renderStats()"></div>
-          <div class="setting-row"><div class="setting-label">Évals Lucid<small>prix ($)</small></div><input class="setting-input" type="number" id="eval-price-Lucid" value="95" step="1" style="width:70px" oninput="saveExpenses();renderStats()"><span class="setting-unit" style="margin:0 3px">×</span><input class="setting-input" type="number" id="eval-qty-Lucid" value="0" min="0" step="1" style="width:50px" oninput="saveExpenses();renderStats()"></div>
-          <div class="setting-row"><div class="setting-label">Évals MyFundedFX<small>prix ($)</small></div><input class="setting-input" type="number" id="eval-price-MyFundedFX" value="127" step="1" style="width:70px" oninput="saveExpenses();renderStats()"><span class="setting-unit" style="margin:0 3px">×</span><input class="setting-input" type="number" id="eval-qty-MyFundedFX" value="0" min="0" step="1" style="width:50px" oninput="saveExpenses();renderStats()"></div>
-          <div class="setting-row"><div class="setting-label">Évals Tradeify<small>prix ($)</small></div><input class="setting-input" type="number" id="eval-price-Tradeify" value="98" step="1" style="width:70px" oninput="saveExpenses();renderStats()"><span class="setting-unit" style="margin:0 3px">×</span><input class="setting-input" type="number" id="eval-qty-Tradeify" value="0" min="0" step="1" style="width:50px" oninput="saveExpenses();renderStats()"></div>
-          <div class="setting-row"><div class="setting-label">Frais annexes</div><input class="setting-input" type="number" id="misc-expenses" value="0" step="1" oninput="saveExpenses();renderStats()"><span class="setting-unit">€</span></div>
+          <div class="setting-row"><div class="setting-label">Évals Topstep<small>prix ($)</small></div><input class="setting-input" type="number" id="eval-price-Topstep" value="111" step="1" style="width:70px" oninput="saveExpenses();renderStats()"><span class="setting-unit" style="margin:0 3px">×</span><input class="setting-input" type="number" id="eval-qty-Topstep" value="" placeholder="0" min="0" step="1" style="width:50px" oninput="saveExpenses();renderStats()"></div>
+          <div class="setting-row"><div class="setting-label">Évals Lucid<small>prix ($)</small></div><input class="setting-input" type="number" id="eval-price-Lucid" value="95" step="1" style="width:70px" oninput="saveExpenses();renderStats()"><span class="setting-unit" style="margin:0 3px">×</span><input class="setting-input" type="number" id="eval-qty-Lucid" value="" placeholder="0" min="0" step="1" style="width:50px" oninput="saveExpenses();renderStats()"></div>
+          <div class="setting-row"><div class="setting-label">Évals MyFundedFX<small>prix ($)</small></div><input class="setting-input" type="number" id="eval-price-MyFundedFX" value="127" step="1" style="width:70px" oninput="saveExpenses();renderStats()"><span class="setting-unit" style="margin:0 3px">×</span><input class="setting-input" type="number" id="eval-qty-MyFundedFX" value="" placeholder="0" min="0" step="1" style="width:50px" oninput="saveExpenses();renderStats()"></div>
+          <div class="setting-row"><div class="setting-label">Évals Tradeify<small>prix ($)</small></div><input class="setting-input" type="number" id="eval-price-Tradeify" value="98" step="1" style="width:70px" oninput="saveExpenses();renderStats()"><span class="setting-unit" style="margin:0 3px">×</span><input class="setting-input" type="number" id="eval-qty-Tradeify" value="" placeholder="0" min="0" step="1" style="width:50px" oninput="saveExpenses();renderStats()"></div>
+          <div class="setting-row"><div class="setting-label">Frais annexes</div><input class="setting-input" type="number" id="misc-expenses" value="" placeholder="0" step="1" oninput="saveExpenses();renderStats()"><span class="setting-unit">€</span></div>
         </div>
       </div>
       <div class="coll-header" id="firm-stats-h" onclick="toggleColl('firm-stats')">
@@ -904,10 +904,22 @@ function renderMonthlyHistory(){
 
   // Chart
   const isDark=currentTheme==='dark';
-  const labels=history.map(h=>h.label.split(' ')[0].slice(0,3)+' '+h.label.split(' ')[1].slice(2));
-  const revData=history.map(h=>h.revenues);
-  const expData=history.map(h=>h.expenses);
-  const netData=history.map(h=>h.net);
+  // Build chart data including current month
+  const now2=new Date();
+  const currentKey2=getMonthKey(now2);
+  const currentLabel=getMonthLabel(currentKey2);
+  const allP2=getAllPayouts();
+  const cm2=now2.getMonth()+1;
+  const monthP2=allP2.filter(p=>parseInt((p.date.split('/')||[])[1]||0)===cm2);
+  const currentRevenues=monthP2.reduce((s,p)=>s+(p.payoutEur||0),0);
+  const {totalEur:currentExpenses}=getExpensesEur();
+  const currentNet=currentRevenues-currentExpenses;
+  const chartData=[...history,{month:currentKey2,label:currentLabel,revenues:currentRevenues,expenses:Math.round(currentExpenses),net:Math.round(currentNet),isCurrent:true}];
+
+  const labels=chartData.map(h=>h.label.split(' ')[0].slice(0,3)+' '+h.label.split(' ')[1].slice(2)+(h.isCurrent?' ●':''));
+  const revData=chartData.map(h=>h.revenues);
+  const expData=chartData.map(h=>h.expenses);
+  const netData=chartData.map(h=>h.net);
 
   block.innerHTML=`<div class="monthly-chart-card"><div style="font-size:11px;font-weight:700;color:var(--text2);letter-spacing:0.06em;text-transform:uppercase;margin-bottom:14px">Revenus · Dépenses · Bénéfice net</div><div class="graph-legend" style="display:flex;gap:16px;margin-bottom:12px;flex-wrap:wrap">${[['var(--green)','Revenus'],['var(--red)','Dépenses'],['var(--blue)','Bénéfice net']].map(([c,l])=>`<div style="display:flex;align-items:center;gap:5px;font-size:10px;color:var(--text2)"><div style="width:10px;height:10px;border-radius:2px;background:${c}"></div>${l}</div>`).join('')}</div><div style="position:relative;height:200px"><canvas id="monthly-chart"></canvas></div></div>`;
 
