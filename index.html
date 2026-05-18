@@ -286,6 +286,21 @@ body { overflow-x: hidden; }
 .archived-stat-val.r { color: var(--red); }
 .archived-actions { display: flex; justify-content: flex-end; margin-top: 8px; }
 .btn-arch-del { padding: 5px 12px; background: var(--red-bg); border: 0.5px solid var(--red-bdr); border-radius: 7px; color: var(--red); font-size: 10px; font-weight: 700; cursor: pointer; font-family: var(--font); }
+.monthly-chart-card{background:var(--bg2);border:0.5px solid var(--border);border-radius:16px;padding:16px 18px;margin-bottom:8px}
+[data-theme="dark"] .monthly-chart-card{background:var(--glass);backdrop-filter:blur(10px)}
+.month-row{background:var(--bg2);border:0.5px solid var(--border);border-radius:12px;padding:12px 14px;margin-bottom:8px}
+[data-theme="dark"] .month-row{background:var(--glass)}
+.month-row-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px}
+.month-row-name{font-size:13px;font-weight:700}
+.month-row-net{font-size:14px;font-weight:700;font-family:var(--mono)}
+.month-row-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:6px}
+.month-stat{background:var(--bg3);border-radius:8px;padding:7px 10px;border:0.5px solid var(--border)}
+.month-stat-label{font-size:9px;color:var(--text3);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:2px}
+.month-stat-val{font-size:12px;font-weight:700;font-family:var(--mono)}
+.month-edit-row{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:10px;padding-top:10px;border-top:0.5px solid var(--border)}
+.month-edit-group label{font-size:9px;color:var(--text3);text-transform:uppercase;letter-spacing:0.06em;display:block;margin-bottom:4px}
+.toast{position:fixed;bottom:calc(var(--nav-h) + 16px);left:50%;transform:translateX(-50%);background:var(--bg2);border:0.5px solid var(--green);border-radius:12px;padding:12px 20px;font-size:13px;font-weight:600;color:var(--green);z-index:200;box-shadow:0 8px 24px rgba(0,0,0,0.3);opacity:0;transition:opacity 0.3s;pointer-events:none;white-space:nowrap}
+.toast.show{opacity:1}
 .payout-row { display: flex; align-items: center; justify-content: space-between; padding: 10px 14px; background: var(--bg2); border: 0.5px solid var(--border); border-radius: 12px; margin-bottom: 6px; gap: 8px; }
 [data-theme="dark"] .payout-row { background: var(--glass); }
 .payout-row-left { display: flex; align-items: center; gap: 10px; flex: 1; min-width: 0; }
@@ -449,7 +464,7 @@ body { overflow-x: hidden; }
       <button class="theme-btn" onclick="toggleTheme()"><i class="ti ti-sun" id="theme-icon-accounts"></i></button>
     </div>
     <div class="section">
-      <div id="sort-bar" style="margin:14px 0 8px;display:flex;gap:8px;align-items:center"></div>
+      <div id="sort-bar" style="margin:8px 0 8px;display:flex;gap:8px;align-items:center"></div>
       <div id="accounts-list"></div>
       <button onclick="openModal()" style="width:100%;padding:14px;margin-top:4px;border:0.5px dashed var(--border2);border-radius:16px;background:transparent;color:var(--text2);cursor:pointer;font-size:13px;font-family:var(--font);display:flex;align-items:center;justify-content:center;gap:8px;transition:all 0.2s" onmouseover="this.style.background='var(--green-bg)';this.style.color='var(--green)'" onmouseout="this.style.background='transparent';this.style.color='var(--text2)'">
         <i class="ti ti-plus" style="font-size:15px"></i> Ajouter un compte
@@ -496,6 +511,16 @@ body { overflow-x: hidden; }
       <div id="global-stats"></div>
       <!-- NET MONTH -->
       <div id="net-month-block"></div>
+      <!-- MONTHLY HISTORY -->
+      <div class="section-label" style="margin-top:16px">Historique mensuel</div>
+      <div id="monthly-chart-block"></div>
+      <div class="coll-header" id="monthly-history-h" onclick="toggleColl('monthly-history')">
+        <span class="coll-title"><i class="ti ti-calendar-stats"></i>Détail par mois</span>
+        <i class="ti ti-chevron-down coll-chevron" id="monthly-history-chev"></i>
+      </div>
+      <div class="coll-body" id="monthly-history-b" style="margin-bottom:12px">
+        <div class="coll-inner" style="padding-top:12px"><div id="monthly-history-list"></div></div>
+      </div>
       <div class="coll-header" id="exp-h" onclick="toggleColl('exp')">
         <span class="coll-title"><i class="ti ti-receipt"></i>Dépenses du mois</span>
         <i class="ti ti-chevron-down coll-chevron" id="exp-chev"></i>
@@ -575,6 +600,9 @@ body { overflow-x: hidden; }
     <div class="modal-btns"><button class="btn-cancel" onclick="closeModal()">Annuler</button><button class="btn-save" onclick="saveAccount()">Enregistrer</button></div>
   </div>
 </div>
+
+<!-- TOAST -->
+<div class="toast" id="toast"></div>
 
 <!-- PAYOUT EDIT MODAL -->
 <div class="mini-overlay" id="payout-modal" onclick="if(event.target===this)closePayoutModal()">
@@ -751,6 +779,220 @@ function switchPage(p){
   if(p==='treso')setTimeout(renderTreso,50);
   if(p==='stats'){setTimeout(()=>{loadExpenses();renderStats();},50);}
   if(p==='dash')renderDash();
+}
+
+// ── TOAST ──
+function showToast(msg, duration=3000){
+  const t=document.getElementById('toast');
+  if(!t)return;
+  t.textContent=msg;
+  t.classList.add('show');
+  setTimeout(()=>t.classList.remove('show'),duration);
+}
+
+// ── MONTHLY HISTORY ──
+// Structure: [{month:'2026-03', label:'Mars 2026', revenues:X, expenses:Y, net:Z, editingRevenues:false}]
+const MONTH_NAMES=['Janvier','Février','Mars','Avril','Mai','Juin','Juillet','Août','Septembre','Octobre','Novembre','Décembre'];
+
+function loadMonthlyHistory(){
+  try{const r=localStorage.getItem('pft_monthly');return r?JSON.parse(r):[];}catch(e){return[];}
+}
+function saveMonthlyHistory(history){
+  try{localStorage.setItem('pft_monthly',JSON.stringify(history));}catch(e){}
+}
+function getMonthKey(date){
+  return `${date.getFullYear()}-${String(date.getMonth()+1).padStart(2,'0')}`;
+}
+function getMonthLabel(key){
+  const [y,m]=key.split('-');
+  return `${MONTH_NAMES[parseInt(m)-1]} ${y}`;
+}
+
+function checkMonthlyAutoClose(){
+  const now=new Date();
+  const currentKey=getMonthKey(now);
+  const history=loadMonthlyHistory();
+  // Find last stored month
+  if(history.length===0) return;
+  const lastKey=history[history.length-1].month;
+  if(lastKey===currentKey) return; // already current month, nothing to do
+  // Check if there's a gap — close any months between last stored and current
+  // (in practice usually just one month)
+  let [ly,lm]=[parseInt(lastKey.split('-')[0]),parseInt(lastKey.split('-')[1])];
+  const [cy,cm]=[now.getFullYear(),now.getMonth()+1];
+  while(!(ly===cy&&lm===cm)){
+    lm++; if(lm>12){lm=1;ly++;}
+    const key=`${ly}-${String(lm).padStart(2,'0')}`;
+    if(key===currentKey) break; // don't close current month
+    if(!history.find(h=>h.month===key)){
+      // This month passed without being recorded — add it as empty
+      history.push({month:key,label:getMonthLabel(key),revenues:0,expenses:0,net:0});
+    }
+  }
+  saveMonthlyHistory(history);
+}
+
+function closeCurrentMonth(){
+  const now=new Date();
+  const history=loadMonthlyHistory();
+  // Determine which month to close: if we're past the 1st, check if previous month is closed
+  const prevDate=new Date(now.getFullYear(),now.getMonth()-1,1);
+  const prevKey=getMonthKey(prevDate);
+  if(history.find(h=>h.month===prevKey)) return false; // already closed
+  // Compute revenues and expenses for previous month
+  const allP=getAllPayouts();
+  const pm=prevDate.getMonth()+1;
+  const monthP=allP.filter(p=>parseInt((p.date.split('/')||[])[1]||0)===pm);
+  const revenues=monthP.reduce((s,p)=>s+(p.payoutEur||0),0);
+  // Expenses from localStorage
+  let exp={};try{const r=localStorage.getItem('pft_expenses');if(r)exp=JSON.parse(r);}catch(e){}
+  let usd=0;
+  EVAL_FIRMS.forEach(f=>{const pr=exp['price_'+f]||EVAL_PRICES[f];const qt=exp['qty_'+f]||0;usd+=pr*qt;});
+  const expenses=Math.round(usd*getFx())+(exp.misc||0);
+  const net=revenues-expenses;
+  history.push({month:prevKey,label:getMonthLabel(prevKey),revenues,expenses,net});
+  saveMonthlyHistory(history);
+  return true;
+}
+
+function initMonthlyHistory(){
+  // Seed with March and April 2026 if empty
+  let history=loadMonthlyHistory();
+  if(history.length===0){
+    // Will be seeded manually by user — just ensure current month tracking starts
+    // Check if we need to auto-close previous month
+    const now=new Date();
+    if(now.getDate()>=1){
+      const closed=closeCurrentMonth();
+      if(closed) showToast('✓ Mois clôturé automatiquement');
+    }
+  } else {
+    const now=new Date();
+    const prevDate=new Date(now.getFullYear(),now.getMonth()-1,1);
+    const prevKey=getMonthKey(prevDate);
+    if(!history.find(h=>h.month===prevKey) && now.getDate()>=1){
+      const closed=closeCurrentMonth();
+      if(closed){
+        const label=getMonthLabel(prevKey);
+        showToast(`✓ ${label} clôturé automatiquement`);
+      }
+    }
+  }
+}
+
+function addManualMonth(month, label, revenues, expenses){
+  const history=loadMonthlyHistory();
+  const existing=history.findIndex(h=>h.month===month);
+  const entry={month,label,revenues,expenses,net:revenues-expenses};
+  if(existing>=0) history[existing]=entry;
+  else{history.push(entry);history.sort((a,b)=>a.month.localeCompare(b.month));}
+  saveMonthlyHistory(history);
+}
+
+let monthlyChart=null;
+function renderMonthlyHistory(){
+  const history=loadMonthlyHistory();
+  const block=document.getElementById('monthly-chart-block');
+  const listBlock=document.getElementById('monthly-history-list');
+  if(!block||!listBlock) return;
+
+  if(history.length===0){
+    block.innerHTML=`<div class="empty" style="padding:20px 0"><i class="ti ti-chart-bar"></i>Aucun mois clôturé.<br>Les données apparaîtront ici à partir du mois prochain.</div>`;
+    listBlock.innerHTML='';
+    return;
+  }
+
+  // Chart
+  const isDark=currentTheme==='dark';
+  const labels=history.map(h=>h.label.split(' ')[0].slice(0,3)+' '+h.label.split(' ')[1].slice(2));
+  const revData=history.map(h=>h.revenues);
+  const expData=history.map(h=>h.expenses);
+  const netData=history.map(h=>h.net);
+
+  block.innerHTML=`<div class="monthly-chart-card"><div style="font-size:11px;font-weight:700;color:var(--text2);letter-spacing:0.06em;text-transform:uppercase;margin-bottom:14px">Revenus · Dépenses · Bénéfice net</div><div class="graph-legend" style="display:flex;gap:16px;margin-bottom:12px;flex-wrap:wrap">${[['var(--green)','Revenus'],['var(--red)','Dépenses'],['var(--blue)','Bénéfice net']].map(([c,l])=>`<div style="display:flex;align-items:center;gap:5px;font-size:10px;color:var(--text2)"><div style="width:10px;height:10px;border-radius:2px;background:${c}"></div>${l}</div>`).join('')}</div><div style="position:relative;height:200px"><canvas id="monthly-chart"></canvas></div></div>`;
+
+  setTimeout(()=>{
+    const ctx=document.getElementById('monthly-chart');
+    if(!ctx) return;
+    if(monthlyChart) monthlyChart.destroy();
+    const gc=isDark?'rgba(255,255,255,0.03)':'rgba(0,0,0,0.04)';
+    const tc=isDark?'#2a3545':'#b0bcc8';
+    monthlyChart=new Chart(ctx,{type:'bar',data:{labels,datasets:[
+      {label:'Revenus',data:revData,backgroundColor:isDark?'rgba(0,255,135,0.7)':'rgba(0,168,85,0.7)',borderRadius:4},
+      {label:'Dépenses',data:expData,backgroundColor:isDark?'rgba(255,68,102,0.6)':'rgba(238,34,68,0.6)',borderRadius:4},
+      {label:'Bénéfice net',data:netData,backgroundColor:isDark?'rgba(68,136,255,0.7)':'rgba(34,85,204,0.7)',borderRadius:4}
+    ]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{backgroundColor:isDark?'#0e1520':'#fff',borderColor:isDark?'rgba(255,255,255,0.1)':'rgba(0,0,0,0.1)',borderWidth:1,callbacks:{label:i=>` ${i.dataset.label} : ${fmt(i.parsed.y)} €`}}},scales:{x:{grid:{color:gc},ticks:{color:tc,font:{size:9}}},y:{grid:{color:gc},ticks:{color:tc,font:{size:9},callback:v=>fmt(v)+'€'}}}}});
+  },50);
+
+  // List with edit capability
+  listBlock.innerHTML=history.slice().reverse().map((h,ri)=>{
+    const realIdx=history.length-1-ri;
+    const netColor=h.net>=0?'var(--green)':'var(--red)';
+    return`<div class="month-row">
+      <div class="month-row-header">
+        <span class="month-row-name">${h.label}</span>
+        <span class="month-row-net" style="color:${netColor}">${h.net>=0?'+':'−'}${fmt(Math.abs(h.net))} €</span>
+      </div>
+      <div class="month-row-grid">
+        <div class="month-stat"><div class="month-stat-label">Revenus</div><div class="month-stat-val" style="color:var(--green)">+${fmt(h.revenues)} €</div></div>
+        <div class="month-stat"><div class="month-stat-label">Dépenses</div><div class="month-stat-val" style="color:var(--red)">−${fmt(h.expenses)} €</div></div>
+        <div class="month-stat"><div class="month-stat-label">Bénéfice</div><div class="month-stat-val" style="color:${netColor}">${h.net>=0?'+':'−'}${fmt(Math.abs(h.net))} €</div></div>
+      </div>
+      <div class="month-edit-row">
+        <div class="month-edit-group">
+          <label>Revenus (€)</label>
+          <input class="setting-input" type="number" id="medit-rev-${realIdx}" value="${h.revenues}" style="width:100%">
+        </div>
+        <div class="month-edit-group">
+          <label>Dépenses (€)</label>
+          <input class="setting-input" type="number" id="medit-exp-${realIdx}" value="${h.expenses}" style="width:100%">
+        </div>
+      </div>
+      <button onclick="saveMonthEdit(${realIdx})" style="width:100%;margin-top:8px;padding:8px;background:var(--green-bg);border:0.5px solid var(--border2);border-radius:8px;color:var(--green);font-size:12px;font-weight:600;cursor:pointer;font-family:var(--font)">Enregistrer</button>
+    </div>`;
+  }).join('');
+
+  // Button to add March & April manually
+  const now=new Date();
+  const currentKey=getMonthKey(now);
+  const missingMonths=[];
+  // Check from March 2026 to last month
+  let d=new Date(2026,2,1); // March 2026
+  while(getMonthKey(d)<currentKey){
+    const k=getMonthKey(d);
+    if(!history.find(h=>h.month===k)) missingMonths.push({key:k,label:getMonthLabel(k)});
+    d=new Date(d.getFullYear(),d.getMonth()+1,1);
+  }
+  if(missingMonths.length>0){
+    listBlock.innerHTML+=`<div style="margin-top:12px;padding-top:12px;border-top:0.5px solid var(--border)"><div style="font-size:11px;font-weight:600;color:var(--text2);margin-bottom:10px">Mois manquants</div>${
+      missingMonths.map(m=>`<div class="month-row" style="margin-bottom:8px">
+        <div style="font-size:13px;font-weight:700;margin-bottom:10px">${m.label}</div>
+        <div class="month-edit-row">
+          <div class="month-edit-group"><label>Revenus (€)</label><input class="setting-input" type="number" id="madd-rev-${m.key}" value="0" style="width:100%"></div>
+          <div class="month-edit-group"><label>Dépenses (€)</label><input class="setting-input" type="number" id="madd-exp-${m.key}" value="0" style="width:100%"></div>
+        </div>
+        <button onclick="addMissingMonth('${m.key}','${m.label}')" style="width:100%;margin-top:8px;padding:8px;background:var(--green-bg);border:0.5px solid var(--border2);border-radius:8px;color:var(--green);font-size:12px;font-weight:600;cursor:pointer;font-family:var(--font)">Ajouter</button>
+      </div>`).join('')
+    }</div>`;
+  }
+}
+
+function saveMonthEdit(idx){
+  const history=loadMonthlyHistory();
+  const rev=parseFloat(document.getElementById('medit-rev-'+idx).value)||0;
+  const exp=parseFloat(document.getElementById('medit-exp-'+idx).value)||0;
+  history[idx]={...history[idx],revenues:Math.round(rev),expenses:Math.round(exp),net:Math.round(rev-exp)};
+  saveMonthlyHistory(history);
+  showToast('✓ Mois mis à jour');
+  renderMonthlyHistory();
+}
+
+function addMissingMonth(key, label){
+  const rev=parseFloat(document.getElementById('madd-rev-'+key).value)||0;
+  const exp=parseFloat(document.getElementById('madd-exp-'+key).value)||0;
+  addManualMonth(key,label,Math.round(rev),Math.round(exp));
+  showToast('✓ '+label+' ajouté');
+  renderMonthlyHistory();
 }
 
 // ── COLLAPSIBLE ──
@@ -1225,6 +1467,8 @@ function renderStats(){
       </div>`;
     }).join('');
   }
+
+  renderMonthlyHistory();
 }
 
 // ── PAYOUT MODAL ──
@@ -1311,6 +1555,7 @@ applyTheme(currentTheme);
 renderAccounts();
 renderDash();
 setTimeout(loadExpenses,0);
+setTimeout(initMonthlyHistory,100);
 </script>
 </body>
 </html>
