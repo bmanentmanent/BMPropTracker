@@ -523,6 +523,14 @@ body { overflow-x: hidden; }
       <div id="global-stats"></div>
       <!-- NET MONTH -->
       <div id="net-month-block"></div>
+      <!-- PAYOUT DISTRIBUTION -->
+      <div class="coll-header" id="payout-dist-h" onclick="toggleColl('payout-dist')">
+        <span class="coll-title"><i class="ti ti-chart-pie"></i>Distribution des payouts</span>
+        <i class="ti ti-chevron-down coll-chevron" id="payout-dist-chev"></i>
+      </div>
+      <div class="coll-body" id="payout-dist-b">
+        <div class="coll-inner" style="padding-top:12px"><div id="payout-dist-content"></div></div>
+      </div>
       <!-- MONTHLY HISTORY -->
       <div class="section-label" style="margin-top:16px">Historique mensuel</div>
       <div id="monthly-chart-block"></div>
@@ -542,13 +550,6 @@ body { overflow-x: hidden; }
           <div id="eval-rows-container"></div>
           <div class="setting-row"><div class="setting-label">Frais annexes</div><input class="setting-input" type="number" id="misc-expenses" value="" placeholder="0" step="1" oninput="saveExpenses();renderStats()"><span class="setting-unit">€</span></div>
         </div>
-      </div>
-      <div class="coll-header" id="firm-stats-h" onclick="toggleColl('firm-stats')">
-        <span class="coll-title"><i class="ti ti-chart-bar"></i>Par prop firm</span>
-        <i class="ti ti-chevron-down coll-chevron" id="firm-stats-chev"></i>
-      </div>
-      <div class="coll-body" id="firm-stats-b">
-        <div class="coll-inner" style="padding-top:12px"><div id="firm-stats"></div></div>
       </div>
       <div class="coll-header" id="payouts-h" onclick="toggleColl('payouts')">
         <span class="coll-title"><i class="ti ti-cash"></i>Historique des payouts</span>
@@ -721,19 +722,16 @@ function renderEvalRows(){
   let exp={};try{const r=localStorage.getItem('pft_expenses');if(r)exp=JSON.parse(r);}catch(e){}
   el.innerHTML=firmsConfig.map(f=>`
     <div class="setting-row">
-      <div class="setting-label">Évals ${f.name}<small>prix ($)</small></div>
-      <input class="setting-input" type="number" id="eval-price-${f.name}" value="${exp['price_'+f.name]??f.evalPrice}" step="1" style="width:70px" oninput="saveExpenses();renderStats()">
-      <span class="setting-unit" style="margin:0 3px">×</span>
-      <input class="setting-input" type="number" id="eval-qty-${f.name}" value="${exp['qty_'+f.name]||''}" placeholder="0" min="0" step="1" style="width:50px" oninput="saveExpenses();renderStats()">
+      <div class="setting-label">Évals ${f.name}<small>${f.evalPrice}$/unité</small></div>
+      <input class="setting-input" type="number" id="eval-qty-${f.name}" value="${exp['qty_'+f.name]||''}" placeholder="0" min="0" step="1" style="width:60px" oninput="saveExpenses();renderStats()">
+      <span class="setting-unit">éval${''}</span>
     </div>`).join('');
 }
 function saveExpenses(){
   try{
     const exp={misc:parseFloat(document.getElementById('misc-expenses').value)||0};
     firmsConfig.forEach(f=>{
-      const pe=document.getElementById('eval-price-'+f.name);
       const qe=document.getElementById('eval-qty-'+f.name);
-      exp['price_'+f.name]=pe?parseFloat(pe.value)||f.evalPrice:f.evalPrice;
       exp['qty_'+f.name]=qe?parseFloat(qe.value)||0:0;
     });
     localStorage.setItem('pft_expenses',JSON.stringify(exp));
@@ -745,9 +743,7 @@ function loadExpenses(){
     const exp=raw?JSON.parse(raw):{};
     renderEvalRows();
     firmsConfig.forEach(f=>{
-      const pe=document.getElementById('eval-price-'+f.name);
       const qe=document.getElementById('eval-qty-'+f.name);
-      if(pe)pe.value=exp['price_'+f.name]??f.evalPrice;
       if(qe&&exp['qty_'+f.name])qe.value=exp['qty_'+f.name];
     });
     const me=document.getElementById('misc-expenses');
@@ -760,12 +756,9 @@ function getExpensesEur(){
   try{const r=localStorage.getItem('pft_expenses');if(r)exp=JSON.parse(r);}catch(e){}
   let usd=0;
   firmsConfig.forEach(f=>{
-    const pe=document.getElementById('eval-price-'+f.name);
     const qe=document.getElementById('eval-qty-'+f.name);
-    const defaultPrice=f.evalPrice||0;
-    const pr=pe&&pe.value!==''?parseFloat(pe.value):(exp['price_'+f.name]||defaultPrice);
-    const qt=qe&&qe.value!==''?parseFloat(qe.value):(exp['qty_'+f.name]||0);
-    usd+=pr*qt;
+    const qt=qe&&qe.value!==''?parseFloat(qe.value)||0:(exp['qty_'+f.name]||0);
+    usd+=(f.evalPrice||0)*qt;
   });
   const evalEur=Math.round(usd*fx);
   const me=document.getElementById('misc-expenses');
@@ -909,7 +902,7 @@ function closeCurrentMonth(){
   // Expenses from localStorage
   let exp={};try{const r=localStorage.getItem('pft_expenses');if(r)exp=JSON.parse(r);}catch(e){}
   let usd=0;
-  firmsConfig.forEach(f=>{const pr=exp['price_'+f.name]||f.evalPrice;const qt=exp['qty_'+f.name]||0;usd+=pr*qt;});
+  firmsConfig.forEach(f=>{const qt=exp['qty_'+f.name]||0;usd+=(f.evalPrice||0)*qt;});
   const expenses=Math.round(usd*getFx())+(exp.misc||0);
   const net=revenues-expenses;
   history.push({month:prevKey,label:getMonthLabel(prevKey),revenues,expenses,net});
@@ -1588,12 +1581,10 @@ function renderStats(){
   if(nb){
     renderEvalRows();
     const evalRows=firmsConfig.map(f=>{
-      const pe=document.getElementById('eval-price-'+f.name);
       const qe=document.getElementById('eval-qty-'+f.name);
-      const price=pe&&pe.value!==''?parseFloat(pe.value)||f.evalPrice:f.evalPrice;
       const qty=qe&&qe.value!==''?parseFloat(qe.value)||0:0;
       if(qty===0)return'';
-      return`<div class="net-row"><span class="net-label">Évals ${f.name} (${qty}×${price}$)</span><span class="net-val" style="color:var(--red)">−${fmt(Math.round(price*qty*fx))} €</span></div>`;
+      return`<div class="net-row"><span class="net-label">Évals ${f.name} (${qty}×${f.evalPrice}$)</span><span class="net-val" style="color:var(--red)">−${fmt(Math.round(f.evalPrice*qty*fx))} €</span></div>`;
     }).join('');
     nb.innerHTML=`<div class="net-card">
       <div style="font-size:11px;font-weight:700;color:var(--text2);margin-bottom:10px">Résultat du mois</div>
@@ -1602,32 +1593,6 @@ function renderStats(){
       ${misc>0?`<div class="net-row"><span class="net-label">Frais annexes</span><span class="net-val" style="color:var(--red)">−${fmt(misc)} €</span></div>`:''}
       <div class="net-total"><span class="net-total-label">Bénéfice net</span><span class="net-total-val" style="color:${net>=0?'var(--green)':'var(--red)'}">${net>=0?'+':'−'}${fmt(Math.abs(net))} €</span></div>
     </div>`;
-  }
-
-  // Firm stats
-  const fb=document.getElementById('firm-stats');
-  if(fb){
-    let fh='';
-    // Collect all firms appearing in accounts/archived + firmsConfig
-    const allFirmNames=[...new Set([...firmsConfig.map(f=>f.name),...accounts.map(a=>a.firm),...archived.map(a=>a.firm)])];
-    allFirmNames.forEach(firm=>{
-      const fa=archived.filter(a=>a.firm===firm);
-      const fac=accounts.filter(a=>a.firm===firm);
-      if(fa.length===0&&fac.length===0)return;
-      const archivedTot=fa.reduce((s,a)=>s+(a.totalPayoutEur||0),0);
-      const activeTot=fac.reduce((s,a)=>s+a.history.filter(h=>h.payout).reduce((ss,h)=>ss+(h.payoutEur||0),0),0);
-      const tot=archivedTot+activeTot;
-      const totAcc=fa.length+fac.length;
-      const avgPO=totAcc>0?Math.round(tot/totAcc):0;
-      fh+=`<div class="firm-card"><div class="firm-card-top">${firmAvatar(firm,36)}<div><div class="firm-card-name">${firm}</div><div class="firm-card-sub">${fa.length} archivé${fa.length>1?'s':''} · ${fac.length} actif${fac.length>1?'s':''}</div></div></div>
-        <div class="firm-stat-grid">
-          <div class="firm-stat"><div class="firm-stat-label">Total encaissé</div><div class="firm-stat-val g">${tot>0?fmt(tot)+' €':'—'}</div></div>
-          <div class="firm-stat"><div class="firm-stat-label">Moy. / compte</div><div class="firm-stat-val">${avgPO>0?fmt(avgPO)+' €':'—'}</div></div>
-          <div class="firm-stat"><div class="firm-stat-label">Comptes cramés</div><div class="firm-stat-val r">${fa.length}</div></div>
-          <div class="firm-stat"><div class="firm-stat-label">Actifs</div><div class="firm-stat-val">${fac.length}</div></div>
-        </div></div>`;
-    });
-    fb.innerHTML=fh||`<div class="empty" style="padding:20px 0"><i class="ti ti-chart-bar"></i>Pas encore de données.</div>`;
   }
 
   // Payout archive
@@ -1664,6 +1629,51 @@ function renderStats(){
   }
 
   renderMonthlyHistory();
+  renderPayoutDistribution();
+}
+
+function renderPayoutDistribution(){
+  const el=document.getElementById('payout-dist-content');
+  if(!el)return;
+
+  const allAccounts=[
+    ...accounts.map(a=>({payouts:a.history.filter(h=>h.payout).length,firm:a.firm})),
+    ...archived.map(a=>({payouts:(a.payoutHistory||[]).length,firm:a.firm}))
+  ];
+  if(allAccounts.length===0){
+    el.innerHTML=`<div class="empty" style="padding:16px 0"><i class="ti ti-chart-pie"></i>Aucun compte.</div>`;
+    return;
+  }
+  const total=allAccounts.length;
+  const maxP=Math.max(...allAccounts.map(a=>a.payouts));
+  const dist={};
+  for(let i=0;i<=maxP;i++) dist[i]=allAccounts.filter(a=>a.payouts===i).length;
+  const avg=(allAccounts.reduce((s,a)=>s+a.payouts,0)/total).toFixed(1);
+  const withAtLeastOne=allAccounts.filter(a=>a.payouts>=1).length;
+
+  let html=`<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:14px">
+    <div class="month-stat"><div class="month-stat-label">Comptes financés</div><div class="month-stat-val">${total}</div></div>
+    <div class="month-stat"><div class="month-stat-label">Moy. payouts/compte</div><div class="month-stat-val" style="color:var(--green)">${avg}</div></div>
+    <div class="month-stat"><div class="month-stat-label">≥ 1 payout</div><div class="month-stat-val" style="color:var(--green)">${Math.round(withAtLeastOne/total*100)}%</div></div>
+    <div class="month-stat"><div class="month-stat-label">0 payout</div><div class="month-stat-val" style="color:var(--red)">${Math.round((dist[0]||0)/total*100)}%</div></div>
+  </div><div style="display:flex;flex-direction:column;gap:7px">`;
+
+  for(let i=0;i<=maxP;i++){
+    const count=dist[i]||0;
+    const pct=Math.round(count/total*100);
+    const color=i===0?'var(--red)':i===1?'#ffaa00':'var(--green)';
+    html+=`<div style="display:flex;align-items:center;gap:10px">
+      <div style="width:58px;font-size:11px;font-weight:700;color:var(--text2);text-align:right;flex-shrink:0">${i} payout${i>1?'s':''}</div>
+      <div style="flex:1;background:var(--bg3);border-radius:6px;height:22px;overflow:hidden">
+        <div style="width:${Math.max(pct,2)}%;background:${color};height:100%;border-radius:6px;display:flex;align-items:center;padding-left:8px;box-sizing:border-box">
+          ${pct>=18?`<span style="font-size:10px;font-weight:700;color:${i===0?'#fff':'#000'}">${count} · ${pct}%</span>`:''}
+        </div>
+      </div>
+      ${pct<18?`<span style="font-size:10px;font-weight:700;color:var(--text2);width:48px">${count} · ${pct}%</span>`:`<div style="width:48px"></div>`}
+    </div>`;
+  }
+  html+=`</div>`;
+  el.innerHTML=html;
 }
 
 // ── PAYOUT MODAL ──
