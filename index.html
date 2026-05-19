@@ -286,6 +286,18 @@ body { overflow-x: hidden; }
 .archived-stat-val.r { color: var(--red); }
 .archived-actions { display: flex; justify-content: flex-end; margin-top: 8px; }
 .btn-arch-del { padding: 5px 12px; background: var(--red-bg); border: 0.5px solid var(--red-bdr); border-radius: 7px; color: var(--red); font-size: 10px; font-weight: 700; cursor: pointer; font-family: var(--font); }
+.firm-card{background:var(--bg2);border:0.5px solid var(--border);border-radius:14px;padding:14px;margin-bottom:10px}
+[data-theme="dark"] .firm-card{background:var(--glass)}
+.firm-card-header{display:flex;align-items:center;gap:10px;margin-bottom:12px}
+.firm-card-name{font-size:14px;font-weight:700;flex:1}
+.firm-card-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.firm-field{display:flex;flex-direction:column;gap:4px}
+.firm-field label{font-size:9px;color:var(--text3);text-transform:uppercase;letter-spacing:0.06em}
+.firm-field input{background:var(--bg3);border:0.5px solid var(--border);border-radius:8px;padding:7px 10px;color:var(--text1);font-size:12px;font-family:var(--mono);width:100%;box-sizing:border-box}
+.firm-field input:focus{border-color:var(--green);outline:none}
+.firm-del-btn{background:var(--red-bg,rgba(255,68,102,0.1));border:0.5px solid rgba(255,68,102,0.3);border-radius:8px;color:var(--red);padding:4px 10px;font-size:11px;cursor:pointer;font-family:var(--font);font-weight:600}
+.firm-save-btn{width:100%;margin-top:10px;padding:8px;background:var(--green-bg);border:0.5px solid var(--border2);border-radius:8px;color:var(--green);font-size:12px;font-weight:600;cursor:pointer;font-family:var(--font)}
+.color-swatch{width:28px;height:28px;border-radius:8px;border:2px solid var(--border2);cursor:pointer;flex-shrink:0}
 .monthly-chart-card{background:var(--bg2);border:0.5px solid var(--border);border-radius:16px;padding:16px 18px;margin-bottom:8px}
 [data-theme="dark"] .monthly-chart-card{background:var(--glass);backdrop-filter:blur(10px)}
 .month-row{background:var(--bg2);border:0.5px solid var(--border);border-radius:12px;padding:12px 14px;margin-bottom:8px}
@@ -461,7 +473,7 @@ body { overflow-x: hidden; }
   <div class="page" id="page-accounts">
     <div class="page-header" style="padding-top:20px">
       <div class="page-title">Comptes</div>
-      <button class="theme-btn" onclick="toggleTheme()"><i class="ti ti-sun" id="theme-icon-accounts"></i></button>
+      <button class="theme-btn" onclick="openFirmSettings()" title="Paramètres firms"><i class="ti ti-settings"></i></button>
     </div>
     <div class="section">
       <div id="sort-bar" style="margin:8px 0 8px;display:flex;gap:8px;align-items:center"></div>
@@ -527,10 +539,7 @@ body { overflow-x: hidden; }
       </div>
       <div class="coll-body" id="exp-b">
         <div class="coll-inner">
-          <div class="setting-row"><div class="setting-label">Évals Topstep<small>prix ($)</small></div><input class="setting-input" type="number" id="eval-price-Topstep" value="111" step="1" style="width:70px" oninput="saveExpenses();renderStats()"><span class="setting-unit" style="margin:0 3px">×</span><input class="setting-input" type="number" id="eval-qty-Topstep" value="" placeholder="0" min="0" step="1" style="width:50px" oninput="saveExpenses();renderStats()"></div>
-          <div class="setting-row"><div class="setting-label">Évals Lucid<small>prix ($)</small></div><input class="setting-input" type="number" id="eval-price-Lucid" value="95" step="1" style="width:70px" oninput="saveExpenses();renderStats()"><span class="setting-unit" style="margin:0 3px">×</span><input class="setting-input" type="number" id="eval-qty-Lucid" value="" placeholder="0" min="0" step="1" style="width:50px" oninput="saveExpenses();renderStats()"></div>
-          <div class="setting-row"><div class="setting-label">Évals MyFundedFX<small>prix ($)</small></div><input class="setting-input" type="number" id="eval-price-MyFundedFX" value="127" step="1" style="width:70px" oninput="saveExpenses();renderStats()"><span class="setting-unit" style="margin:0 3px">×</span><input class="setting-input" type="number" id="eval-qty-MyFundedFX" value="" placeholder="0" min="0" step="1" style="width:50px" oninput="saveExpenses();renderStats()"></div>
-          <div class="setting-row"><div class="setting-label">Évals Tradeify<small>prix ($)</small></div><input class="setting-input" type="number" id="eval-price-Tradeify" value="98" step="1" style="width:70px" oninput="saveExpenses();renderStats()"><span class="setting-unit" style="margin:0 3px">×</span><input class="setting-input" type="number" id="eval-qty-Tradeify" value="" placeholder="0" min="0" step="1" style="width:50px" oninput="saveExpenses();renderStats()"></div>
+          <div id="eval-rows-container"></div>
           <div class="setting-row"><div class="setting-label">Frais annexes</div><input class="setting-input" type="number" id="misc-expenses" value="" placeholder="0" step="1" oninput="saveExpenses();renderStats()"><span class="setting-unit">€</span></div>
         </div>
       </div>
@@ -592,7 +601,7 @@ body { overflow-x: hidden; }
   <div class="modal">
     <div class="modal-handle"></div>
     <div class="modal-title" id="modal-title">Nouveau compte</div>
-    <div class="form-group"><label class="form-label">Prop firm</label><select class="form-select" id="f-firm"><option>Topstep</option><option>Lucid</option><option>MyFundedFX</option><option>Tradeify</option></select></div>
+    <div class="form-group"><label class="form-label">Prop firm</label><select class="form-select" id="f-firm"></select></div>
     <div class="form-group"><label class="form-label">Balance actuelle ($)</label><input class="form-input" type="number" id="f-balance" placeholder="0"></div>
     <div class="form-group"><label class="form-label">Jours de gain acquis</label><input class="form-input" type="number" id="f-days" placeholder="0" min="0" max="4"></div>
     <div class="form-group"><div class="toggle-row"><span class="toggle-label">Payout déjà effectué ?</span><label class="toggle"><input type="checkbox" id="f-has-payout" onchange="togglePayoutField()"><span class="toggle-slider"></span></label></div></div>
@@ -603,6 +612,23 @@ body { overflow-x: hidden; }
 
 <!-- TOAST -->
 <div class="toast" id="toast"></div>
+
+<!-- FIRM SETTINGS SHEET -->
+<div class="sheet-overlay" id="firm-settings-overlay" onclick="closeFirmSettings()"></div>
+<div class="sheet" id="firm-settings-sheet" style="max-height:90vh;overflow-y:auto">
+  <div class="sheet-handle"></div>
+  <div style="display:flex;justify-content:space-between;align-items:center;padding:0 20px 16px">
+    <div style="font-size:16px;font-weight:700">Paramètres Prop Firms</div>
+    <button onclick="closeFirmSettings()" style="background:none;border:none;color:var(--text2);font-size:20px;cursor:pointer;padding:4px"><i class="ti ti-x"></i></button>
+  </div>
+  <div id="firm-settings-list" style="padding:0 16px"></div>
+  <div style="padding:12px 16px 16px">
+    <button onclick="openAddFirmForm()" id="add-firm-btn" style="width:100%;padding:12px;border:0.5px dashed var(--border2);border-radius:12px;background:transparent;color:var(--green);cursor:pointer;font-size:13px;font-family:var(--font);font-weight:600;display:flex;align-items:center;justify-content:center;gap:8px">
+      <i class="ti ti-plus"></i> Ajouter une prop firm
+    </button>
+    <div id="add-firm-form" style="display:none;margin-top:12px;background:var(--bg2);border:0.5px solid var(--border);border-radius:12px;padding:14px"></div>
+  </div>
+</div>
 
 <!-- PAYOUT EDIT MODAL -->
 <div class="mini-overlay" id="payout-modal" onclick="if(event.target===this)closePayoutModal()">
@@ -616,16 +642,29 @@ body { overflow-x: hidden; }
 
 <script>
 const SPLIT=0.9,DAYS_REQ=5,WIN_THR=150,DD_AMT=2000;
-const FIRM_META={
-  Topstep:   {color:'#4488ff',bg:'rgba(68,136,255,0.12)',initials:'TS'},
-  Lucid:     {color:'#a259ff',bg:'rgba(162,89,255,0.12)',initials:'LT'},
-  MyFundedFX:{color:'#ff9900',bg:'rgba(255,153,0,0.12)', initials:'MF'},
-  Tradeify:  {color:'#00ff87',bg:'rgba(0,255,135,0.12)', initials:'TD'},
-};
+
+// ── FIRMS CONFIG (dynamic) ──
+const DEFAULT_FIRMS=[
+  {name:'Topstep',   color:'#4488ff',initials:'TS',split:90,evalPrice:111,payoutCap:0,netMin:0},
+  {name:'Lucid',     color:'#a259ff',initials:'LT',split:90,evalPrice:95, payoutCap:0,netMin:0},
+  {name:'MyFundedFX',color:'#ff9900',initials:'MF',split:90,evalPrice:127,payoutCap:0,netMin:0},
+  {name:'Tradeify',  color:'#00ff87',initials:'TD',split:90,evalPrice:98, payoutCap:0,netMin:0},
+];
+function loadFirmsConfig(){
+  try{const r=localStorage.getItem('pft_firms');return r?JSON.parse(r):JSON.parse(JSON.stringify(DEFAULT_FIRMS));}catch(e){return JSON.parse(JSON.stringify(DEFAULT_FIRMS));}
+}
+function saveFirmsConfig(firms){try{localStorage.setItem('pft_firms',JSON.stringify(firms));}catch(e){}}
+let firmsConfig=loadFirmsConfig();
+
+function getFirmCfg(name){return firmsConfig.find(f=>f.name===name)||{name,color:'#5a6a80',initials:name.slice(0,2).toUpperCase(),split:90,evalPrice:0,payoutCap:0,netMin:0};}
+function hexToRgba(hex,a){const r=parseInt(hex.slice(1,3),16),g=parseInt(hex.slice(3,5),16),b=parseInt(hex.slice(5,7),16);return`rgba(${r},${g},${b},${a})`;}
+function firmMeta(n){const f=getFirmCfg(n);return{color:f.color,bg:hexToRgba(f.color,0.12),initials:f.initials||n.slice(0,2).toUpperCase()};}
+function firmAvatar(n,size=38){const m=firmMeta(n);return`<div class="acc-avatar" style="width:${size}px;height:${size}px;background:${m.bg};color:${m.color};font-size:${size<=32?'10px':'12px'}">${m.initials}</div>`;}
+
+// Legacy compat
+const FIRM_META={};
 const EVAL_FIRMS=['Topstep','Lucid','MyFundedFX','Tradeify'];
 const EVAL_PRICES={Topstep:111,Lucid:95,MyFundedFX:127,Tradeify:98};
-function firmMeta(n){return FIRM_META[n]||{color:'#5a6a80',bg:'rgba(90,106,128,0.12)',initials:n.slice(0,2).toUpperCase()};}
-function firmAvatar(n,size=38){const m=firmMeta(n);return `<div class="acc-avatar" style="width:${size}px;height:${size}px;background:${m.bg};color:${m.color};font-size:${size<=32?'10px':'12px'}">${m.initials}</div>`;}
 
 let scConfigs=[
   {key:'opt', label:'Optimiste', pWin:1.0},
@@ -676,12 +715,26 @@ function loadAll(){
     document.getElementById('fx-rate').value=0.85;
   }catch(e){document.getElementById('fx-rate').value=0.85;}
 }
+function renderEvalRows(){
+  const el=document.getElementById('eval-rows-container');
+  if(!el)return;
+  let exp={};try{const r=localStorage.getItem('pft_expenses');if(r)exp=JSON.parse(r);}catch(e){}
+  el.innerHTML=firmsConfig.map(f=>`
+    <div class="setting-row">
+      <div class="setting-label">Évals ${f.name}<small>prix ($)</small></div>
+      <input class="setting-input" type="number" id="eval-price-${f.name}" value="${exp['price_'+f.name]??f.evalPrice}" step="1" style="width:70px" oninput="saveExpenses();renderStats()">
+      <span class="setting-unit" style="margin:0 3px">×</span>
+      <input class="setting-input" type="number" id="eval-qty-${f.name}" value="${exp['qty_'+f.name]||''}" placeholder="0" min="0" step="1" style="width:50px" oninput="saveExpenses();renderStats()">
+    </div>`).join('');
+}
 function saveExpenses(){
   try{
     const exp={misc:parseFloat(document.getElementById('misc-expenses').value)||0};
-    EVAL_FIRMS.forEach(f=>{
-      exp['price_'+f]=parseFloat(document.getElementById('eval-price-'+f).value)||EVAL_PRICES[f];
-      exp['qty_'+f]=parseFloat(document.getElementById('eval-qty-'+f).value)||0;
+    firmsConfig.forEach(f=>{
+      const pe=document.getElementById('eval-price-'+f.name);
+      const qe=document.getElementById('eval-qty-'+f.name);
+      exp['price_'+f.name]=pe?parseFloat(pe.value)||f.evalPrice:f.evalPrice;
+      exp['qty_'+f.name]=qe?parseFloat(qe.value)||0:0;
     });
     localStorage.setItem('pft_expenses',JSON.stringify(exp));
   }catch(e){}
@@ -690,14 +743,15 @@ function loadExpenses(){
   try{
     const raw=localStorage.getItem('pft_expenses');
     const exp=raw?JSON.parse(raw):{};
-    EVAL_FIRMS.forEach(f=>{
-      const pe=document.getElementById('eval-price-'+f);
-      const qe=document.getElementById('eval-qty-'+f);
-      if(pe)pe.value=exp['price_'+f]??EVAL_PRICES[f];
-      if(qe)qe.value=exp['qty_'+f]??0;
+    renderEvalRows();
+    firmsConfig.forEach(f=>{
+      const pe=document.getElementById('eval-price-'+f.name);
+      const qe=document.getElementById('eval-qty-'+f.name);
+      if(pe)pe.value=exp['price_'+f.name]??f.evalPrice;
+      if(qe&&exp['qty_'+f.name])qe.value=exp['qty_'+f.name];
     });
     const me=document.getElementById('misc-expenses');
-    if(me)me.value=exp.misc??0;
+    if(me&&exp.misc)me.value=exp.misc;
   }catch(e){}
 }
 function getExpensesEur(){
@@ -705,12 +759,12 @@ function getExpensesEur(){
   let exp={};
   try{const r=localStorage.getItem('pft_expenses');if(r)exp=JSON.parse(r);}catch(e){}
   let usd=0;
-  EVAL_FIRMS.forEach(f=>{
-    // Prefer DOM input if available, else fall back to localStorage
-    const pe=document.getElementById('eval-price-'+f);
-    const qe=document.getElementById('eval-qty-'+f);
-    const pr=pe&&pe.value!==''?parseFloat(pe.value):(exp['price_'+f]||EVAL_PRICES[f]);
-    const qt=qe&&qe.value!==''?parseFloat(qe.value):(exp['qty_'+f]||0);
+  firmsConfig.forEach(f=>{
+    const pe=document.getElementById('eval-price-'+f.name);
+    const qe=document.getElementById('eval-qty-'+f.name);
+    const defaultPrice=f.evalPrice||0;
+    const pr=pe&&pe.value!==''?parseFloat(pe.value):(exp['price_'+f.name]||defaultPrice);
+    const qt=qe&&qe.value!==''?parseFloat(qe.value):(exp['qty_'+f.name]||0);
     usd+=pr*qt;
   });
   const evalEur=Math.round(usd*fx);
@@ -730,10 +784,18 @@ function crashThreshold(acc){return Math.min(0,(acc.balanceMax||0)-DD_AMT);}
 function fmt(n){const s=Math.round(Math.abs(n)).toString();const g=[];for(let i=s.length;i>0;i-=3)g.unshift(s.slice(Math.max(0,i-3),i));return(n<0?'−':'')+g.join(' ');}
 function fmtSign(n){const r=Math.round(n);const s=Math.abs(r).toString();const g=[];for(let i=s.length;i>0;i-=3)g.unshift(s.slice(Math.max(0,i-3),i));return(r>=0?'+':'−')+g.join(' ');}
 function calcPayout(acc,sc,fx){
+  const cfg=getFirmCfg(acc.firm);
+  const split=(cfg.split||90)/100;
   const dl=DAYS_REQ-acc.gainDays,th=(acc.hasPayout&&acc.payoutBalance>0)?acc.payoutBalance:0;
   const td=dl/sc.pWin,fb=acc.balance+td*getEsp(sc);
   if(fb<=th)return null;
-  return{tradingDays:Math.round(td*10)/10,finalBalance:Math.round(fb),balanceAfter:Math.round(fb*0.5),payoutEur:Math.round(fb*0.5*SPLIT*fx)};
+  // netMin check: balance since last payout must be >= netMin
+  const netSinceLastPayout=acc.balance-(acc.balanceAtLastPayout||acc.startBalance||10000);
+  const netMin=cfg.netMin||0;
+  if(netMin>0&&netSinceLastPayout<netMin)return null;
+  let payoutAmt=fb*0.5*split;
+  if(cfg.payoutCap&&cfg.payoutCap>0) payoutAmt=Math.min(payoutAmt,cfg.payoutCap/fx);
+  return{tradingDays:Math.round(td*10)/10,finalBalance:Math.round(fb),balanceAfter:Math.round(fb*0.5),payoutEur:Math.round(payoutAmt*fx)};
 }
 function getSorted(){
   return[...accounts].sort((a,b)=>{
@@ -758,7 +820,7 @@ function onSettingChange(){saveAll();renderTreso();}
 function applyTheme(t){
   document.documentElement.setAttribute('data-theme',t);
   const cls=t==='dark'?'ti ti-sun':'ti ti-moon';
-  ['theme-icon','theme-icon-accounts','theme-icon-treso','theme-icon-stats'].forEach(id=>{
+  ['theme-icon','theme-icon-treso','theme-icon-stats'].forEach(id=>{
     const el=document.getElementById(id);if(el)el.className=cls;
   });
   const ld=document.getElementById('logo-dark');
@@ -847,7 +909,7 @@ function closeCurrentMonth(){
   // Expenses from localStorage
   let exp={};try{const r=localStorage.getItem('pft_expenses');if(r)exp=JSON.parse(r);}catch(e){}
   let usd=0;
-  EVAL_FIRMS.forEach(f=>{const pr=exp['price_'+f]||EVAL_PRICES[f];const qt=exp['qty_'+f]||0;usd+=pr*qt;});
+  firmsConfig.forEach(f=>{const pr=exp['price_'+f.name]||f.evalPrice;const qt=exp['qty_'+f.name]||0;usd+=pr*qt;});
   const expenses=Math.round(usd*getFx())+(exp.misc||0);
   const net=revenues-expenses;
   history.push({month:prevKey,label:getMonthLabel(prevKey),revenues,expenses,net});
@@ -1007,6 +1069,106 @@ function addMissingMonth(key, label){
   renderMonthlyHistory();
 }
 
+// ── FIRM SETTINGS ──
+function openFirmSettings(){
+  renderFirmSettings();
+  document.getElementById('firm-settings-overlay').classList.add('open');
+  document.getElementById('firm-settings-sheet').classList.add('open');
+}
+function closeFirmSettings(){
+  document.getElementById('firm-settings-overlay').classList.remove('open');
+  document.getElementById('firm-settings-sheet').classList.remove('open');
+  document.getElementById('add-firm-form').style.display='none';
+}
+function renderFirmSettings(){
+  const list=document.getElementById('firm-settings-list');
+  list.innerHTML=firmsConfig.map((f,i)=>`
+    <div class="firm-card">
+      <div class="firm-card-header">
+        ${firmAvatar(f.name,32)}
+        <span class="firm-card-name">${f.name}</span>
+        <button class="firm-del-btn" onclick="confirmDeleteFirm(${i})"><i class="ti ti-trash"></i></button>
+      </div>
+      <div class="firm-card-grid">
+        <div class="firm-field"><label>Profit split (%)</label><input type="number" id="fs-split-${i}" value="${f.split||90}" min="1" max="100" step="1"></div>
+        <div class="firm-field"><label>Prix éval ($)</label><input type="number" id="fs-price-${i}" value="${f.evalPrice||0}" min="0" step="1"></div>
+        <div class="firm-field"><label>Payout cap (€, 0=illimité)</label><input type="number" id="fs-cap-${i}" value="${f.payoutCap||0}" min="0" step="100"></div>
+        <div class="firm-field"><label>Profit net min/cycle ($)</label><input type="number" id="fs-net-${i}" value="${f.netMin||0}" min="0" step="100"></div>
+        <div class="firm-field"><label>Couleur</label><input type="color" id="fs-color-${i}" value="${f.color}" style="height:34px;padding:2px 4px;width:100%;border-radius:8px;border:0.5px solid var(--border);background:var(--bg3);cursor:pointer"></div>
+        <div class="firm-field"><label>Initiales</label><input type="text" id="fs-init-${i}" value="${f.initials||f.name.slice(0,2).toUpperCase()}" maxlength="3" style="text-transform:uppercase"></div>
+      </div>
+      <button class="firm-save-btn" onclick="saveFirmEdit(${i})">Enregistrer</button>
+    </div>`).join('');
+}
+function saveFirmEdit(i){
+  firmsConfig[i]={
+    ...firmsConfig[i],
+    split:parseFloat(document.getElementById('fs-split-'+i).value)||90,
+    evalPrice:parseFloat(document.getElementById('fs-price-'+i).value)||0,
+    payoutCap:parseFloat(document.getElementById('fs-cap-'+i).value)||0,
+    netMin:parseFloat(document.getElementById('fs-net-'+i).value)||0,
+    color:document.getElementById('fs-color-'+i).value,
+    initials:document.getElementById('fs-init-'+i).value.toUpperCase().slice(0,3)||firmsConfig[i].name.slice(0,2).toUpperCase(),
+  };
+  saveFirmsConfig(firmsConfig);
+  showToast('✓ '+firmsConfig[i].name+' mis à jour');
+  renderFirmSettings();
+  renderAccounts();
+  renderDash();
+}
+function confirmDeleteFirm(i){
+  const name=firmsConfig[i].name;
+  const inUse=accounts.some(a=>a.firm===name)||archived.some(a=>a.firm===name);
+  if(inUse){showToast('⚠ Firm utilisée par des comptes');return;}
+  firmsConfig.splice(i,1);
+  saveFirmsConfig(firmsConfig);
+  showToast('✓ Firm supprimée');
+  renderFirmSettings();
+}
+function openAddFirmForm(){
+  const f=document.getElementById('add-firm-form');
+  f.style.display='block';
+  document.getElementById('add-firm-btn').style.display='none';
+  f.innerHTML=`
+    <div style="font-size:12px;font-weight:700;margin-bottom:12px;color:var(--text1)">Nouvelle prop firm</div>
+    <div class="firm-card-grid" style="margin-bottom:10px">
+      <div class="firm-field" style="grid-column:1/-1"><label>Nom</label><input type="text" id="nf-name" placeholder="ex: FTMO"></div>
+      <div class="firm-field"><label>Profit split (%)</label><input type="number" id="nf-split" value="90" min="1" max="100" step="1"></div>
+      <div class="firm-field"><label>Prix éval ($)</label><input type="number" id="nf-price" value="" placeholder="0" min="0" step="1"></div>
+      <div class="firm-field"><label>Payout cap (€, 0=illimité)</label><input type="number" id="nf-cap" value="" placeholder="0" min="0" step="100"></div>
+      <div class="firm-field"><label>Profit net min/cycle ($)</label><input type="number" id="nf-net" value="" placeholder="0" min="0" step="100"></div>
+      <div class="firm-field"><label>Couleur</label><input type="color" id="nf-color" value="#4488ff" style="height:34px;padding:2px 4px;width:100%;border-radius:8px;border:0.5px solid var(--border);background:var(--bg3);cursor:pointer"></div>
+      <div class="firm-field"><label>Initiales</label><input type="text" id="nf-init" placeholder="ex: FT" maxlength="3" style="text-transform:uppercase"></div>
+    </div>
+    <div style="display:flex;gap:8px">
+      <button onclick="cancelAddFirm()" style="flex:1;padding:9px;background:var(--bg3);border:0.5px solid var(--border);border-radius:8px;color:var(--text2);font-size:12px;font-weight:600;cursor:pointer;font-family:var(--font)">Annuler</button>
+      <button onclick="confirmAddFirm()" style="flex:2;padding:9px;background:var(--green-bg);border:0.5px solid var(--border2);border-radius:8px;color:var(--green);font-size:12px;font-weight:600;cursor:pointer;font-family:var(--font)">Ajouter</button>
+    </div>`;
+}
+function cancelAddFirm(){
+  document.getElementById('add-firm-form').style.display='none';
+  document.getElementById('add-firm-btn').style.display='flex';
+}
+function confirmAddFirm(){
+  const name=document.getElementById('nf-name').value.trim();
+  if(!name){showToast('⚠ Nom requis');return;}
+  if(firmsConfig.find(f=>f.name===name)){showToast('⚠ Firm déjà existante');return;}
+  const initials=document.getElementById('nf-init').value.toUpperCase().slice(0,3)||name.slice(0,2).toUpperCase();
+  firmsConfig.push({
+    name,
+    color:document.getElementById('nf-color').value,
+    initials,
+    split:parseFloat(document.getElementById('nf-split').value)||90,
+    evalPrice:parseFloat(document.getElementById('nf-price').value)||0,
+    payoutCap:parseFloat(document.getElementById('nf-cap').value)||0,
+    netMin:parseFloat(document.getElementById('nf-net').value)||0,
+  });
+  saveFirmsConfig(firmsConfig);
+  showToast('✓ '+name+' ajoutée');
+  cancelAddFirm();
+  renderFirmSettings();
+}
+
 // ── COLLAPSIBLE ──
 function toggleColl(key){
   document.getElementById(key+'-h').classList.toggle('open');
@@ -1126,7 +1288,7 @@ function renderDash(){
     return`<div class="acc-row" onclick="switchPage('accounts')" style="cursor:pointer">
       <div class="acc-row-main">
         ${firmAvatar(acc.firm)}
-        <div class="acc-info"><div class="acc-name">${acc.firm}</div><div class="acc-meta">Cycle ${acc.cycleCount||1} · 90% split</div></div>
+        <div class="acc-info"><div class="acc-name">${acc.firm}</div><div class="acc-meta">Cycle ${acc.cycleCount||1} · ${getFirmCfg(acc.firm).split||90}% split</div></div>
         <div class="acc-right">
           <div class="acc-balance">${fmt(acc.balance)} $</div>
           <div class="acc-days"><span style="font-size:10px;font-family:var(--mono);color:${acc.gainDays>=DAYS_REQ?'var(--green)':'var(--text2)'}">${acc.gainDays}/${DAYS_REQ}</span>${renderDots(acc)}</div>
@@ -1193,7 +1355,7 @@ function renderAccounts(){
         ${firmAvatar(acc.firm)}
         <div class="acc-info">
           <div class="acc-name">${acc.firm}</div>
-          <div class="acc-meta">cycle ${acc.cycleCount||1} · 90% split</div>
+          <div class="acc-meta">cycle ${acc.cycleCount||1} · ${getFirmCfg(acc.firm).split||90}% split</div>
         </div>
         <div class="acc-right">
           <div class="acc-balance">${fmt(acc.balance)} $</div>
@@ -1204,7 +1366,7 @@ function renderAccounts(){
         ${acc.hasPayout?`<div style="background:var(--blue-bg);border:0.5px solid rgba(68,136,255,0.2);border-radius:10px;padding:8px 12px;margin-bottom:10px;font-size:11px;color:var(--blue)">Seuil : > ${fmt(acc.payoutBalance)} $ · P&L cycle : ${fmtSign(acc.balance-acc.payoutBalance)} $</div>`:''}
         <div class="acc-exp-grid">
           <div class="acc-exp-stat"><div class="acc-exp-label">Balance</div><div class="acc-exp-val n">${fmt(acc.balance)} $</div></div>
-          <div class="acc-exp-stat"><div class="acc-exp-label">Payout immédiat</div><div class="acc-exp-val g">+${fmt(acc.balance*0.5*SPLIT*getFx())} €</div></div>
+          <div class="acc-exp-stat"><div class="acc-exp-label">Payout immédiat</div><div class="acc-exp-val g">+${fmt(acc.balance*0.5*((getFirmCfg(acc.firm).split||90)/100)*getFx())} €</div></div>
           <div class="acc-exp-stat"><div class="acc-exp-label">Jours tradés</div><div class="acc-exp-val n">${realDays.length}</div></div>
           <div class="acc-exp-stat"><div class="acc-exp-label">Taux réussite</div><div class="acc-exp-val ${wrC}">${winRate!==null?winRate+'%':'—'}</div></div>
           ${payoutEvents.length>0?`<div class="acc-exp-stat" style="grid-column:1/-1;display:flex;justify-content:space-between;align-items:center"><div><div class="acc-exp-label">Payouts encaissés</div><div style="font-size:9px;color:var(--text3)">${payoutEvents.length} payout${payoutEvents.length>1?'s':''}</div></div><div class="acc-exp-val g">+${fmt(payoutEvents.reduce((s,h)=>s+(h.payoutEur||0),0))} €</div></div>`:''}
@@ -1424,13 +1586,14 @@ function renderStats(){
   // Net month
   const nb=document.getElementById('net-month-block');
   if(nb){
-    const evalRows=EVAL_FIRMS.map(f=>{
-      const pe=document.getElementById('eval-price-'+f);
-      const qe=document.getElementById('eval-qty-'+f);
-      const price=pe?parseFloat(pe.value)||EVAL_PRICES[f]:EVAL_PRICES[f];
-      const qty=qe?parseFloat(qe.value)||0:0;
+    renderEvalRows();
+    const evalRows=firmsConfig.map(f=>{
+      const pe=document.getElementById('eval-price-'+f.name);
+      const qe=document.getElementById('eval-qty-'+f.name);
+      const price=pe&&pe.value!==''?parseFloat(pe.value)||f.evalPrice:f.evalPrice;
+      const qty=qe&&qe.value!==''?parseFloat(qe.value)||0:0;
       if(qty===0)return'';
-      return`<div class="net-row"><span class="net-label">Évals ${f} (${qty}×${price}$)</span><span class="net-val" style="color:var(--red)">−${fmt(Math.round(price*qty*fx))} €</span></div>`;
+      return`<div class="net-row"><span class="net-label">Évals ${f.name} (${qty}×${price}$)</span><span class="net-val" style="color:var(--red)">−${fmt(Math.round(price*qty*fx))} €</span></div>`;
     }).join('');
     nb.innerHTML=`<div class="net-card">
       <div style="font-size:11px;font-weight:700;color:var(--text2);margin-bottom:10px">Résultat du mois</div>
@@ -1445,7 +1608,9 @@ function renderStats(){
   const fb=document.getElementById('firm-stats');
   if(fb){
     let fh='';
-    ['Topstep','Lucid','MyFundedFX','Tradeify'].forEach(firm=>{
+    // Collect all firms appearing in accounts/archived + firmsConfig
+    const allFirmNames=[...new Set([...firmsConfig.map(f=>f.name),...accounts.map(a=>a.firm),...archived.map(a=>a.firm)])];
+    allFirmNames.forEach(firm=>{
       const fa=archived.filter(a=>a.firm===firm);
       const fac=accounts.filter(a=>a.firm===firm);
       if(fa.length===0&&fac.length===0)return;
@@ -1562,8 +1727,11 @@ function togglePayoutField(){document.getElementById('payout-balance-group').sty
 function openModal(id){
   editingId=id||null;
   document.getElementById('modal-title').textContent=id?'Modifier le compte':'Nouveau compte';
-  if(id){const acc=accounts.find(a=>a.id===id);document.getElementById('f-firm').value=acc.firm;document.getElementById('f-balance').value=acc.balance;document.getElementById('f-days').value=acc.gainDays;document.getElementById('f-has-payout').checked=acc.hasPayout||false;document.getElementById('f-payout-balance').value=acc.payoutBalance||'';document.getElementById('payout-balance-group').style.display=acc.hasPayout?'block':'none';}
-  else{document.getElementById('f-firm').value='Topstep';['f-balance','f-days','f-payout-balance'].forEach(i=>document.getElementById(i).value='');document.getElementById('f-has-payout').checked=false;document.getElementById('payout-balance-group').style.display='none';}
+  // Populate firm selector from firmsConfig
+  const sel=document.getElementById('f-firm');
+  sel.innerHTML=firmsConfig.map(f=>`<option value="${f.name}">${f.name}</option>`).join('');
+  if(id){const acc=accounts.find(a=>a.id===id);sel.value=acc.firm;document.getElementById('f-balance').value=acc.balance;document.getElementById('f-days').value=acc.gainDays;document.getElementById('f-has-payout').checked=acc.hasPayout||false;document.getElementById('f-payout-balance').value=acc.payoutBalance||'';document.getElementById('payout-balance-group').style.display=acc.hasPayout?'block':'none';}
+  else{sel.value=firmsConfig[0]?.name||'';['f-balance','f-days','f-payout-balance'].forEach(i=>document.getElementById(i).value='');document.getElementById('f-has-payout').checked=false;document.getElementById('payout-balance-group').style.display='none';}
   document.getElementById('overlay').classList.add('open');
 }
 function closeModal(){document.getElementById('overlay').classList.remove('open');}
