@@ -1607,7 +1607,7 @@ function renderStats(){
       <div class="net-row"><span class="net-label">Payouts encaissés</span><span class="net-val" style="color:var(--green)">+${fmt(monthTotal)} €</span></div>
       ${evalRows}
       ${misc>0?`<div class="net-row"><span class="net-label">Frais annexes</span><span class="net-val" style="color:var(--red)">−${fmt(misc)} €</span></div>`:''}
-      <div class="net-total"><span class="net-total-label">Bénéfice net</span><span class="net-total-val" style="color:${net>=0?'var(--green)':'var(--red)'}">${net>=0?'+':'−'}${fmt(Math.abs(net))} €</span></div>
+      <div class="net-total"><span class="net-total-label">Bénéfice net</span><span class="net-total-val" style="color:${monthNet>=0?'var(--green)':'var(--red)'}">${monthNet>=0?'+':'−'}${fmt(Math.abs(Math.round(monthNet)))} €</span></div>
     </div>`;
   }
 
