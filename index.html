@@ -241,9 +241,9 @@ body { overflow-x: hidden; }
 .coll-title i { color: var(--green); font-size: 14px; }
 .coll-chevron { font-size: 13px; color: var(--text3); transition: transform 0.25s; }
 .coll-header.open .coll-chevron { transform: rotate(180deg); }
-.coll-body { background: var(--bg2); border: 0.5px solid var(--border); border-top: none; border-radius: 0 0 12px 12px; overflow: hidden; max-height: 0; transition: max-height 0.3s ease; margin-bottom: 8px; }
+.coll-body { background: var(--bg2); border: 0.5px solid var(--border); border-top: none; border-radius: 0 0 12px 12px; overflow: hidden; max-height: 0; transition: max-height 0.4s ease; margin-bottom: 8px; }
 [data-theme="dark"] .coll-body { background: var(--glass); }
-.coll-body.open { max-height: 6000px; }
+.coll-body.open { max-height: 9999px; transition: max-height 0.6s ease; }
 .coll-inner { padding: 8px 16px 12px; }
 .setting-row { display: flex; align-items: center; padding: 10px 0; border-bottom: 0.5px solid var(--border); gap: 10px; }
 .setting-row:last-child { border-bottom: none; }
@@ -1700,7 +1700,7 @@ function renderStats(){
 function renderPayoutDistribution(){
   const el=document.getElementById('payout-dist-content');
   if(!el)return;
-
+  try{
   const allAccounts=[
     ...accounts.map(a=>({payouts:a.history.filter(h=>h.payout).length,firm:a.firm})),
     ...archived.map(a=>({payouts:(a.payoutHistory||[]).length,firm:a.firm}))
@@ -1710,7 +1710,7 @@ function renderPayoutDistribution(){
     return;
   }
   const total=allAccounts.length;
-  const maxP=Math.max(...allAccounts.map(a=>a.payouts));
+  const maxP=allAccounts.reduce((m,a)=>Math.max(m,a.payouts||0),0);
   const dist={};
   for(let i=0;i<=maxP;i++) dist[i]=allAccounts.filter(a=>a.payouts===i).length;
   const avgPayoutsCount=allAccounts.reduce((s,a)=>s+a.payouts,0)/total;
@@ -1763,6 +1763,7 @@ function renderPayoutDistribution(){
   }
   html+=`</div>`;
   el.innerHTML=html;
+  }catch(e){el.innerHTML=`<div class="empty" style="padding:16px 0">Erreur: ${e.message}</div>`;}
 }
 
 // ── PAYOUT MODAL ──
