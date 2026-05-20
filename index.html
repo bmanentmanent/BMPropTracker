@@ -522,13 +522,12 @@ body { overflow-x: hidden; }
     <div class="section">
       <div id="global-stats"></div>
       <!-- NET MONTH -->
-      <div id="net-month-block"></div>
-      <!-- PAYOUT DISTRIBUTION -->
-      <div class="coll-header" id="payout-dist-h" onclick="toggleColl('payout-dist')">
+      <!-- PAYOUT DISTRIBUTION - open by default -->
+      <div class="coll-header open" id="payout-dist-h" onclick="toggleColl('payout-dist')">
         <span class="coll-title"><i class="ti ti-chart-pie"></i>Distribution des payouts</span>
         <i class="ti ti-chevron-down coll-chevron" id="payout-dist-chev"></i>
       </div>
-      <div class="coll-body" id="payout-dist-b">
+      <div class="coll-body open" id="payout-dist-b">
         <div class="coll-inner" style="padding-top:12px"><div id="payout-dist-content"></div></div>
       </div>
       <!-- MONTHLY HISTORY -->
@@ -961,15 +960,15 @@ function renderMonthlyHistory(){
   const isDark=currentTheme==='dark';
   // Build chart data including current month
   const now2=new Date();
-  const currentKey2=getMonthKey(now2);
-  const currentLabel=getMonthLabel(currentKey2);
+  const currentKeyChart=getMonthKey(now2);
+  const currentLabel=getMonthLabel(currentKeyChart);
   const allP2=getAllPayouts();
   const cm2=now2.getMonth()+1;
   const monthP2=allP2.filter(p=>parseInt((p.date.split('/')||[])[1]||0)===cm2);
   const currentRevenues=monthP2.reduce((s,p)=>s+(p.payoutEur||0),0);
   const {totalEur:currentExpenses}=getExpensesEur();
   const currentNet=currentRevenues-currentExpenses;
-  const chartData=[...history,{month:currentKey2,label:currentLabel,revenues:currentRevenues,expenses:Math.round(currentExpenses),net:Math.round(currentNet),isCurrent:true}];
+  const chartData=[...history,{month:currentKeyChart,label:currentLabel,revenues:currentRevenues,expenses:Math.round(currentExpenses),net:Math.round(currentNet),isCurrent:true}];
 
   const labels=chartData.map(h=>h.label.split(' ')[0].slice(0,3)+' '+h.label.split(' ')[1].slice(2)+(h.isCurrent?' ●':''));
   const revData=chartData.map(h=>h.revenues);
@@ -991,8 +990,31 @@ function renderMonthlyHistory(){
     ]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{backgroundColor:isDark?'#0e1520':'#fff',borderColor:isDark?'rgba(255,255,255,0.1)':'rgba(0,0,0,0.1)',borderWidth:1,callbacks:{label:i=>` ${i.dataset.label} : ${fmt(i.parsed.y)} €`}}},scales:{x:{grid:{color:gc},ticks:{color:tc,font:{size:9}}},y:{grid:{color:gc},ticks:{color:tc,font:{size:9},callback:v=>fmt(v)+'€'}}}}});
   },50);
 
+  // Current month card (read-only, always first)
+  const nowM=new Date();
+  const currentKeyM=getMonthKey(nowM);
+  const currentLabelM=getMonthLabel(currentKeyM);
+  const allP3=getAllPayouts();
+  const cm3=nowM.getMonth()+1;
+  const monthP3=allP3.filter(p=>parseInt((p.date.split('/')||[])[1]||0)===cm3);
+  const curRevenues=monthP3.reduce((s,p)=>s+(p.payoutEur||0),0);
+  const {totalEur:curExpenses}=getExpensesEur();
+  const curNet=curRevenues-Math.round(curExpenses);
+  const curNetColor=curNet>=0?'var(--green)':'var(--red)';
+  const currentMonthCard=`<div class="month-row" style="border-color:var(--border2)">
+    <div class="month-row-header">
+      <span class="month-row-name">${currentLabelM} <span style="font-size:9px;background:var(--green-bg);color:var(--green);padding:2px 6px;border-radius:6px;font-weight:700;margin-left:4px">EN COURS</span></span>
+      <span class="month-row-net" style="color:${curNetColor}">${curNet>=0?'+':'−'}${fmt(Math.abs(curNet))} €</span>
+    </div>
+    <div class="month-row-grid">
+      <div class="month-stat"><div class="month-stat-label">Revenus</div><div class="month-stat-val" style="color:var(--green)">+${fmt(curRevenues)} €</div></div>
+      <div class="month-stat"><div class="month-stat-label">Dépenses</div><div class="month-stat-val" style="color:var(--red)">−${fmt(Math.round(curExpenses))} €</div></div>
+      <div class="month-stat"><div class="month-stat-label">Bénéfice</div><div class="month-stat-val" style="color:${curNetColor}">${curNet>=0?'+':'−'}${fmt(Math.abs(curNet))} €</div></div>
+    </div>
+  </div>`;
+
   // List with edit capability
-  listBlock.innerHTML=history.slice().reverse().map((h,ri)=>{
+  listBlock.innerHTML=currentMonthCard+history.slice().reverse().map((h,ri)=>{
     const realIdx=history.length-1-ri;
     const netColor=h.net>=0?'var(--green)':'var(--red)';
     return`<div class="month-row">
@@ -1578,38 +1600,19 @@ function renderStats(){
   const gb=document.getElementById('global-stats');
   if(gb)gb.innerHTML=`
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
-      <div style="background:var(--bg2);border:0.5px solid var(--border);border-radius:14px;padding:12px 14px">
+      <div style="background:var(--bg2);border:0.5px solid var(--border);border-radius:14px;padding:12px 14px;text-align:center">
         <div style="font-size:9px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:10px">Total</div>
         <div style="margin-bottom:8px"><div style="font-size:18px;font-weight:800;color:var(--green);font-family:var(--mono)">${fmt(grandTotal)} €</div><div style="font-size:10px;color:var(--text3);margin-top:1px">Revenus</div></div>
         <div style="margin-bottom:8px"><div style="font-size:15px;font-weight:700;color:var(--red);font-family:var(--mono)">−${fmt(totalCharges)} €</div><div style="font-size:10px;color:var(--text3);margin-top:1px">Charges</div></div>
         <div style="border-top:0.5px solid var(--border);padding-top:8px"><div style="font-size:17px;font-weight:800;color:${totalNet>=0?'var(--green)':'var(--red)'};font-family:var(--mono)">${totalNet>=0?'+':'−'}${fmt(Math.abs(totalNet))} €</div><div style="font-size:10px;color:var(--text3);margin-top:1px">Bénéfice</div></div>
       </div>
-      <div style="background:var(--bg2);border:0.5px solid var(--border);border-radius:14px;padding:12px 14px">
+      <div style="background:var(--bg2);border:0.5px solid var(--border);border-radius:14px;padding:12px 14px;text-align:center">
         <div style="font-size:9px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:10px">Ce mois</div>
         <div style="margin-bottom:8px"><div style="font-size:18px;font-weight:800;color:var(--green);font-family:var(--mono)">${fmt(monthTotal)} €</div><div style="font-size:10px;color:var(--text3);margin-top:1px">Revenus</div></div>
         <div style="margin-bottom:8px"><div style="font-size:15px;font-weight:700;color:var(--red);font-family:var(--mono)">−${fmt(Math.round(totalEur))} €</div><div style="font-size:10px;color:var(--text3);margin-top:1px">Charges</div></div>
         <div style="border-top:0.5px solid var(--border);padding-top:8px"><div style="font-size:17px;font-weight:800;color:${monthNet>=0?'var(--green)':'var(--red)'};font-family:var(--mono)">${monthNet>=0?'+':'−'}${fmt(Math.abs(Math.round(monthNet)))} €</div><div style="font-size:10px;color:var(--text3);margin-top:1px">Bénéfice</div></div>
       </div>
     </div>`;
-
-  // Net month
-  const nb=document.getElementById('net-month-block');
-  if(nb){
-    renderEvalRows();
-    const evalRows=firmsConfig.map(f=>{
-      const qe=document.getElementById('eval-qty-'+f.name);
-      const qty=qe&&qe.value!==''?parseFloat(qe.value)||0:0;
-      if(qty===0)return'';
-      return`<div class="net-row"><span class="net-label">Évals ${f.name} (${qty}×${f.evalPrice}$)</span><span class="net-val" style="color:var(--red)">−${fmt(Math.round(f.evalPrice*qty*fx))} €</span></div>`;
-    }).join('');
-    nb.innerHTML=`<div class="net-card">
-      <div style="font-size:11px;font-weight:700;color:var(--text2);margin-bottom:10px">Résultat du mois</div>
-      <div class="net-row"><span class="net-label">Payouts encaissés</span><span class="net-val" style="color:var(--green)">+${fmt(monthTotal)} €</span></div>
-      ${evalRows}
-      ${misc>0?`<div class="net-row"><span class="net-label">Frais annexes</span><span class="net-val" style="color:var(--red)">−${fmt(misc)} €</span></div>`:''}
-      <div class="net-total"><span class="net-total-label">Bénéfice net</span><span class="net-total-val" style="color:${monthNet>=0?'var(--green)':'var(--red)'}">${monthNet>=0?'+':'−'}${fmt(Math.abs(Math.round(monthNet)))} €</span></div>
-    </div>`;
-  }
 
   // Payout archive
   window._payoutList=getAllPayouts();
@@ -1682,8 +1685,8 @@ function renderPayoutDistribution(){
 
   let html=`<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:14px">
     <div class="month-stat"><div class="month-stat-label">Comptes financés</div><div class="month-stat-val">${total}</div></div>
-    <div class="month-stat"><div class="month-stat-label">Moy. payouts/compte</div><div class="month-stat-val" style="color:var(--green)">${avgPayoutsCount.toFixed(1)}</div></div>
-    <div class="month-stat"><div class="month-stat-label">Payout moyen</div><div class="month-stat-val" style="color:var(--green)">${avgPayoutEur>0?fmt(avgPayoutEur)+' €':'—'}</div></div>
+    <div class="month-stat"><div class="month-stat-label">Moy. payouts/compte</div><div class="month-stat-val">${avgPayoutsCount.toFixed(1)}</div></div>
+    <div class="month-stat"><div class="month-stat-label">Payout moyen</div><div class="month-stat-val">${avgPayoutEur>0?fmt(avgPayoutEur)+' €':'—'}</div></div>
     <div class="month-stat"><div class="month-stat-label">Net / compte</div><div class="month-stat-val" style="color:${netPerAccount>=0?'var(--green)':'var(--red)'}">${avgPayoutEur>0?(netPerAccount>=0?'+':'')+fmt(netPerAccount)+' €':'—'}</div></div>
     <div class="month-stat"><div class="month-stat-label">≥ 1 payout</div><div class="month-stat-val" style="color:var(--green)">${Math.round(withAtLeastOne/total*100)}%</div></div>
     <div class="month-stat"><div class="month-stat-label">0 payout</div><div class="month-stat-val" style="color:var(--red)">${Math.round((dist[0]||0)/total*100)}%</div></div>
