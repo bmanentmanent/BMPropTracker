@@ -520,8 +520,7 @@ body { overflow-x: hidden; }
       <button class="theme-btn" onclick="toggleTheme()"><i class="ti ti-sun" id="theme-icon-stats"></i></button>
     </div>
     <div class="section">
-      <div id="global-stats"></div>
-      <!-- NET MONTH -->
+      <div id="global-stats" style="margin-bottom:12px"></div>
       <!-- PAYOUT DISTRIBUTION - open by default -->
       <div class="coll-header open" id="payout-dist-h" onclick="toggleColl('payout-dist')">
         <span class="coll-title"><i class="ti ti-chart-pie"></i>Distribution des payouts</span>
@@ -1684,12 +1683,12 @@ function renderPayoutDistribution(){
   const withAtLeastOne=allAccounts.filter(a=>a.payouts>=1).length;
 
   let html=`<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:14px">
-    <div class="month-stat"><div class="month-stat-label">Comptes financés</div><div class="month-stat-val">${total}</div></div>
-    <div class="month-stat"><div class="month-stat-label">Moy. payouts/compte</div><div class="month-stat-val">${avgPayoutsCount.toFixed(1)}</div></div>
-    <div class="month-stat"><div class="month-stat-label">Payout moyen</div><div class="month-stat-val">${avgPayoutEur>0?fmt(avgPayoutEur)+' €':'—'}</div></div>
-    <div class="month-stat"><div class="month-stat-label">Net / compte</div><div class="month-stat-val" style="color:${netPerAccount>=0?'var(--green)':'var(--red)'}">${avgPayoutEur>0?(netPerAccount>=0?'+':'')+fmt(netPerAccount)+' €':'—'}</div></div>
-    <div class="month-stat"><div class="month-stat-label">≥ 1 payout</div><div class="month-stat-val" style="color:var(--green)">${Math.round(withAtLeastOne/total*100)}%</div></div>
-    <div class="month-stat"><div class="month-stat-label">0 payout</div><div class="month-stat-val" style="color:var(--red)">${Math.round((dist[0]||0)/total*100)}%</div></div>
+    <div class="month-stat" style="text-align:center"><div class="month-stat-label">Comptes financés</div><div class="month-stat-val">${total}</div></div>
+    <div class="month-stat" style="text-align:center"><div class="month-stat-label">Moy. payouts/compte</div><div class="month-stat-val">${avgPayoutsCount.toFixed(1)}</div></div>
+    <div class="month-stat" style="text-align:center"><div class="month-stat-label">Payout moyen</div><div class="month-stat-val">${avgPayoutEur>0?fmt(avgPayoutEur)+' €':'—'}</div></div>
+    <div class="month-stat" style="text-align:center"><div class="month-stat-label">Net / compte</div><div class="month-stat-val" style="color:${netPerAccount>=0?'var(--green)':'var(--red)'}">${avgPayoutEur>0?(netPerAccount>=0?'+':'')+fmt(netPerAccount)+' €':'—'}</div></div>
+    <div class="month-stat" style="text-align:center"><div class="month-stat-label">≥ 1 payout</div><div class="month-stat-val" style="color:var(--green)">${Math.round(withAtLeastOne/total*100)}%</div></div>
+    <div class="month-stat" style="text-align:center"><div class="month-stat-label">0 payout</div><div class="month-stat-val" style="color:var(--red)">${Math.round((dist[0]||0)/total*100)}%</div></div>
   </div><div style="display:flex;flex-direction:column;gap:7px">`;
 
   for(let i=0;i<=maxP;i++){
