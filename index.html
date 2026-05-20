@@ -1763,7 +1763,7 @@ function renderPayoutDistribution(){
   }
   html+=`</div>`;
   el.innerHTML=html;
-  }catch(e){el.innerHTML=`<div class="empty" style="padding:16px 0">Erreur: ${e.message}</div>`;}
+  }catch(e){el.innerHTML=`<div class="empty" style="padding:16px 0;color:var(--red)">Erreur: ${e.message}</div>`;}
 }
 
 // ── PAYOUT MODAL ──
