@@ -1567,19 +1567,30 @@ function renderStats(){
   const monthlyHistory=loadMonthlyHistory();
   const closedRevenues=monthlyHistory.reduce((s,m)=>s+m.revenues,0);
   const grandTotal=closedRevenues+monthTotal;
+  // Total charges = sum of all closed months expenses + current month expenses
+  const closedCharges=monthlyHistory.reduce((s,m)=>s+m.expenses,0);
   const {evalEur,misc,totalEur}=getExpensesEur();
-  const net=monthTotal-totalEur;
-  const activeWR=accounts.map(a=>{const r=a.history.filter(h=>!h.payout);return r.length>0?Math.round(r.filter(h=>h.win).length/r.length*100):null;}).filter(v=>v!==null);
-  const avgWR=activeWR.length>0?Math.round(activeWR.reduce((a,b)=>a+b,0)/activeWR.length):null;
+  const totalCharges=closedCharges+totalEur;
+  const totalNet=grandTotal-totalCharges;
+  const monthNet=monthTotal-totalEur;
 
-  // Global stats
+  // Global stats — 2 columns: Total | Mois
   const gb=document.getElementById('global-stats');
-  if(gb)gb.innerHTML=`<div class="stat-hero-grid">
-    <div class="stat-hero"><div class="stat-hero-val">${fmt(grandTotal)} €</div><div class="stat-hero-label">Total encaissé</div></div>
-    <div class="stat-hero"><div class="stat-hero-val" style="color:var(--green)">${fmt(monthTotal)} €</div><div class="stat-hero-label">Ce mois-ci</div></div>
-    <div class="stat-hero"><div class="stat-hero-val">${archived.length}</div><div class="stat-hero-label">Comptes archivés</div></div>
-    <div class="stat-hero"><div class="stat-hero-val" style="color:${avgWR===null?'var(--text)':avgWR>=60?'var(--green)':avgWR>=40?'var(--amber)':'var(--red)'}">${avgWR!==null?avgWR+'%':'—'}</div><div class="stat-hero-label">Taux réussite live</div></div>
-  </div>`;
+  if(gb)gb.innerHTML=`
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+      <div style="background:var(--bg2);border:0.5px solid var(--border);border-radius:14px;padding:12px 14px">
+        <div style="font-size:9px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:10px">Total</div>
+        <div style="margin-bottom:8px"><div style="font-size:18px;font-weight:800;color:var(--green);font-family:var(--mono)">${fmt(grandTotal)} €</div><div style="font-size:10px;color:var(--text3);margin-top:1px">Revenus</div></div>
+        <div style="margin-bottom:8px"><div style="font-size:15px;font-weight:700;color:var(--red);font-family:var(--mono)">−${fmt(totalCharges)} €</div><div style="font-size:10px;color:var(--text3);margin-top:1px">Charges</div></div>
+        <div style="border-top:0.5px solid var(--border);padding-top:8px"><div style="font-size:17px;font-weight:800;color:${totalNet>=0?'var(--green)':'var(--red)'};font-family:var(--mono)">${totalNet>=0?'+':'−'}${fmt(Math.abs(totalNet))} €</div><div style="font-size:10px;color:var(--text3);margin-top:1px">Bénéfice</div></div>
+      </div>
+      <div style="background:var(--bg2);border:0.5px solid var(--border);border-radius:14px;padding:12px 14px">
+        <div style="font-size:9px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:10px">Ce mois</div>
+        <div style="margin-bottom:8px"><div style="font-size:18px;font-weight:800;color:var(--green);font-family:var(--mono)">${fmt(monthTotal)} €</div><div style="font-size:10px;color:var(--text3);margin-top:1px">Revenus</div></div>
+        <div style="margin-bottom:8px"><div style="font-size:15px;font-weight:700;color:var(--red);font-family:var(--mono)">−${fmt(Math.round(totalEur))} €</div><div style="font-size:10px;color:var(--text3);margin-top:1px">Charges</div></div>
+        <div style="border-top:0.5px solid var(--border);padding-top:8px"><div style="font-size:17px;font-weight:800;color:${monthNet>=0?'var(--green)':'var(--red)'};font-family:var(--mono)">${monthNet>=0?'+':'−'}${fmt(Math.abs(Math.round(monthNet)))} €</div><div style="font-size:10px;color:var(--text3);margin-top:1px">Bénéfice</div></div>
+      </div>
+    </div>`;
 
   // Net month
   const nb=document.getElementById('net-month-block');
@@ -1653,12 +1664,27 @@ function renderPayoutDistribution(){
   const maxP=Math.max(...allAccounts.map(a=>a.payouts));
   const dist={};
   for(let i=0;i<=maxP;i++) dist[i]=allAccounts.filter(a=>a.payouts===i).length;
-  const avg=(allAccounts.reduce((s,a)=>s+a.payouts,0)/total).toFixed(1);
+  const avgPayoutsCount=allAccounts.reduce((s,a)=>s+a.payouts,0)/total;
+
+  // Payout moyen en € = total revenus / total nb payouts
+  const allP=getAllPayouts();
+  const totalPayoutsEur=allP.reduce((s,p)=>s+(p.payoutEur||0),0);
+  const totalPayoutsCount=allP.length;
+  const avgPayoutEur=totalPayoutsCount>0?Math.round(totalPayoutsEur/totalPayoutsCount):0;
+
+  // Prix moyen éval = moyenne simple des evalPrice des firms configurées
+  const firmsWithPrice=firmsConfig.filter(f=>f.evalPrice>0);
+  const avgEvalPriceUsd=firmsWithPrice.length>0?firmsWithPrice.reduce((s,f)=>s+f.evalPrice,0)/firmsWithPrice.length:0;
+  const avgEvalPriceEur=Math.round(avgEvalPriceUsd*getFx());
+  const netPerAccount=avgPayoutEur-avgEvalPriceEur;
+
   const withAtLeastOne=allAccounts.filter(a=>a.payouts>=1).length;
 
   let html=`<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:14px">
     <div class="month-stat"><div class="month-stat-label">Comptes financés</div><div class="month-stat-val">${total}</div></div>
-    <div class="month-stat"><div class="month-stat-label">Moy. payouts/compte</div><div class="month-stat-val" style="color:var(--green)">${avg}</div></div>
+    <div class="month-stat"><div class="month-stat-label">Moy. payouts/compte</div><div class="month-stat-val" style="color:var(--green)">${avgPayoutsCount.toFixed(1)}</div></div>
+    <div class="month-stat"><div class="month-stat-label">Payout moyen</div><div class="month-stat-val" style="color:var(--green)">${avgPayoutEur>0?fmt(avgPayoutEur)+' €':'—'}</div></div>
+    <div class="month-stat"><div class="month-stat-label">Net / compte</div><div class="month-stat-val" style="color:${netPerAccount>=0?'var(--green)':'var(--red)'}">${avgPayoutEur>0?(netPerAccount>=0?'+':'')+fmt(netPerAccount)+' €':'—'}</div></div>
     <div class="month-stat"><div class="month-stat-label">≥ 1 payout</div><div class="month-stat-val" style="color:var(--green)">${Math.round(withAtLeastOne/total*100)}%</div></div>
     <div class="month-stat"><div class="month-stat-label">0 payout</div><div class="month-stat-val" style="color:var(--red)">${Math.round((dist[0]||0)/total*100)}%</div></div>
   </div><div style="display:flex;flex-direction:column;gap:7px">`;
@@ -1670,11 +1696,9 @@ function renderPayoutDistribution(){
     html+=`<div style="display:flex;align-items:center;gap:10px">
       <div style="width:58px;font-size:11px;font-weight:700;color:var(--text2);text-align:right;flex-shrink:0">${i} payout${i>1?'s':''}</div>
       <div style="flex:1;background:var(--bg3);border-radius:6px;height:22px;overflow:hidden">
-        <div style="width:${Math.max(pct,2)}%;background:${color};height:100%;border-radius:6px;display:flex;align-items:center;padding-left:8px;box-sizing:border-box">
-          ${pct>=18?`<span style="font-size:10px;font-weight:700;color:${i===0?'#fff':'#000'}">${count} · ${pct}%</span>`:''}
-        </div>
+        <div style="width:${Math.max(pct,2)}%;background:${color};height:100%;border-radius:6px"></div>
       </div>
-      ${pct<18?`<span style="font-size:10px;font-weight:700;color:var(--text2);width:48px">${count} · ${pct}%</span>`:`<div style="width:48px"></div>`}
+      <span style="font-size:10px;font-weight:700;color:var(--text2);width:52px;flex-shrink:0;text-align:right">${count} · ${pct}%</span>
     </div>`;
   }
   html+=`</div>`;
