@@ -1242,7 +1242,7 @@ function renderDash(){
   document.getElementById('h-accounts').textContent=accounts.length;
   document.getElementById('h-winrate').textContent=avgWR!==null?avgWR+'%':'—';
   document.getElementById('h-winrate').style.color=avgWR===null?'var(--text)':avgWR>=60?'var(--green)':avgWR>=40?'var(--amber)':'var(--red)';
-  document.getElementById('h-total').textContent=monthP.length+' payout'+(monthP.length>1?'s':'');
+  document.getElementById('h-total').textContent=monthP.length;
   document.getElementById('h-total').style.color='var(--amber)';
 
   // Simple projection — 3 scenario net totals (payouts this month + projected - expenses)
@@ -1466,8 +1466,10 @@ function submitSheet(){
     if(isNaN(val))return;
     const isWin=val>=WIN_THR;
 
-    // Check if an entry already exists for today
-    const existingIdx=acc.history.findIndex(h=>!h.payout&&h.date===dateStr);
+    // Find the index of the last payout entry to scope search to current cycle only
+    const lastPayoutIdx=acc.history.findIndex(h=>h.payout);
+    const cycleHistory=lastPayoutIdx>=0?acc.history.slice(0,lastPayoutIdx):acc.history;
+    const existingIdx=cycleHistory.findIndex(h=>!h.payout&&h.date===dateStr);
 
     if(existingIdx>=0){
       // Update existing entry — reverse previous effect first
@@ -1561,7 +1563,10 @@ function renderStats(){
   const now=new Date(),cm=now.getMonth()+1;
   const monthP=allP.filter(p=>parseInt((p.date.split('/')||[])[1]||0)===cm);
   const monthTotal=monthP.reduce((s,p)=>s+(p.payoutEur||0),0);
-  const grandTotal=allP.reduce((s,p)=>s+(p.payoutEur||0),0);
+  // grandTotal = sum of all closed months revenues + current month payouts
+  const monthlyHistory=loadMonthlyHistory();
+  const closedRevenues=monthlyHistory.reduce((s,m)=>s+m.revenues,0);
+  const grandTotal=closedRevenues+monthTotal;
   const {evalEur,misc,totalEur}=getExpensesEur();
   const net=monthTotal-totalEur;
   const activeWR=accounts.map(a=>{const r=a.history.filter(h=>!h.payout);return r.length>0?Math.round(r.filter(h=>h.win).length/r.length*100):null;}).filter(v=>v!==null);
