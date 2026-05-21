@@ -532,11 +532,11 @@ body { overflow-x: hidden; }
       <!-- MONTHLY HISTORY -->
       <div class="section-label" style="margin-top:16px">Historique mensuel</div>
       <div id="monthly-chart-block"></div>
-      <div class="coll-header" id="monthly-history-h" onclick="toggleColl('monthly-history')">
+      <div class="coll-header open" id="monthly-history-h" onclick="toggleColl('monthly-history')">
         <span class="coll-title"><i class="ti ti-calendar-stats"></i>Détail par mois</span>
         <i class="ti ti-chevron-down coll-chevron" id="monthly-history-chev"></i>
       </div>
-      <div class="coll-body" id="monthly-history-b" style="margin-bottom:12px">
+      <div class="coll-body open" id="monthly-history-b" style="margin-bottom:12px">
         <div class="coll-inner" style="padding-top:12px"><div id="monthly-history-list"></div></div>
       </div>
       <div class="coll-header" id="exp-h" onclick="toggleColl('exp')">
@@ -1853,7 +1853,7 @@ applyTheme(currentTheme);
 renderAccounts();
 renderDash();
 setTimeout(loadExpenses,0);
-setTimeout(initMonthlyHistory,100);
+setTimeout(()=>{renderStats();initMonthlyHistory();},150);
 </script>
 </body>
 </html>
