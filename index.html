@@ -1755,7 +1755,8 @@ function renderPayoutDistribution(){
     const firmsWithPrice=firmsConfig.filter(f=>f.evalPrice>0);
     const avgEvalPriceUsd=firmsWithPrice.length>0?firmsWithPrice.reduce((s,f)=>s+f.evalPrice,0)/firmsWithPrice.length:0;
     const avgEvalPriceEur=Math.round(avgEvalPriceUsd*getFx());
-    const netPerAccount=avgPayoutEur-avgEvalPriceEur;
+    const grandTotalRev=mHistory.reduce((s,m)=>s+m.revenues,0)+allP.filter(p=>parseInt((p.date.split('/')||[])[1]||0)===new Date().getMonth()+1).reduce((s,p)=>s+(p.payoutEur||0),0);
+    const netPerEval=allEvals>0?Math.round((grandTotalRev-allEvals*avgEvalPriceEur)/allEvals):null;
     const withAtLeastOne=allAccounts.filter(a=>a.payouts>=1).length;
     const mHistory=loadMonthlyHistory();
     let exp2={};try{const r=localStorage.getItem('pft_expenses');if(r)exp2=JSON.parse(r);}catch(e2){}
@@ -1772,7 +1773,7 @@ function renderPayoutDistribution(){
       <div class="month-stat" style="text-align:center"><div class="month-stat-label">Comptes financés</div><div class="month-stat-val">${total}</div></div>
       <div class="month-stat" style="text-align:center"><div class="month-stat-label">Moy. payouts/compte</div><div class="month-stat-val">${avgPayoutsCount.toFixed(1)}</div></div>
       <div class="month-stat" style="text-align:center"><div class="month-stat-label">Payout moyen</div><div class="month-stat-val">${avgPayoutEur>0?fmt(avgPayoutEur)+' €':'—'}</div></div>
-      <div class="month-stat" style="text-align:center"><div class="month-stat-label">Net / compte</div><div class="month-stat-val" style="color:${netPerAccount>=0?'var(--green)':'var(--red)'}">${avgPayoutEur>0?(netPerAccount>=0?'+':'')+fmt(netPerAccount)+' €':'—'}</div></div>
+      <div class="month-stat" style="text-align:center"><div class="month-stat-label">Net / éval</div><div class="month-stat-val" style="color:${netPerEval===null?'var(--text2)':netPerEval>=0?'var(--green)':'var(--red)'}">${netPerEval!==null?(netPerEval>=0?'+':'')+fmt(netPerEval)+' €':'—'}</div></div>
       <div class="month-stat" style="text-align:center"><div class="month-stat-label">≥ 1 payout</div><div class="month-stat-val" style="color:var(--green)">${Math.round(withAtLeastOne/total*100)}%</div></div>
       <div class="month-stat" style="text-align:center"><div class="month-stat-label">0 payout</div><div class="month-stat-val" style="color:var(--red)">${Math.round((dist[0]||0)/total*100)}%</div></div>
       <div class="month-stat" style="text-align:center;grid-column:1/-1"><div class="month-stat-label">Taux conversion eval (all time)</div><div class="month-stat-val" style="color:${allConv===null?'var(--text2)':allConv>=50?'var(--green)':allConv>=25?'#ffaa00':'var(--red)'}">${allConv!==null?allConv+'%':'—'}</div></div>
