@@ -1047,8 +1047,11 @@ function renderMonthlyHistory(){
   const {totalEur:curExpenses}=getExpensesEur();
   const curNet=curRevenues-Math.round(curExpenses);
   let exp2={};try{const r=localStorage.getItem('pft_expenses');if(r)exp2=JSON.parse(r);}catch(e){}
-  const curEvals=firmsConfig.reduce((s,f)=>s+(exp2['qty_'+f.name]||0),0);
-  const curNewAcc=countNewAccountsInMonth(currentKeyM);
+  let curOverride={};
+  try{const r=localStorage.getItem('pft_cur_override_'+currentKeyM);if(r)curOverride=JSON.parse(r);}catch(e){}
+  const curEvalsBase=firmsConfig.reduce((s,f)=>s+(exp2['qty_'+f.name]||0),0);
+  const curEvals=curEvalsBase;
+  const curNewAcc=curOverride.evalsReussies!=null?curOverride.evalsReussies:countNewAccountsInMonth(currentKeyM);
   const curConv=curEvals>0?Math.round(curNewAcc/curEvals*100):null;
   const curNetColor=curNet>=0?'var(--green)':'var(--red)';
   const currentMonthCard=`<div class="month-row" style="border-color:var(--border2)">
@@ -1060,8 +1063,14 @@ function renderMonthlyHistory(){
       <div class="month-stat" style="text-align:center"><div class="month-stat-label">Revenus</div><div class="month-stat-val" style="color:var(--green)">+${fmt(curRevenues)} €</div></div>
       <div class="month-stat" style="text-align:center"><div class="month-stat-label">Dépenses</div><div class="month-stat-val" style="color:var(--red)">−${fmt(Math.round(curExpenses))} €</div></div>
       <div class="month-stat" style="text-align:center"><div class="month-stat-label">Évals achetées</div><div class="month-stat-val">${curEvals||'—'}</div></div>
+      <div class="month-stat" style="text-align:center"><div class="month-stat-label">Évals réussies</div><div class="month-stat-val" style="color:var(--green)">${curNewAcc||'—'}</div></div>
       <div class="month-stat" style="text-align:center;grid-column:1/-1"><div class="month-stat-label">Taux conversion eval</div><div class="month-stat-val" style="color:${curConv===null?'var(--text2)':curConv>=50?'var(--green)':curConv>=25?'#ffaa00':'var(--red)'}">${curConv!==null?curConv+'%':'—'}</div></div>
     </div>
+    <div class="month-edit-row">
+      <div class="month-edit-group"><label>Évals achetées</label><input class="setting-input" type="number" id="cur-evals" value="${curEvals}" style="width:100%"></div>
+      <div class="month-edit-group"><label>Évals réussies</label><input class="setting-input" type="number" id="cur-newAcc" value="${curNewAcc}" style="width:100%"></div>
+    </div>
+    <button onclick="saveCurrentMonthOverride('${currentKeyM}')" style="width:100%;margin-top:8px;padding:8px;background:var(--green-bg);border:0.5px solid var(--border2);border-radius:8px;color:var(--green);font-size:12px;font-weight:600;cursor:pointer;font-family:var(--font)">Enregistrer</button>
   </div>`;
 
   // List with edit capability
@@ -1080,12 +1089,14 @@ function renderMonthlyHistory(){
         <div class="month-stat" style="text-align:center"><div class="month-stat-label">Revenus</div><div class="month-stat-val" style="color:var(--green)">+${fmt(h.revenues)} €</div></div>
         <div class="month-stat" style="text-align:center"><div class="month-stat-label">Dépenses</div><div class="month-stat-val" style="color:var(--red)">−${fmt(h.expenses)} €</div></div>
         <div class="month-stat" style="text-align:center"><div class="month-stat-label">Évals achetées</div><div class="month-stat-val">${evals||'—'}</div></div>
+        <div class="month-stat" style="text-align:center"><div class="month-stat-label">Évals réussies</div><div class="month-stat-val" style="color:var(--green)">${newAcc||'—'}</div></div>
         <div class="month-stat" style="text-align:center;grid-column:1/-1"><div class="month-stat-label">Taux conversion eval</div><div class="month-stat-val" style="color:${convRate===null?'var(--text2)':convRate>=50?'var(--green)':convRate>=25?'#ffaa00':'var(--red)'}">${convRate!==null?convRate+'%':'—'}</div></div>
       </div>
       <div class="month-edit-row">
         <div class="month-edit-group"><label>Revenus (€)</label><input class="setting-input" type="number" id="medit-rev-${realIdx}" value="${h.revenues}" style="width:100%"></div>
         <div class="month-edit-group"><label>Dépenses (€)</label><input class="setting-input" type="number" id="medit-exp-${realIdx}" value="${h.expenses}" style="width:100%"></div>
         <div class="month-edit-group"><label>Évals achetées</label><input class="setting-input" type="number" id="medit-evals-${realIdx}" value="${evals}" style="width:100%"></div>
+        <div class="month-edit-group"><label>Évals réussies</label><input class="setting-input" type="number" id="medit-acc-${realIdx}" value="${newAcc}" style="width:100%"></div>
       </div>
       <button onclick="saveMonthEdit(${realIdx})" style="width:100%;margin-top:8px;padding:8px;background:var(--green-bg);border:0.5px solid var(--border2);border-radius:8px;color:var(--green);font-size:12px;font-weight:600;cursor:pointer;font-family:var(--font)">Enregistrer</button>
     </div>`;
@@ -1121,11 +1132,19 @@ function saveMonthEdit(idx){
   const rev=parseFloat(document.getElementById('medit-rev-'+idx).value)||0;
   const exp=parseFloat(document.getElementById('medit-exp-'+idx).value)||0;
   const evals=parseFloat(document.getElementById('medit-evals-'+idx).value)||0;
-  const newAcc=history[idx].newAccounts||countNewAccountsInMonth(history[idx].month);
-  history[idx]={...history[idx],revenues:Math.round(rev),expenses:Math.round(exp),net:Math.round(rev-exp),evalsCount:Math.round(evals),newAccounts:Math.round(newAcc)};
+  const acc=parseFloat(document.getElementById('medit-acc-'+idx).value)||0;
+  history[idx]={...history[idx],revenues:Math.round(rev),expenses:Math.round(exp),net:Math.round(rev-exp),evalsCount:Math.round(evals),newAccounts:Math.round(acc)};
   saveMonthlyHistory(history);
   showToast('✓ Mois mis à jour');
   renderMonthlyHistory();
+}
+function saveCurrentMonthOverride(monthKey){
+  const evals=parseFloat(document.getElementById('cur-evals').value)||0;
+  const newAcc=parseFloat(document.getElementById('cur-newAcc').value)||0;
+  try{localStorage.setItem('pft_cur_override_'+monthKey,JSON.stringify({evalsReussies:Math.round(newAcc),evalsCount:Math.round(evals)}));}catch(e){}
+  showToast('✓ Mois en cours mis à jour');
+  renderMonthlyHistory();
+  renderPayoutDistribution();
 }
 
 function addMissingMonth(key, label){
@@ -1740,9 +1759,10 @@ function renderPayoutDistribution(){
     const withAtLeastOne=allAccounts.filter(a=>a.payouts>=1).length;
     const mHistory=loadMonthlyHistory();
     let exp2={};try{const r=localStorage.getItem('pft_expenses');if(r)exp2=JSON.parse(r);}catch(e2){}
+    const curKeyNow=getMonthKey(new Date());
+    let curOverride2={};try{const r=localStorage.getItem('pft_cur_override_'+curKeyNow);if(r)curOverride2=JSON.parse(r);}catch(e2){}
     const curEvals2=firmsConfig.reduce((s,f)=>s+(exp2['qty_'+f.name]||0),0);
-    const curNewAcc2=countNewAccountsInMonth(getMonthKey(new Date()));
-    // Sum from all closed months + current month
+    const curNewAcc2=curOverride2.evalsReussies!=null?curOverride2.evalsReussies:countNewAccountsInMonth(curKeyNow);
     const allEvals=mHistory.reduce((s,m)=>s+(m.evalsCount||0),0)+curEvals2;
     const allNewAcc=mHistory.reduce((s,m)=>s+(m.newAccounts||0),0)+curNewAcc2;
     const allConv=allEvals>0?Math.round(allNewAcc/allEvals*100):null;
