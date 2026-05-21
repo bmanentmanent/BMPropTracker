@@ -534,9 +534,9 @@ body { overflow-x: hidden; }
       <div id="monthly-chart-block"></div>
       <div onclick="toggleSimple('monthly-history')" style="display:flex;align-items:center;justify-content:space-between;cursor:pointer;padding:12px 16px;background:var(--glass);border:0.5px solid var(--border);border-radius:12px;margin-bottom:8px;user-select:none">
         <span class="coll-title"><i class="ti ti-calendar-stats"></i>Détail par mois</span>
-        <i class="ti ti-chevron-up" id="monthly-history-chev" style="color:var(--green);font-size:14px"></i>
+        <i class="ti ti-chevron-down" id="monthly-history-chev" style="color:var(--green);font-size:14px"></i>
       </div>
-      <div id="monthly-history-list" style="margin-bottom:12px"></div>
+      <div id="monthly-history-list" style="margin-bottom:12px;display:none"></div>
       <div class="coll-header" id="exp-h" onclick="toggleColl('exp')">
         <span class="coll-title"><i class="ti ti-receipt"></i>Dépenses du mois</span>
         <i class="ti ti-chevron-down coll-chevron" id="exp-chev"></i>
@@ -892,7 +892,10 @@ function checkMonthlyAutoClose(){
 
 // Returns 'YYYY-MM' of the earliest trade in an account's history
 function getAccountCreationMonth(acc){
-  if(!acc||!acc.history) return null;
+  if(!acc) return null;
+  // Archived accounts have firstTradeMonth stored at archive time
+  if(acc.firstTradeMonth) return acc.firstTradeMonth;
+  if(!acc.history) return null;
   const trades=acc.history.filter(h=>!h.payout);
   if(trades.length===0) return null;
   // dates are 'DD/MM', need to resolve year
@@ -1057,7 +1060,6 @@ function renderMonthlyHistory(){
       <div class="month-stat" style="text-align:center"><div class="month-stat-label">Revenus</div><div class="month-stat-val" style="color:var(--green)">+${fmt(curRevenues)} €</div></div>
       <div class="month-stat" style="text-align:center"><div class="month-stat-label">Dépenses</div><div class="month-stat-val" style="color:var(--red)">−${fmt(Math.round(curExpenses))} €</div></div>
       <div class="month-stat" style="text-align:center"><div class="month-stat-label">Évals achetées</div><div class="month-stat-val">${curEvals||'—'}</div></div>
-      <div class="month-stat" style="text-align:center"><div class="month-stat-label">Comptes lancés</div><div class="month-stat-val">${curNewAcc||'—'}</div></div>
       <div class="month-stat" style="text-align:center;grid-column:1/-1"><div class="month-stat-label">Taux conversion eval</div><div class="month-stat-val" style="color:${curConv===null?'var(--text2)':curConv>=50?'var(--green)':curConv>=25?'#ffaa00':'var(--red)'}">${curConv!==null?curConv+'%':'—'}</div></div>
     </div>
   </div>`;
@@ -1078,14 +1080,12 @@ function renderMonthlyHistory(){
         <div class="month-stat" style="text-align:center"><div class="month-stat-label">Revenus</div><div class="month-stat-val" style="color:var(--green)">+${fmt(h.revenues)} €</div></div>
         <div class="month-stat" style="text-align:center"><div class="month-stat-label">Dépenses</div><div class="month-stat-val" style="color:var(--red)">−${fmt(h.expenses)} €</div></div>
         <div class="month-stat" style="text-align:center"><div class="month-stat-label">Évals achetées</div><div class="month-stat-val">${evals||'—'}</div></div>
-        <div class="month-stat" style="text-align:center"><div class="month-stat-label">Comptes lancés</div><div class="month-stat-val">${newAcc||'—'}</div></div>
         <div class="month-stat" style="text-align:center;grid-column:1/-1"><div class="month-stat-label">Taux conversion eval</div><div class="month-stat-val" style="color:${convRate===null?'var(--text2)':convRate>=50?'var(--green)':convRate>=25?'#ffaa00':'var(--red)'}">${convRate!==null?convRate+'%':'—'}</div></div>
       </div>
       <div class="month-edit-row">
         <div class="month-edit-group"><label>Revenus (€)</label><input class="setting-input" type="number" id="medit-rev-${realIdx}" value="${h.revenues}" style="width:100%"></div>
         <div class="month-edit-group"><label>Dépenses (€)</label><input class="setting-input" type="number" id="medit-exp-${realIdx}" value="${h.expenses}" style="width:100%"></div>
         <div class="month-edit-group"><label>Évals achetées</label><input class="setting-input" type="number" id="medit-evals-${realIdx}" value="${evals}" style="width:100%"></div>
-        <div class="month-edit-group"><label>Comptes lancés</label><input class="setting-input" type="number" id="medit-acc-${realIdx}" value="${newAcc}" style="width:100%"></div>
       </div>
       <button onclick="saveMonthEdit(${realIdx})" style="width:100%;margin-top:8px;padding:8px;background:var(--green-bg);border:0.5px solid var(--border2);border-radius:8px;color:var(--green);font-size:12px;font-weight:600;cursor:pointer;font-family:var(--font)">Enregistrer</button>
     </div>`;
@@ -1121,8 +1121,8 @@ function saveMonthEdit(idx){
   const rev=parseFloat(document.getElementById('medit-rev-'+idx).value)||0;
   const exp=parseFloat(document.getElementById('medit-exp-'+idx).value)||0;
   const evals=parseFloat(document.getElementById('medit-evals-'+idx).value)||0;
-  const acc=parseFloat(document.getElementById('medit-acc-'+idx).value)||0;
-  history[idx]={...history[idx],revenues:Math.round(rev),expenses:Math.round(exp),net:Math.round(rev-exp),evalsCount:Math.round(evals),newAccounts:Math.round(acc)};
+  const newAcc=history[idx].newAccounts||countNewAccountsInMonth(history[idx].month);
+  history[idx]={...history[idx],revenues:Math.round(rev),expenses:Math.round(exp),net:Math.round(rev-exp),evalsCount:Math.round(evals),newAccounts:Math.round(newAcc)};
   saveMonthlyHistory(history);
   showToast('✓ Mois mis à jour');
   renderMonthlyHistory();
@@ -1741,8 +1741,10 @@ function renderPayoutDistribution(){
     const mHistory=loadMonthlyHistory();
     let exp2={};try{const r=localStorage.getItem('pft_expenses');if(r)exp2=JSON.parse(r);}catch(e2){}
     const curEvals2=firmsConfig.reduce((s,f)=>s+(exp2['qty_'+f.name]||0),0);
+    const curNewAcc2=countNewAccountsInMonth(getMonthKey(new Date()));
+    // Sum from all closed months + current month
     const allEvals=mHistory.reduce((s,m)=>s+(m.evalsCount||0),0)+curEvals2;
-    const allNewAcc=mHistory.reduce((s,m)=>s+(m.newAccounts||0),0)+countNewAccountsInMonth(getMonthKey(new Date()));
+    const allNewAcc=mHistory.reduce((s,m)=>s+(m.newAccounts||0),0)+curNewAcc2;
     const allConv=allEvals>0?Math.round(allNewAcc/allEvals*100):null;
 
     let html=`<div style="background:var(--bg2);border:0.5px solid var(--border);border-radius:0 0 12px 12px;padding:14px 16px">`;
@@ -1806,7 +1808,8 @@ function archiveAccount(id){
   const pays=acc.history.filter(h=>h.payout);
   const totEur=pays.reduce((s,h)=>s+(h.payoutEur||0),0);
   const d=new Date();
-  archived.push({firm:acc.firm,closedAt:d.toLocaleDateString('fr-FR',{day:'2-digit',month:'2-digit',year:'numeric'}),cycleCount:acc.cycleCount||1,totalPayoutEur:totEur,payoutCount:pays.length,payoutHistory:pays.map(h=>({date:h.date,payoutEur:h.payoutEur||0})),totalDays:real.length,winRate:real.length>0?Math.round(wins/real.length*100):null,finalBalance:Math.round(acc.balance),crashThreshold:crashThreshold(acc),balanceMax:acc.balanceMax||0});
+  const firstTradeMonth=getAccountCreationMonth(acc);
+  archived.push({firm:acc.firm,closedAt:d.toLocaleDateString('fr-FR',{day:'2-digit',month:'2-digit',year:'numeric'}),cycleCount:acc.cycleCount||1,totalPayoutEur:totEur,payoutCount:pays.length,payoutHistory:pays.map(h=>({date:h.date,payoutEur:h.payoutEur||0})),totalDays:real.length,winRate:real.length>0?Math.round(wins/real.length*100):null,finalBalance:Math.round(acc.balance),crashThreshold:crashThreshold(acc),balanceMax:acc.balanceMax||0,firstTradeMonth});
   accounts=accounts.filter(a=>a.id!==id);
   delete pendingCrash[id];
   saveAll();renderAccounts();renderStats();
