@@ -1755,8 +1755,6 @@ function renderPayoutDistribution(){
     const firmsWithPrice=firmsConfig.filter(f=>f.evalPrice>0);
     const avgEvalPriceUsd=firmsWithPrice.length>0?firmsWithPrice.reduce((s,f)=>s+f.evalPrice,0)/firmsWithPrice.length:0;
     const avgEvalPriceEur=Math.round(avgEvalPriceUsd*getFx());
-    const grandTotalRev=mHistory.reduce((s,m)=>s+m.revenues,0)+allP.filter(p=>parseInt((p.date.split('/')||[])[1]||0)===new Date().getMonth()+1).reduce((s,p)=>s+(p.payoutEur||0),0);
-    const netPerEval=allEvals>0?Math.round((grandTotalRev-allEvals*avgEvalPriceEur)/allEvals):null;
     const withAtLeastOne=allAccounts.filter(a=>a.payouts>=1).length;
     const mHistory=loadMonthlyHistory();
     let exp2={};try{const r=localStorage.getItem('pft_expenses');if(r)exp2=JSON.parse(r);}catch(e2){}
@@ -1767,6 +1765,8 @@ function renderPayoutDistribution(){
     const allEvals=mHistory.reduce((s,m)=>s+(m.evalsCount||0),0)+curEvals2;
     const allNewAcc=mHistory.reduce((s,m)=>s+(m.newAccounts||0),0)+curNewAcc2;
     const allConv=allEvals>0?Math.round(allNewAcc/allEvals*100):null;
+    const grandTotalRev=mHistory.reduce((s,m)=>s+m.revenues,0)+allP.filter(p=>parseInt((p.date.split('/')||[])[1]||0)===new Date().getMonth()+1).reduce((s,p)=>s+(p.payoutEur||0),0);
+    const netPerEval=allEvals>0?Math.round((grandTotalRev-allEvals*avgEvalPriceEur)/allEvals):null;
 
     let html=`<div style="background:var(--bg2);border:0.5px solid var(--border);border-radius:0 0 12px 12px;padding:14px 16px">`;
     html+=`<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:14px">
