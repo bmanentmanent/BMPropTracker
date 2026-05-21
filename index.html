@@ -828,7 +828,12 @@ function switchPage(p){
     if(nb)nb.classList.toggle('active',id===p);
   });
   if(p==='treso')setTimeout(renderTreso,50);
-  if(p==='stats'){setTimeout(()=>{loadExpenses();renderStats();},50);}
+  if(p==='stats'){
+    // Use double rAF to ensure page is visible before injecting content
+    requestAnimationFrame(()=>requestAnimationFrame(()=>{
+      loadExpenses();renderStats();
+    }));
+  }
   if(p==='dash')renderDash();
 }
 
@@ -1852,7 +1857,7 @@ applyTheme(currentTheme);
 renderAccounts();
 renderDash();
 setTimeout(loadExpenses,0);
-setTimeout(()=>{renderStats();initMonthlyHistory();},150);
+setTimeout(initMonthlyHistory,150);
 </script>
 </body>
 </html>
