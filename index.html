@@ -521,24 +521,22 @@ body { overflow-x: hidden; }
     </div>
     <div class="section">
       <div id="global-stats" style="margin-bottom:12px"></div>
-      <!-- PAYOUT DISTRIBUTION - open by default -->
-      <div class="coll-header open" id="payout-dist-h" onclick="toggleColl('payout-dist')">
+
+      <!-- PAYOUT DISTRIBUTION -->
+      <div onclick="toggleSimple('payout-dist')" style="display:flex;align-items:center;justify-content:space-between;cursor:pointer;padding:12px 16px;background:var(--glass);border:0.5px solid var(--border);border-radius:12px;margin-bottom:8px;user-select:none">
         <span class="coll-title"><i class="ti ti-chart-pie"></i>Distribution des payouts</span>
-        <i class="ti ti-chevron-down coll-chevron" id="payout-dist-chev"></i>
+        <i class="ti ti-chevron-up" id="payout-dist-chev" style="color:var(--green);font-size:14px"></i>
       </div>
-      <div class="coll-body open" id="payout-dist-b">
-        <div class="coll-inner" style="padding-top:12px"><div id="payout-dist-content"></div></div>
-      </div>
+      <div id="payout-dist-content" style="margin-bottom:8px"></div>
+
       <!-- MONTHLY HISTORY -->
       <div class="section-label" style="margin-top:16px">Historique mensuel</div>
       <div id="monthly-chart-block"></div>
-      <div class="coll-header open" id="monthly-history-h" onclick="toggleColl('monthly-history')">
+      <div onclick="toggleSimple('monthly-history')" style="display:flex;align-items:center;justify-content:space-between;cursor:pointer;padding:12px 16px;background:var(--glass);border:0.5px solid var(--border);border-radius:12px;margin-bottom:8px;user-select:none">
         <span class="coll-title"><i class="ti ti-calendar-stats"></i>Détail par mois</span>
-        <i class="ti ti-chevron-down coll-chevron" id="monthly-history-chev"></i>
+        <i class="ti ti-chevron-up" id="monthly-history-chev" style="color:var(--green);font-size:14px"></i>
       </div>
-      <div class="coll-body open" id="monthly-history-b" style="margin-bottom:12px">
-        <div class="coll-inner" style="padding-top:12px"><div id="monthly-history-list"></div></div>
-      </div>
+      <div id="monthly-history-list" style="margin-bottom:12px"></div>
       <div class="coll-header" id="exp-h" onclick="toggleColl('exp')">
         <span class="coll-title"><i class="ti ti-receipt"></i>Dépenses du mois</span>
         <i class="ti ti-chevron-down coll-chevron" id="exp-chev"></i>
@@ -1230,6 +1228,15 @@ function confirmAddFirm(){
   renderFirmSettings();
 }
 
+function toggleSimple(key){
+  const content=document.getElementById(key==='payout-dist'?'payout-dist-content':'monthly-history-list');
+  const chev=document.getElementById(key+'-chev');
+  if(!content)return;
+  const hidden=content.style.display==='none';
+  content.style.display=hidden?'block':'none';
+  if(chev)chev.className=hidden?'ti ti-chevron-up':'ti ti-chevron-down';
+}
+
 // ── COLLAPSIBLE ──
 function toggleColl(key){
   document.getElementById(key+'-h').classList.toggle('open');
@@ -1701,69 +1708,61 @@ function renderPayoutDistribution(){
   const el=document.getElementById('payout-dist-content');
   if(!el)return;
   try{
-  const allAccounts=[
-    ...accounts.map(a=>({payouts:a.history.filter(h=>h.payout).length,firm:a.firm})),
-    ...archived.map(a=>({payouts:(a.payoutHistory||[]).length,firm:a.firm}))
-  ];
-  if(allAccounts.length===0){
-    el.innerHTML=`<div class="empty" style="padding:16px 0"><i class="ti ti-chart-pie"></i>Aucun compte.</div>`;
-    return;
-  }
-  const total=allAccounts.length;
-  const maxP=allAccounts.reduce((m,a)=>Math.max(m,a.payouts||0),0);
-  const dist={};
-  for(let i=0;i<=maxP;i++) dist[i]=allAccounts.filter(a=>a.payouts===i).length;
-  const avgPayoutsCount=allAccounts.reduce((s,a)=>s+a.payouts,0)/total;
+    const allAccounts=[
+      ...accounts.map(a=>({payouts:a.history.filter(h=>h.payout).length,firm:a.firm})),
+      ...archived.map(a=>({payouts:(a.payoutHistory||[]).length,firm:a.firm}))
+    ];
+    if(allAccounts.length===0){
+      el.innerHTML=`<div class="empty" style="padding:16px 0"><i class="ti ti-chart-pie"></i>Aucun compte.</div>`;
+      return;
+    }
+    const total=allAccounts.length;
+    const maxP=allAccounts.reduce((m,a)=>Math.max(m,a.payouts||0),0);
+    const dist={};
+    for(let i=0;i<=maxP;i++) dist[i]=allAccounts.filter(a=>a.payouts===i).length;
+    const avgPayoutsCount=allAccounts.reduce((s,a)=>s+a.payouts,0)/total;
+    const allP=getAllPayouts();
+    const totalPayoutsEur=allP.reduce((s,p)=>s+(p.payoutEur||0),0);
+    const totalPayoutsCount=allP.length;
+    const avgPayoutEur=totalPayoutsCount>0?Math.round(totalPayoutsEur/totalPayoutsCount):0;
+    const firmsWithPrice=firmsConfig.filter(f=>f.evalPrice>0);
+    const avgEvalPriceUsd=firmsWithPrice.length>0?firmsWithPrice.reduce((s,f)=>s+f.evalPrice,0)/firmsWithPrice.length:0;
+    const avgEvalPriceEur=Math.round(avgEvalPriceUsd*getFx());
+    const netPerAccount=avgPayoutEur-avgEvalPriceEur;
+    const withAtLeastOne=allAccounts.filter(a=>a.payouts>=1).length;
+    const mHistory=loadMonthlyHistory();
+    let exp2={};try{const r=localStorage.getItem('pft_expenses');if(r)exp2=JSON.parse(r);}catch(e2){}
+    const curEvals2=firmsConfig.reduce((s,f)=>s+(exp2['qty_'+f.name]||0),0);
+    const allEvals=mHistory.reduce((s,m)=>s+(m.evalsCount||0),0)+curEvals2;
+    const allNewAcc=mHistory.reduce((s,m)=>s+(m.newAccounts||0),0)+countNewAccountsInMonth(getMonthKey(new Date()));
+    const allConv=allEvals>0?Math.round(allNewAcc/allEvals*100):null;
 
-  // Payout moyen en € = total revenus / total nb payouts
-  const allP=getAllPayouts();
-  const totalPayoutsEur=allP.reduce((s,p)=>s+(p.payoutEur||0),0);
-  const totalPayoutsCount=allP.length;
-  const avgPayoutEur=totalPayoutsCount>0?Math.round(totalPayoutsEur/totalPayoutsCount):0;
-
-  // Prix moyen éval = moyenne simple des evalPrice des firms configurées
-  const firmsWithPrice=firmsConfig.filter(f=>f.evalPrice>0);
-  const avgEvalPriceUsd=firmsWithPrice.length>0?firmsWithPrice.reduce((s,f)=>s+f.evalPrice,0)/firmsWithPrice.length:0;
-  const avgEvalPriceEur=Math.round(avgEvalPriceUsd*getFx());
-  const netPerAccount=avgPayoutEur-avgEvalPriceEur;
-
-  const withAtLeastOne=allAccounts.filter(a=>a.payouts>=1).length;
-
-  // For all-time conversion rate
-  const monthlyHistory=loadMonthlyHistory();
-  let exp2={};try{const r=localStorage.getItem('pft_expenses');if(r)exp2=JSON.parse(r);}catch(e){}
-  const curEvals2=firmsConfig.reduce((s,f)=>s+(exp2['qty_'+f.name]||0),0);
-
-  // All-time conversion: sum evalsCount from history + current month
-  const allEvals=monthlyHistory.reduce((s,m)=>s+(m.evalsCount||0),0)+curEvals2;
-  const allNewAcc=monthlyHistory.reduce((s,m)=>s+(m.newAccounts!=null?m.newAccounts:0),0)+countNewAccountsInMonth(getMonthKey(new Date()));
-  const allConv=allEvals>0?Math.round(allNewAcc/allEvals*100):null;
-
-  let html=`<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:14px">
-    <div class="month-stat" style="text-align:center"><div class="month-stat-label">Comptes financés</div><div class="month-stat-val">${total}</div></div>
-    <div class="month-stat" style="text-align:center"><div class="month-stat-label">Moy. payouts/compte</div><div class="month-stat-val">${avgPayoutsCount.toFixed(1)}</div></div>
-    <div class="month-stat" style="text-align:center"><div class="month-stat-label">Payout moyen</div><div class="month-stat-val">${avgPayoutEur>0?fmt(avgPayoutEur)+' €':'—'}</div></div>
-    <div class="month-stat" style="text-align:center"><div class="month-stat-label">Net / compte</div><div class="month-stat-val" style="color:${netPerAccount>=0?'var(--green)':'var(--red)'}">${avgPayoutEur>0?(netPerAccount>=0?'+':'')+fmt(netPerAccount)+' €':'—'}</div></div>
-    <div class="month-stat" style="text-align:center"><div class="month-stat-label">≥ 1 payout</div><div class="month-stat-val" style="color:var(--green)">${Math.round(withAtLeastOne/total*100)}%</div></div>
-    <div class="month-stat" style="text-align:center"><div class="month-stat-label">0 payout</div><div class="month-stat-val" style="color:var(--red)">${Math.round((dist[0]||0)/total*100)}%</div></div>
-    <div class="month-stat" style="text-align:center;grid-column:1/-1"><div class="month-stat-label">Taux conversion eval (all time)</div><div class="month-stat-val" style="color:${allConv===null?'var(--text2)':allConv>=50?'var(--green)':allConv>=25?'#ffaa00':'var(--red)'}">${allConv!==null?allConv+'%':'—'}</div></div>
-  </div><div style="display:flex;flex-direction:column;gap:7px">`;
-
-  for(let i=0;i<=maxP;i++){
-    const count=dist[i]||0;
-    const pct=Math.round(count/total*100);
-    const color=i===0?'var(--red)':i===1?'#ffaa00':'var(--green)';
-    html+=`<div style="display:flex;align-items:center;gap:10px">
-      <div style="width:58px;font-size:11px;font-weight:700;color:var(--text2);text-align:right;flex-shrink:0">${i} payout${i>1?'s':''}</div>
-      <div style="flex:1;background:var(--bg3);border-radius:6px;height:22px;overflow:hidden">
-        <div style="width:${Math.max(pct,2)}%;background:${color};height:100%;border-radius:6px"></div>
-      </div>
-      <span style="font-size:10px;font-weight:700;color:var(--text2);width:52px;flex-shrink:0;text-align:right">${count} · ${pct}%</span>
+    let html=`<div style="background:var(--bg2);border:0.5px solid var(--border);border-radius:0 0 12px 12px;padding:14px 16px">`;
+    html+=`<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:14px">
+      <div class="month-stat" style="text-align:center"><div class="month-stat-label">Comptes financés</div><div class="month-stat-val">${total}</div></div>
+      <div class="month-stat" style="text-align:center"><div class="month-stat-label">Moy. payouts/compte</div><div class="month-stat-val">${avgPayoutsCount.toFixed(1)}</div></div>
+      <div class="month-stat" style="text-align:center"><div class="month-stat-label">Payout moyen</div><div class="month-stat-val">${avgPayoutEur>0?fmt(avgPayoutEur)+' €':'—'}</div></div>
+      <div class="month-stat" style="text-align:center"><div class="month-stat-label">Net / compte</div><div class="month-stat-val" style="color:${netPerAccount>=0?'var(--green)':'var(--red)'}">${avgPayoutEur>0?(netPerAccount>=0?'+':'')+fmt(netPerAccount)+' €':'—'}</div></div>
+      <div class="month-stat" style="text-align:center"><div class="month-stat-label">≥ 1 payout</div><div class="month-stat-val" style="color:var(--green)">${Math.round(withAtLeastOne/total*100)}%</div></div>
+      <div class="month-stat" style="text-align:center"><div class="month-stat-label">0 payout</div><div class="month-stat-val" style="color:var(--red)">${Math.round((dist[0]||0)/total*100)}%</div></div>
+      <div class="month-stat" style="text-align:center;grid-column:1/-1"><div class="month-stat-label">Taux conversion eval (all time)</div><div class="month-stat-val" style="color:${allConv===null?'var(--text2)':allConv>=50?'var(--green)':allConv>=25?'#ffaa00':'var(--red)'}">${allConv!==null?allConv+'%':'—'}</div></div>
     </div>`;
-  }
-  html+=`</div>`;
-  el.innerHTML=html;
-  }catch(e){el.innerHTML=`<div class="empty" style="padding:16px 0;color:var(--red)">Erreur: ${e.message}</div>`;}
+    html+=`<div style="display:flex;flex-direction:column;gap:7px">`;
+    for(let i=0;i<=maxP;i++){
+      const count=dist[i]||0;
+      const pct=Math.round(count/total*100);
+      const color=i===0?'var(--red)':i===1?'#ffaa00':'var(--green)';
+      html+=`<div style="display:flex;align-items:center;gap:10px">
+        <div style="width:58px;font-size:11px;font-weight:700;color:var(--text2);text-align:right;flex-shrink:0">${i} payout${i>1?'s':''}</div>
+        <div style="flex:1;background:var(--bg3);border-radius:6px;height:22px;overflow:hidden">
+          <div style="width:${Math.max(pct,2)}%;background:${color};height:100%;border-radius:6px"></div>
+        </div>
+        <span style="font-size:10px;font-weight:700;color:var(--text2);width:52px;flex-shrink:0;text-align:right">${count} · ${pct}%</span>
+      </div>`;
+    }
+    html+=`</div></div>`;
+    el.innerHTML=html;
+  }catch(e){el.innerHTML=`<div style="padding:16px;color:var(--red)">Erreur: ${e.message}</div>`;}
 }
 
 // ── PAYOUT MODAL ──
