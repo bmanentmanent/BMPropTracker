@@ -798,7 +798,7 @@ function getSorted(){
 }
 function getAllPayouts(){
   const p=[];
-  accounts.forEach(acc=>acc.history.forEach((h,idx)=>{if(h.payout)p.push({source:'account',accId:acc.id,histIdx:idx,firm:acc.firm,date:h.date,payoutEur:h.payoutEur||0,active:true});}));
+  accounts.forEach(acc=>{if(!acc||!acc.history)return;acc.history.forEach((h,idx)=>{if(h.payout)p.push({source:'account',accId:acc.id,histIdx:idx,firm:acc.firm,date:h.date,payoutEur:h.payoutEur||0,active:true});});});
   archived.forEach((a,ai)=>(a.payoutHistory||[]).forEach((ph,pi)=>p.push({source:'archived',archivedIdx:ai,payoutHistIdx:pi,firm:a.firm,date:ph.date,payoutEur:ph.payoutEur||0,active:false})));
   p.sort((a,b)=>{const pa=a.date.split('/'),pb=b.date.split('/');const ma=parseInt(pa[1]||0),mb=parseInt(pb[1]||0),da=parseInt(pa[0]||0),db=parseInt(pb[0]||0);return mb!==ma?mb-ma:db-da;});
   return p;
@@ -892,6 +892,7 @@ function checkMonthlyAutoClose(){
 
 // Returns 'YYYY-MM' of the earliest trade in an account's history
 function getAccountCreationMonth(acc){
+  if(!acc||!acc.history) return null;
   const trades=acc.history.filter(h=>!h.payout);
   if(trades.length===0) return null;
   // dates are 'DD/MM', need to resolve year
@@ -1716,8 +1717,8 @@ function renderPayoutDistribution(){
   if(!el)return;
   try{
     const allAccounts=[
-      ...accounts.map(a=>({payouts:a.history.filter(h=>h.payout).length,firm:a.firm})),
-      ...archived.map(a=>({payouts:(a.payoutHistory||[]).length,firm:a.firm}))
+      ...accounts.filter(a=>a&&a.history).map(a=>({payouts:a.history.filter(h=>h.payout).length,firm:a.firm})),
+      ...archived.filter(a=>a).map(a=>({payouts:(a.payoutHistory||[]).length,firm:a.firm}))
     ];
     if(allAccounts.length===0){
       el.innerHTML=`<div class="empty" style="padding:16px 0"><i class="ti ti-chart-pie"></i>Aucun compte.</div>`;
