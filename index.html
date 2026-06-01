@@ -497,7 +497,7 @@ body { overflow-x: hidden; }
       </div>
       <div class="coll-body" id="treso-params-b">
         <div class="coll-inner">
-          <div class="setting-row"><div class="setting-label">Tréso de départ<small>base entreprise</small></div><input class="setting-input" type="number" id="treso-base" value="10500" step="100" oninput="onSettingChange()"><span class="setting-unit">€</span></div>
+          <div class="setting-row"><div class="setting-label">Trésorerie actuelle<small>modifiable</small></div><input class="setting-input" type="number" id="treso-base" value="10500" step="100" oninput="onSettingChange()"><span class="setting-unit">€</span></div>
           <div class="setting-row"><div class="setting-label">Taux $/€</div><input class="setting-input" type="number" id="fx-rate" value="0.85" step="0.01" oninput="onSettingChange()"></div>
           <div class="setting-row"><div class="setting-label">Jour de gain<small>P&L min</small></div><input class="setting-input" type="number" id="p-win-pnl" value="150" step="10" oninput="onSettingChange()"><span class="setting-unit">$</span></div>
           <div class="setting-row"><div class="setting-label">Jour de perte<small>P&L type</small></div><input class="setting-input" type="number" id="p-loss-pnl" value="230" step="10" oninput="onSettingChange()"><span class="setting-unit">$</span></div>
@@ -725,12 +725,17 @@ function renderEvalRows(){
 }
 function saveExpenses(){
   try{
+    const prevExp=JSON.parse(localStorage.getItem('pft_expenses')||'{}');
+    const prevTotal=firmsConfig.reduce((s,f)=>s+(prevExp['qty_'+f.name]||0)*(f.evalPrice||0),0)*getFx()+(prevExp.misc||0);
     const exp={misc:parseFloat(document.getElementById('misc-expenses').value)||0};
     firmsConfig.forEach(f=>{
       const qe=document.getElementById('eval-qty-'+f.name);
       exp['qty_'+f.name]=qe?parseFloat(qe.value)||0:0;
     });
+    const newTotal=firmsConfig.reduce((s,f)=>s+(exp['qty_'+f.name]||0)*(f.evalPrice||0),0)*getFx()+exp.misc;
+    const delta=-(newTotal-prevTotal); // negative because expenses reduce treso
     localStorage.setItem('pft_expenses',JSON.stringify(exp));
+    if(Math.abs(delta)>0.5) updateTresoBase(Math.round(delta));
   }catch(e){}
 }
 function loadExpenses(){
@@ -764,7 +769,12 @@ function getExpensesEur(){
 
 // ── HELPERS ──
 function getFx(){return parseFloat(document.getElementById('fx-rate').value)||0.85;}
-function getBase(){return parseFloat(document.getElementById('treso-base').value)||10500;}
+function getBase(){
+  const el=document.getElementById('treso-base');
+  if(el&&el.value!=='') return parseFloat(el.value)||0;
+  try{const d=JSON.parse(localStorage.getItem('pft_v11')||'{}');return d.settings?.tresoBase||0;}catch(e){}
+  return 0;
+}
 function getWinPnl(){
   const el=document.getElementById('p-win-pnl');
   if(el&&el.value!=='') return parseFloat(el.value)||150;
@@ -960,6 +970,9 @@ function closeCurrentMonth(){
   const newAccounts=countNewAccountsInMonth(prevKey);
   history.push({month:prevKey,label:getMonthLabel(prevKey),revenues,expenses,net,evalsCount,newAccounts});
   saveMonthlyHistory(history);
+  // Reset eval quantities to 0 for new month (keep misc unchanged)
+  firmsConfig.forEach(f=>{exp['qty_'+f.name]=0;});
+  try{localStorage.setItem('pft_expenses',JSON.stringify(exp));}catch(e){}
   return true;
 }
 
@@ -1854,13 +1867,33 @@ function cancelCrash(id){
 function deleteArchivedAccount(idx){archived.splice(idx,1);saveAll();renderStats();}
 
 // ── ACCOUNT CRUD ──
+function updateTresoBase(delta){
+  const el=document.getElementById('treso-base');
+  const current=el?parseFloat(el.value)||getBase():getBase();
+  const newVal=Math.round(current+delta);
+  if(el)el.value=newVal;
+  // Save immediately
+  try{
+    const d=JSON.parse(localStorage.getItem('pft_v11')||'{}');
+    if(!d.settings)d.settings={};
+    d.settings.tresoBase=newVal;
+    localStorage.setItem('pft_v11',JSON.stringify(d));
+  }catch(e){}
+}
+
 function doPayout(id){
   const acc=accounts.find(a=>a.id===id);if(!acc)return;
-  const eur=Math.round(acc.balance*0.5*SPLIT*getFx());
+  const cfg=getFirmCfg(acc.firm);
+  const split=(cfg.split||90)/100;
+  let payoutAmt=acc.balance*0.5*split;
+  if(cfg.payoutCap&&cfg.payoutCap>0) payoutAmt=Math.min(payoutAmt,cfg.payoutCap/getFx());
+  const eur=Math.round(payoutAmt*getFx());
   const nb=Math.round(acc.balance*0.5);
   const d=new Date();
   acc.history.unshift({date:d.toLocaleDateString('fr-FR',{day:'2-digit',month:'2-digit'}),payout:true,payoutEur:eur,win:false});
   acc.hasPayout=true;acc.payoutBalance=nb;acc.cycleCount=(acc.cycleCount||1)+1;acc.gainDays=0;acc.balance=nb;
+  acc.balanceAtLastPayout=nb;
+  updateTresoBase(eur);
   saveAll();renderAccounts();
 }
 function confirmDeleteAcc(id){accounts=accounts.filter(a=>a.id!==id);delete confirmDel[id];saveAll();renderAccounts();}
