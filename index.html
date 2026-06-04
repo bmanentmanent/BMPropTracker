@@ -1591,30 +1591,30 @@ function submitSheet(){
     if(isNaN(val))return;
     const isWin=val>=WIN_THR;
 
-    // Find the index of the last payout entry to scope search to current cycle only
+    // If a payout was recorded today, the P&L for today is already baked in — skip
+    const todayPayoutExists=acc.history.some(h=>h.payout&&h.date===dateStr);
+    if(todayPayoutExists) return;
+
+    // Find last payout to scope search to current cycle only
     const lastPayoutIdx=acc.history.findIndex(h=>h.payout);
     const cycleHistory=lastPayoutIdx>=0?acc.history.slice(0,lastPayoutIdx):acc.history;
     const existingIdx=cycleHistory.findIndex(h=>!h.payout&&h.date===dateStr);
 
     if(existingIdx>=0){
-      // Update existing entry — reverse previous effect first
       const prev=acc.history[existingIdx];
       acc.balance=Math.round((acc.balance-prev.val)*100)/100;
       if(prev.win)acc.gainDays=Math.max(acc.gainDays-1,0);
-      // Apply new value
       acc.balance=Math.round((acc.balance+val)*100)/100;
       if(acc.balance>(acc.balanceMax||0))acc.balanceMax=acc.balance;
       if(isWin)acc.gainDays=Math.min(acc.gainDays+1,DAYS_REQ);
       acc.history[existingIdx]={date:dateStr,val:Math.round(val),win:isWin,payout:false};
     } else {
-      // New entry
       acc.balance=Math.round((acc.balance+val)*100)/100;
       if(acc.balance>(acc.balanceMax||0))acc.balanceMax=acc.balance;
       if(isWin)acc.gainDays=Math.min(acc.gainDays+1,DAYS_REQ);
       acc.history.unshift({date:dateStr,val:Math.round(val),win:isWin,payout:false});
     }
 
-    // check crash
     const ct=crashThreshold(acc);
     if(acc.balance<=ct)pendingCrash[acc.id]=true;
     changed=true;
