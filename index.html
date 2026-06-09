@@ -747,6 +747,14 @@ function loadExpenses(){
     });
     const me=document.getElementById('misc-expenses');
     if(me&&exp.misc)me.value=exp.misc;
+    // If evalEur not yet frozen, freeze it now at current fx rate
+    if(exp.evalEur==null){
+      const fx=getFx();
+      let total=0;
+      firmsConfig.forEach(f=>total+=(exp['qty_'+f.name]||0)*(f.evalPrice||0)*fx);
+      exp.evalEur=Math.round(total);
+      localStorage.setItem('pft_expenses',JSON.stringify(exp));
+    }
   }catch(e){}
 }
 function getExpensesEur(){
