@@ -1360,18 +1360,11 @@ function renderDash(){
   const monthTotal=monthP.reduce((s,p)=>s+(p.payoutEur||0),0);
   const {totalEur}=getExpensesEur();
   const net=monthTotal-totalEur;
-  const activeWR=accounts.map(a=>{const r=a.history.filter(h=>!h.payout);return r.length>0?Math.round(r.filter(h=>h.win).length/r.length*100):null;}).filter(v=>v!==null);
-  const avgWR=activeWR.length>0?Math.round(activeWR.reduce((a,b)=>a+b,0)/activeWR.length):null;
 
   // Hero — month only
   document.getElementById('hero-amount').textContent=(net>=0?'+':'')+fmt(Math.abs(net))+' €';
   document.getElementById('hero-amount').style.color=net>=0?'var(--green)':'var(--red)';
   document.getElementById('hero-sub').textContent=`${monthP.length} payout${monthP.length>1?'s':''} ce mois · ${fmt(totalEur)} € de dépenses`;
-  document.getElementById('h-accounts').textContent=accounts.length;
-  document.getElementById('h-winrate').textContent=avgWR!==null?avgWR+'%':'—';
-  document.getElementById('h-winrate').style.color=avgWR===null?'var(--text)':avgWR>=60?'var(--green)':avgWR>=40?'var(--amber)':'var(--red)';
-  document.getElementById('h-total').textContent=monthP.length;
-  document.getElementById('h-total').style.color='var(--amber)';
 
   // Simple projection — 3 scenario net totals (payouts this month + projected - expenses)
   const daysInMonth=new Date(now.getFullYear(),cm,0).getDate();
