@@ -421,20 +421,6 @@ body { overflow-x: hidden; }
       <div class="hero-amount" id="hero-amount">0 €</div>
       <div class="hero-sub" id="hero-sub">0 payout · 0 € de dépenses</div>
       <div class="hero-divider"></div>
-      <div class="hero-stats">
-        <div class="hero-stat">
-          <div class="hero-stat-val g" id="h-accounts">0</div>
-          <div class="hero-stat-label">Comptes</div>
-        </div>
-        <div class="hero-stat">
-          <div class="hero-stat-val" id="h-winrate">—</div>
-          <div class="hero-stat-label">Réussite</div>
-        </div>
-        <div class="hero-stat">
-          <div class="hero-stat-val a" id="h-total">0</div>
-          <div class="hero-stat-label">Payouts mois</div>
-        </div>
-      </div>
     </div>
 
     <!-- MINI CHART -->
@@ -725,15 +711,27 @@ function renderEvalRows(){
 }
 function saveExpenses(){
   try{
-    const prevExp=JSON.parse(localStorage.getItem('pft_expenses')||'{}');
-    const prevTotal=firmsConfig.reduce((s,f)=>s+(prevExp['qty_'+f.name]||0)*(f.evalPrice||0),0)*getFx()+(prevExp.misc||0);
+    const fx=getFx();
+    const raw=localStorage.getItem('pft_expenses');
+    const prevExp=raw?JSON.parse(raw):{};
+    // Previous frozen eval total in €
+    const prevEvalEur=prevExp.evalEur||0;
+    const prevMisc=prevExp.misc||0;
+    const prevTotal=prevEvalEur+prevMisc;
+
     const exp={misc:parseFloat(document.getElementById('misc-expenses').value)||0};
+    // Compute new eval total in € at current fx rate (frozen at time of save)
+    let newEvalEur=0;
     firmsConfig.forEach(f=>{
       const qe=document.getElementById('eval-qty-'+f.name);
-      exp['qty_'+f.name]=qe?parseFloat(qe.value)||0:0;
+      const qty=qe?parseFloat(qe.value)||0:0;
+      exp['qty_'+f.name]=qty;
+      newEvalEur+=qty*(f.evalPrice||0)*fx;
     });
-    const newTotal=firmsConfig.reduce((s,f)=>s+(exp['qty_'+f.name]||0)*(f.evalPrice||0),0)*getFx()+exp.misc;
-    const delta=-(newTotal-prevTotal); // negative because expenses reduce treso
+    exp.evalEur=Math.round(newEvalEur);
+
+    const newTotal=exp.evalEur+exp.misc;
+    const delta=-(newTotal-prevTotal);
     localStorage.setItem('pft_expenses',JSON.stringify(exp));
     if(Math.abs(delta)>0.5) updateTresoBase(Math.round(delta));
   }catch(e){}
@@ -752,16 +750,22 @@ function loadExpenses(){
   }catch(e){}
 }
 function getExpensesEur(){
-  const fx=getFx();
   let exp={};
   try{const r=localStorage.getItem('pft_expenses');if(r)exp=JSON.parse(r);}catch(e){}
-  let usd=0;
-  firmsConfig.forEach(f=>{
-    const qe=document.getElementById('eval-qty-'+f.name);
-    const qt=qe&&qe.value!==''?parseFloat(qe.value)||0:(exp['qty_'+f.name]||0);
-    usd+=(f.evalPrice||0)*qt;
-  });
-  const evalEur=Math.round(usd*fx);
+  // Use frozen evalEur if available, else fallback to live calc for backward compat
+  let evalEur;
+  if(exp.evalEur!=null){
+    evalEur=exp.evalEur;
+  } else {
+    const fx=getFx();
+    let usd=0;
+    firmsConfig.forEach(f=>{
+      const qe=document.getElementById('eval-qty-'+f.name);
+      const qt=qe&&qe.value!==''?parseFloat(qe.value)||0:(exp['qty_'+f.name]||0);
+      usd+=(f.evalPrice||0)*qt;
+    });
+    evalEur=Math.round(usd*fx);
+  }
   const me=document.getElementById('misc-expenses');
   const misc=me&&me.value!==''?parseFloat(me.value)||0:(exp.misc||0);
   return{evalEur,misc,totalEur:evalEur+misc};
@@ -961,11 +965,10 @@ function closeCurrentMonth(){
   const monthP=allP.filter(p=>parseInt((p.date.split('/')||[])[1]||0)===pm);
   const revenues=monthP.reduce((s,p)=>s+(p.payoutEur||0),0);
   let exp={};try{const r=localStorage.getItem('pft_expenses');if(r)exp=JSON.parse(r);}catch(e){}
-  let usd=0;
-  firmsConfig.forEach(f=>{const qt=exp['qty_'+f.name]||0;usd+=(f.evalPrice||0)*qt;});
-  const expenses=Math.round(usd*getFx())+(exp.misc||0);
+  // Use frozen evalEur if available, else compute live
+  const evalEur=exp.evalEur!=null?exp.evalEur:Math.round(firmsConfig.reduce((s,f)=>s+(exp['qty_'+f.name]||0)*(f.evalPrice||0),0)*getFx());
+  const expenses=evalEur+(exp.misc||0);
   const net=revenues-expenses;
-  // Snapshot evals count and new accounts for the closing month
   const evalsCount=firmsConfig.reduce((s,f)=>s+(exp['qty_'+f.name]||0),0);
   const newAccounts=countNewAccountsInMonth(prevKey);
   history.push({month:prevKey,label:getMonthLabel(prevKey),revenues,expenses,net,evalsCount,newAccounts});
