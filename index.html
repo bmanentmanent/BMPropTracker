@@ -120,10 +120,9 @@ body { overflow-x: hidden; }
   background: var(--bg2);
   border: 0.5px solid var(--border2);
   border-radius: 24px;
-  padding: 32px 24px;
+  padding: 20px 24px;
   position: relative; overflow: hidden;
   display: flex; flex-direction: column; align-items: center; justify-content: center;
-  min-height: 140px;
 }
 [data-theme="dark"] .hero {
   background: linear-gradient(135deg, #0c1015 0%, #0f1820 100%);
@@ -133,9 +132,9 @@ body { overflow-x: hidden; }
   width: 160px; height: 160px; border-radius: 50%;
   background: var(--green); opacity: 0.04; filter: blur(40px); pointer-events: none;
 }
-.hero-label { font-size: 10px; font-weight: 700; letter-spacing: 0.12em; color: var(--text2); text-transform: uppercase; margin-bottom: 6px; text-align: center; }
+.hero-label { font-size: 10px; font-weight: 700; letter-spacing: 0.12em; color: var(--text2); text-transform: uppercase; margin-bottom: 4px; text-align: center; }
 .hero-amount { font-size: 42px; font-weight: 800; letter-spacing: -2px; color: var(--green); line-height: 1; font-family: var(--mono); text-align: center; }
-.hero-sub { font-size: 11px; color: var(--text2); margin-top: 6px; text-align: center; }
+.hero-sub { font-size: 11px; color: var(--text2); margin-top: 4px; text-align: center; }
 .hero-divider { height: 0.5px; background: var(--border); margin: 18px 0; }
 .hero-stats { display: grid; grid-template-columns: repeat(3,1fr); gap: 0; }
 .hero-stat { text-align: center; }
@@ -423,9 +422,9 @@ body { overflow-x: hidden; }
       <div class="hero-label">Bénéfice net du mois</div>
       <div class="hero-amount" id="hero-amount">0 €</div>
       <div class="hero-sub" id="hero-sub">0 payout · 0 € de dépenses</div>
-      <div style="margin-top:10px;padding-top:10px;border-top:0.5px solid var(--border);width:100%;text-align:center">
-        <div style="font-size:9px;font-weight:700;letter-spacing:0.1em;color:var(--text3);text-transform:uppercase;margin-bottom:3px">Total depuis lancement</div>
-        <div style="font-size:18px;font-weight:800;font-family:var(--mono)" id="hero-total">0 €</div>
+      <div style="margin-top:8px;padding-top:8px;border-top:0.5px solid var(--border);width:100%;text-align:center">
+        <div style="font-size:9px;font-weight:700;letter-spacing:0.1em;color:var(--text3);text-transform:uppercase;margin-bottom:2px">Total depuis lancement</div>
+        <div style="font-size:16px;font-weight:800;font-family:var(--mono)" id="hero-total">0 €</div>
       </div>
     </div>
 
