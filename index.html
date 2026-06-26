@@ -1317,7 +1317,34 @@ function toggleSimple(key){
   if(chev)chev.className=hidden?'ti ti-chevron-up':'ti ti-chevron-down';
 }
 
-// ── COLLAPSIBLE ──
+// Returns consistency % for current cycle (best day / total profit * 100)
+// Returns null if cycle profit <= 0
+function getCycleConsistency(acc){
+  const lastPayoutIdx=acc.history.findIndex(h=>h.payout);
+  const cycleTrades=(lastPayoutIdx>=0?acc.history.slice(0,lastPayoutIdx):acc.history).filter(h=>!h.payout);
+  const totalProfit=cycleTrades.reduce((s,h)=>s+h.val,0);
+  if(totalProfit<=0) return null;
+  const bestDay=Math.max(...cycleTrades.map(h=>h.val));
+  if(bestDay<=0) return null;
+  return Math.round(bestDay/totalProfit*100);
+}
+
+// Returns {ok, reason} for payout eligibility
+function canPayoutCheck(acc){
+  const cfg=getFirmCfg(acc.firm);
+  const th=(acc.hasPayout&&acc.payoutBalance>0)?acc.payoutBalance:0;
+  if(acc.balance<=th) return{ok:false,reason:'Balance insuffisante'};
+  // Topstep: no gainDays required, just positive cycle + consistency < 40%
+  if(acc.firm==='Topstep'){
+    const consistency=getCycleConsistency(acc);
+    if(consistency===null) return{ok:false,reason:'Cycle non profitable'};
+    if(consistency>=40) return{ok:false,reason:`Consistency ${consistency}% ≥ 40%`};
+    return{ok:true,reason:null};
+  }
+  // Other firms: standard gainDays rule
+  if(acc.gainDays<DAYS_REQ) return{ok:false,reason:`${acc.gainDays}/${DAYS_REQ} jours`};
+  return{ok:true,reason:null};
+}
 function toggleColl(key){
   document.getElementById(key+'-h').classList.toggle('open');
   document.getElementById(key+'-b').classList.toggle('open');
@@ -1444,7 +1471,7 @@ function renderDash(){
         <div class="acc-info"><div class="acc-name">${acc.firm}</div><div class="acc-meta">Cycle ${acc.cycleCount||1} · ${getFirmCfg(acc.firm).split||90}% split</div></div>
         <div class="acc-right">
           <div class="acc-balance">${amountsHidden?"•••• $":fmt(acc.balance)+" $"}</div>
-          <div class="acc-days"><span style="font-size:10px;font-family:var(--mono);color:${acc.gainDays>=DAYS_REQ?'var(--green)':'var(--text2)'}">${acc.gainDays}/${DAYS_REQ}</span>${renderDots(acc)}</div>
+          <div class="acc-days"><span style="font-size:10px;font-family:var(--mono);color:${canPayoutCheck(acc).ok?'var(--green)':'var(--text2)'}">${acc.firm==='Topstep'?(getCycleConsistency(acc)!==null?getCycleConsistency(acc)+'%':'—'):(acc.gainDays+'/'+DAYS_REQ)}</span>${renderDots(acc)}</div>
         </div>
       </div>
     </div>`;
@@ -1460,7 +1487,10 @@ function renderAccounts(){
   list.innerHTML='';
   getSorted().forEach(acc=>{
     const th=(acc.hasPayout&&acc.payoutBalance>0)?acc.payoutBalance:0;
-    const canP=acc.gainDays>=DAYS_REQ&&acc.balance>th;
+    const payoutStatus=canPayoutCheck(acc);
+    const canP=payoutStatus.ok;
+    const isTopstep=acc.firm==='Topstep';
+    const consistency=isTopstep?getCycleConsistency(acc):null;
     const ct=crashThreshold(acc);
     const ddRange=(acc.balanceMax||0)-ct;
     const ddLeft=acc.balance-ct;
@@ -1512,7 +1542,7 @@ function renderAccounts(){
         </div>
         <div class="acc-right">
           <div class="acc-balance">${fmt(acc.balance)} $</div>
-          <div class="acc-days"><span style="font-size:10px;font-family:var(--mono);color:${acc.gainDays>=DAYS_REQ?'var(--green)':'var(--text2)'}">${acc.gainDays}/${DAYS_REQ}</span>${renderDots(acc)}</div>
+          <div class="acc-days"><span style="font-size:10px;font-family:var(--mono);color:${canPayoutCheck(acc).ok?'var(--green)':'var(--text2)'}">${acc.firm==='Topstep'?(getCycleConsistency(acc)!==null?getCycleConsistency(acc)+'%':'—'):(acc.gainDays+'/'+DAYS_REQ)}</span>${renderDots(acc)}</div>
         </div>
       </div>
       <div class="acc-expanded">
@@ -1526,9 +1556,9 @@ function renderAccounts(){
         </div>
         <div style="font-size:10px;color:var(--text2);margin-bottom:5px;display:flex;justify-content:space-between"><span>Drawdown</span><span style="font-family:var(--mono)">${fmt(ddLeft)} $ / ${fmt(ddRange)} $</span></div>
         <div class="dd-bar" style="margin-bottom:12px"><div class="dd-fill" style="width:${ddPct}%;background:${ddColor}"></div></div>
-        <div style="font-size:10px;color:var(--text2);margin-bottom:8px">Jours de gain — ${acc.gainDays}/${DAYS_REQ} · seuil ${getWinPnl()} $</div>
+        <div style="font-size:10px;color:var(--text2);margin-bottom:8px">${isTopstep?`Consistency — ${consistency!==null?consistency+'%':'—'} · seuil < 40%`:`Jours de gain — ${acc.gainDays}/${DAYS_REQ} · seuil ${getWinPnl()} $`}</div>
         <div class="acc-dots" style="gap:6px;margin-bottom:12px">${renderBigDots(acc)}</div>
-        ${canP?`<button class="btn-payout" onclick="doPayout(${acc.id})" style="margin-bottom:10px;width:100%"><i class="ti ti-cash" style="font-size:13px;vertical-align:-2px;margin-right:6px"></i>Encaisser le payout</button>`:''}
+        ${canP?`<button class="btn-payout" onclick="doPayout(${acc.id})" style="margin-bottom:10px;width:100%"><i class="ti ti-cash" style="font-size:13px;vertical-align:-2px;margin-right:6px"></i>Encaisser le payout</button>`:`${!canP&&payoutStatus.reason?`<div style="font-size:10px;text-align:center;color:var(--text3);margin-bottom:10px">⏳ ${payoutStatus.reason}</div>`:''}`}
         ${cp?`<div class="crash-banner"><div class="crash-title"><i class="ti ti-alert-triangle" style="font-size:14px;margin-right:4px"></i>Compte cramé</div><div class="crash-sub">Balance (${fmt(acc.balance)} $) ≤ seuil (${fmt(ct)} $).<br>Archiver ou annuler le jour saisi ?</div><div class="crash-btns"><button class="btn-crash-c" onclick="cancelCrash(${acc.id})">Annuler le jour</button><button class="btn-crash-a" onclick="archiveAccount(${acc.id})">Archiver</button></div></div>`:''}
         ${cd?`<div class="del-confirm"><span>Supprimer ce compte ?</span><button class="btn-del-n" onclick="confirmDel[${acc.id}]=false;renderAccounts()">Non</button><button class="btn-del-y" onclick="confirmDeleteAcc(${acc.id})">Supprimer</button></div>`:''}
         <div class="acc-actions">
@@ -1599,7 +1629,7 @@ function openSheet(){
         <div class="sheet-acc-name">${acc.firm}</div>
         <div class="sheet-acc-meta" style="display:flex;align-items:center;gap:8px">
           <span>${fmt(acc.balance)} $</span>
-          <span style="color:${acc.gainDays>=DAYS_REQ?'var(--green)':'var(--text2)'};font-weight:600">${acc.gainDays}/${DAYS_REQ}j</span>
+          <span style="color:${canPayoutCheck(acc).ok?'var(--green)':'var(--text2)'};font-weight:600">${acc.firm==='Topstep'?(getCycleConsistency(acc)!==null?getCycleConsistency(acc)+'%<40%':'—'):(acc.gainDays+'/'+DAYS_REQ+'j')}</span>
           <div style="display:flex;gap:3px;align-items:center">${dots}</div>
         </div>
       </div>
