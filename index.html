@@ -550,6 +550,13 @@ body { overflow-x: hidden; }
       <div class="coll-body" id="archived-b">
         <div class="coll-inner" style="padding-top:12px"><div id="archived-list"></div></div>
       </div>
+      <div class="coll-header" id="firm-perf-h" onclick="toggleColl('firm-perf')">
+        <span class="coll-title"><i class="ti ti-building-store"></i>Stats par prop firm</span>
+        <i class="ti ti-chevron-down coll-chevron" id="firm-perf-chev"></i>
+      </div>
+      <div class="coll-body" id="firm-perf-b">
+        <div class="coll-inner" style="padding-top:12px"><div id="firm-perf-list"></div></div>
+      </div>
     </div>
   </div>
 
@@ -895,6 +902,7 @@ function switchPage(p){
       try{renderStats();}catch(e){console.error('renderStats error:',e);}
       try{renderMonthlyHistory();}catch(e){console.error('renderMonthlyHistory error:',e);}
       try{renderPayoutDistribution();}catch(e){console.error('renderPayoutDistribution error:',e);}
+      try{renderFirmStats();}catch(e){console.error('renderFirmStats error:',e);}
     }));
   }
   if(p==='dash')renderDash();
@@ -1016,16 +1024,22 @@ function closeCurrentMonth(){
   const monthP=allP.filter(p=>parseInt((p.date.split('/')||[])[1]||0)===pm);
   const revenues=monthP.reduce((s,p)=>s+(p.payoutEur||0),0);
   let exp={};try{const r=localStorage.getItem('pft_expenses');if(r)exp=JSON.parse(r);}catch(e){}
-  // Use frozen evalEur if available, else compute live
   const evalEur=exp.evalEur!=null?exp.evalEur:Math.round(firmsConfig.reduce((s,f)=>s+(exp['qty_'+f.name]||0)*(f.evalPrice||0),0)*getFx());
   const expenses=evalEur+(exp.misc||0);
   const net=revenues-expenses;
   const evalsCount=firmsConfig.reduce((s,f)=>s+(exp['qty_'+f.name]||0),0);
   const newAccounts=countNewAccountsInMonth(prevKey);
-  history.push({month:prevKey,label:getMonthLabel(prevKey),revenues,expenses,net,evalsCount,newAccounts});
+  // Snapshot per-firm breakdown
+  const firmBreakdown={};
+  firmsConfig.forEach(f=>{
+    const qty=exp['qty_'+f.name]||0;
+    const eur=Math.round(qty*(f.evalPrice||0)*getFx());
+    if(qty>0) firmBreakdown[f.name]={evalsQty:qty,evalsEur:eur};
+  });
+  history.push({month:prevKey,label:getMonthLabel(prevKey),revenues,expenses,net,evalsCount,newAccounts,firmBreakdown});
   saveMonthlyHistory(history);
-  // Reset eval quantities to 0 for new month (keep misc unchanged)
   firmsConfig.forEach(f=>{exp['qty_'+f.name]=0;});
+  exp.evalEur=0;
   try{localStorage.setItem('pft_expenses',JSON.stringify(exp));}catch(e){}
   return true;
 }
@@ -1157,6 +1171,18 @@ function renderMonthlyHistory(){
     const evals=h.evalsCount||0;
     const newAcc=h.newAccounts!=null?h.newAccounts:countNewAccountsInMonth(h.month);
     const convRate=evals>0?Math.round(newAcc/evals*100):null;
+    // Firm breakdown section
+    const bd=h.firmBreakdown||{};
+    const hasBd=Object.keys(bd).length>0;
+    const bdRows=hasBd?Object.entries(bd).map(([firm,v])=>`
+      <div style="display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:0.5px solid var(--border)">
+        <div style="display:flex;align-items:center;gap:8px">${firmAvatar(firm,24)}<span style="font-size:12px;font-weight:600">${firm}</span></div>
+        <div style="text-align:right">
+          <div style="font-size:11px;font-family:var(--mono)">${v.evalsQty} éval${v.evalsQty>1?'s':''} · −${fmt(v.evalsEur)} €</div>
+          <div style="font-size:10px;color:var(--text3)"><input class="setting-input" type="number" id="bd-qty-${realIdx}-${firm.replace(/\s/g,'_')}" value="${v.evalsQty}" style="width:45px;text-align:center;padding:2px 4px"> évals</div>
+        </div>
+      </div>`).join(''):'<div style="font-size:11px;color:var(--text3);padding:8px 0">Aucune ventilation saisie pour ce mois.</div>';
+
     return`<div class="month-row">
       <div class="month-row-header">
         <span class="month-row-name">${h.label}</span>
@@ -1169,7 +1195,17 @@ function renderMonthlyHistory(){
         <div class="month-stat" style="text-align:center"><div class="month-stat-label">Évals réussies</div><div class="month-stat-val" style="color:var(--green)">${newAcc||'—'}</div></div>
         <div class="month-stat" style="text-align:center;grid-column:1/-1"><div class="month-stat-label">Taux conversion eval</div><div class="month-stat-val" style="color:${convRate===null?'var(--text2)':convRate>=50?'var(--green)':convRate>=25?'#ffaa00':'var(--red)'}">${convRate!==null?convRate+'%':'—'}</div></div>
       </div>
-      <div class="month-edit-row">
+      <!-- Firm breakdown collapsible -->
+      <div onclick="this.nextElementSibling.style.display=this.nextElementSibling.style.display==='none'?'block':'none';this.querySelector('i').className=this.nextElementSibling.style.display==='none'?'ti ti-chevron-down':'ti ti-chevron-up'"
+        style="display:flex;justify-content:space-between;align-items:center;cursor:pointer;margin-top:10px;padding:6px 0;border-top:0.5px solid var(--border)">
+        <span style="font-size:10px;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:0.06em">Ventilation par firm</span>
+        <i class="ti ti-chevron-down" style="color:var(--green);font-size:12px"></i>
+      </div>
+      <div style="display:none">${bdRows}
+        <button onclick="saveFirmBreakdown(${realIdx})" style="width:100%;margin-top:8px;padding:7px;background:var(--green-bg);border:0.5px solid var(--border2);border-radius:8px;color:var(--green);font-size:11px;font-weight:600;cursor:pointer;font-family:var(--font)">Enregistrer ventilation</button>
+      </div>
+      <!-- Edit fields -->
+      <div class="month-edit-row" style="margin-top:10px">
         <div class="month-edit-group"><label>Revenus (€)</label><input class="setting-input" type="number" id="medit-rev-${realIdx}" value="${h.revenues}" style="width:100%"></div>
         <div class="month-edit-group"><label>Dépenses (€)</label><input class="setting-input" type="number" id="medit-exp-${realIdx}" value="${h.expenses}" style="width:100%"></div>
         <div class="month-edit-group"><label>Évals achetées</label><input class="setting-input" type="number" id="medit-evals-${realIdx}" value="${evals}" style="width:100%"></div>
@@ -1202,6 +1238,34 @@ function renderMonthlyHistory(){
       </div>`).join('')
     }</div>`;
   }
+}
+
+function saveFirmBreakdown(idx){
+  const history=loadMonthlyHistory();
+  const h=history[idx];
+  const bd=h.firmBreakdown||{};
+  // Read edited qty values for each firm in breakdown
+  Object.keys(bd).forEach(firm=>{
+    const key='bd-qty-'+idx+'-'+firm.replace(/\s/g,'_');
+    const el=document.getElementById(key);
+    if(el){
+      const qty=parseFloat(el.value)||0;
+      bd[firm]={...bd[firm],evalsQty:qty,evalsEur:Math.round(qty*(getFirmCfg(firm).evalPrice||0)*getFx())};
+    }
+  });
+  // Also allow adding firms not in breakdown
+  firmsConfig.forEach(f=>{
+    const key='bd-qty-'+idx+'-'+f.name.replace(/\s/g,'_');
+    const el=document.getElementById(key);
+    if(el&&!bd[f.name]){
+      const qty=parseFloat(el.value)||0;
+      if(qty>0) bd[f.name]={evalsQty:qty,evalsEur:Math.round(qty*(f.evalPrice||0)*getFx())};
+    }
+  });
+  history[idx]={...h,firmBreakdown:bd};
+  saveMonthlyHistory(history);
+  showToast('✓ Ventilation mise à jour');
+  renderMonthlyHistory();
 }
 
 function saveMonthEdit(idx){
@@ -1880,7 +1944,9 @@ function renderStats(){
   }
 
   renderMonthlyHistory();
+  renderMonthlyHistory();
   renderPayoutDistribution();
+  renderFirmStats();
 }
 
 function renderPayoutDistribution(){
@@ -1946,6 +2012,74 @@ function renderPayoutDistribution(){
     html+=`</div></div>`;
     el.innerHTML=html;
   }catch(e){el.innerHTML=`<div style="padding:16px;color:var(--red)">Erreur: ${e.message}</div>`;}
+}
+
+function renderFirmStats(){
+  const el=document.getElementById('firm-perf-list');
+  if(!el) return;
+  const history=loadMonthlyHistory();
+  const allP=getAllPayouts();
+  const allAccounts=[...accounts,...archived];
+  const nMonths=Math.max(1,history.length+1); // +1 for current month
+
+  const allFirms=[...new Set([...firmsConfig.map(f=>f.name),...allAccounts.map(a=>a.firm)])];
+  let html='';
+
+  allFirms.forEach(firm=>{
+    const cfg=getFirmCfg(firm);
+    // Accounts on this firm
+    const firmAccounts=allAccounts.filter(a=>a.firm===firm);
+    const activeCount=accounts.filter(a=>a.firm===firm).length;
+    const archivedCount=archived.filter(a=>a.firm===firm).length;
+    const totalAccounts=firmAccounts.length;
+
+    // Revenues from payouts on this firm
+    const firmPayouts=allP.filter(p=>p.firm===firm);
+    const totalRevenues=firmPayouts.reduce((s,p)=>s+(p.payoutEur||0),0);
+    const payoutCount=firmPayouts.length;
+    const avgPayout=payoutCount>0?Math.round(totalRevenues/payoutCount):0;
+
+    // Evals from firmBreakdown in history
+    let totalEvalsQty=0,totalEvalsEur=0;
+    history.forEach(m=>{
+      const bd=m.firmBreakdown||{};
+      if(bd[firm]){totalEvalsQty+=bd[firm].evalsQty||0;totalEvalsEur+=bd[firm].evalsEur||0;}
+    });
+    // Add current month live
+    let exp2={};try{const r=localStorage.getItem('pft_expenses');if(r)exp2=JSON.parse(r);}catch(e){}
+    const curQty=exp2['qty_'+firm]||0;
+    const curEur=Math.round(curQty*(cfg.evalPrice||0)*getFx());
+    totalEvalsQty+=curQty;
+    totalEvalsEur+=curEur;
+
+    // Stats
+    const convRate=totalEvalsQty>0?Math.round(totalAccounts/totalEvalsQty*100):null;
+    const netTotal=totalRevenues-totalEvalsEur;
+    const netPerEval=totalEvalsQty>0?Math.round(netTotal/totalEvalsQty):null;
+    const evalsPerMonth=nMonths>0?(totalEvalsQty/nMonths).toFixed(1):null;
+
+    // Avg cycle duration (from archived accounts on this firm)
+    const archFirm=archived.filter(a=>a.firm===firm&&a.totalDays>0);
+    const avgCycleDays=archFirm.length>0?Math.round(archFirm.reduce((s,a)=>s+a.totalDays,0)/archFirm.length):null;
+
+    if(totalAccounts===0&&totalEvalsQty===0) return;
+
+    html+=`<div class="month-row" style="margin-bottom:10px">
+      <div class="firm-card-header">${firmAvatar(firm,32)}<span class="firm-card-name">${firm}</span></div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px">
+        <div class="month-stat" style="text-align:center"><div class="month-stat-label">Comptes financés</div><div class="month-stat-val">${totalAccounts} <span style="font-size:9px;color:var(--text3)">(${activeCount} actifs)</span></div></div>
+        <div class="month-stat" style="text-align:center"><div class="month-stat-label">Évals achetées</div><div class="month-stat-val">${totalEvalsQty||'—'}</div></div>
+        <div class="month-stat" style="text-align:center"><div class="month-stat-label">% réussite éval</div><div class="month-stat-val" style="color:${convRate===null?'var(--text2)':convRate>=50?'var(--green)':convRate>=25?'#ffaa00':'var(--red)'}">${convRate!==null?convRate+'%':'—'}</div></div>
+        <div class="month-stat" style="text-align:center"><div class="month-stat-label">Évals/mois moy.</div><div class="month-stat-val">${evalsPerMonth||'—'}</div></div>
+        <div class="month-stat" style="text-align:center"><div class="month-stat-label">Payout moyen</div><div class="month-stat-val">${avgPayout>0?fmt(avgPayout)+' €':'—'}</div></div>
+        <div class="month-stat" style="text-align:center"><div class="month-stat-label">Durée moy. cycle</div><div class="month-stat-val">${avgCycleDays!==null?avgCycleDays+'j':'—'}</div></div>
+        <div class="month-stat" style="text-align:center"><div class="month-stat-label">Net total</div><div class="month-stat-val" style="color:${netTotal>=0?'var(--green)':'var(--red)'}">${totalEvalsQty>0?(netTotal>=0?'+':'')+fmt(netTotal)+' €':'—'}</div></div>
+        <div class="month-stat" style="text-align:center"><div class="month-stat-label">Net / éval</div><div class="month-stat-val" style="color:${netPerEval===null?'var(--text2)':netPerEval>=0?'var(--green)':'var(--red)'}">${netPerEval!==null?(netPerEval>=0?'+':'')+fmt(netPerEval)+' €':'—'}</div></div>
+      </div>
+    </div>`;
+  });
+
+  el.innerHTML=html||`<div class="empty" style="padding:16px 0">Aucune donnée disponible.</div>`;
 }
 
 // ── PAYOUT MODAL ──
