@@ -490,8 +490,6 @@ body { overflow-x: hidden; }
         <div class="coll-inner">
           <div class="setting-row"><div class="setting-label">Trésorerie actuelle<small>modifiable</small></div><input class="setting-input" type="number" id="treso-base" value="10500" step="100" oninput="onSettingChange()"><span class="setting-unit">€</span></div>
           <div class="setting-row"><div class="setting-label">Taux $/€</div><input class="setting-input" type="number" id="fx-rate" value="0.85" step="0.01" oninput="onSettingChange()"></div>
-          <div class="setting-row"><div class="setting-label">Jour de gain<small>P&L min</small></div><input class="setting-input" type="number" id="p-win-pnl" value="150" step="10" oninput="onSettingChange()"><span class="setting-unit">$</span></div>
-          <div class="setting-row"><div class="setting-label">Jour de perte<small>P&L type</small></div><input class="setting-input" type="number" id="p-loss-pnl" value="230" step="10" oninput="onSettingChange()"><span class="setting-unit">$</span></div>
           <div id="sc-params"></div>
         </div>
       </div>
@@ -629,14 +627,14 @@ body { overflow-x: hidden; }
 </div>
 
 <script>
-const SPLIT=0.9,DAYS_REQ=5,WIN_THR=150,DD_AMT=2000;
+const DAYS_REQ=5,DD_AMT=2000;
 
 // ── FIRMS CONFIG (dynamic) ──
 const DEFAULT_FIRMS=[
-  {name:'Topstep',   color:'#4488ff',initials:'TS',split:90,evalPrice:111,payoutCap:0,netMin:0},
-  {name:'Lucid',     color:'#a259ff',initials:'LT',split:90,evalPrice:95, payoutCap:0,netMin:0},
-  {name:'MyFundedFX',color:'#ff9900',initials:'MF',split:90,evalPrice:127,payoutCap:0,netMin:0},
-  {name:'Tradeify',  color:'#00ff87',initials:'TD',split:90,evalPrice:98, payoutCap:0,netMin:0},
+  {name:'Topstep',   color:'#4488ff',initials:'TS',split:90,evalPrice:111,payoutCap:0,netMin:0,payoutRule:'consistency',consistencyThreshold:40,daysReq:5,winThr:150,tpAvg:150,slAvg:230,pWin:70},
+  {name:'Lucid',     color:'#a259ff',initials:'LT',split:90,evalPrice:95, payoutCap:0,netMin:0,payoutRule:'days',       consistencyThreshold:40,daysReq:5,winThr:150,tpAvg:150,slAvg:230,pWin:60},
+  {name:'MyFundedFX',color:'#ff9900',initials:'MF',split:90,evalPrice:127,payoutCap:0,netMin:0,payoutRule:'days',       consistencyThreshold:40,daysReq:5,winThr:150,tpAvg:150,slAvg:230,pWin:60},
+  {name:'Tradeify',  color:'#00ff87',initials:'TD',split:90,evalPrice:98, payoutCap:0,netMin:0,payoutRule:'days',       consistencyThreshold:40,daysReq:5,winThr:150,tpAvg:150,slAvg:230,pWin:60},
 ];
 function loadFirmsConfig(){
   try{const r=localStorage.getItem('pft_firms');return r?JSON.parse(r):JSON.parse(JSON.stringify(DEFAULT_FIRMS));}catch(e){return JSON.parse(JSON.stringify(DEFAULT_FIRMS));}
@@ -676,8 +674,6 @@ function saveAll(){
   const s={
     tresoBase:parseFloat(document.getElementById('treso-base').value)||10500,
     fxRate:parseFloat(document.getElementById('fx-rate').value)||0.85,
-    winPnl:parseFloat(document.getElementById('p-win-pnl').value)||150,
-    lossPnl:parseFloat(document.getElementById('p-loss-pnl').value)||230,
   };
   try{localStorage.setItem('pft_v11',JSON.stringify({accounts,archived,nextId,scConfigs,settings:s,theme:currentTheme}));}catch(e){}
 }
@@ -692,8 +688,6 @@ function loadAll(){
       const s=p.settings||{};
       document.getElementById('treso-base').value=s.tresoBase??10500;
       document.getElementById('fx-rate').value=s.fxRate??0.85;
-      document.getElementById('p-win-pnl').value=s.winPnl??150;
-      document.getElementById('p-loss-pnl').value=s.lossPnl??230;
       accounts.forEach(a=>{if(a.balanceMax===undefined)a.balanceMax=a.balance;});
       return;
     }
@@ -792,19 +786,32 @@ function getBase(){
   try{const d=JSON.parse(localStorage.getItem('pft_v11')||'{}');return d.settings?.tresoBase||0;}catch(e){}
   return 0;
 }
-function getWinPnl(){
+function getWinPnl(firmName){
+  const cfg=getFirmCfg(firmName||'');
+  if(cfg.tpAvg) return cfg.tpAvg;
+  // fallback to global setting for backward compat
   const el=document.getElementById('p-win-pnl');
   if(el&&el.value!=='') return parseFloat(el.value)||150;
   try{const d=JSON.parse(localStorage.getItem('pft_v11')||'{}');if(d.settings?.winPnl)return d.settings.winPnl;}catch(e){}
   return 150;
 }
-function getLossPnl(){
+function getLossPnl(firmName){
+  const cfg=getFirmCfg(firmName||'');
+  if(cfg.slAvg) return cfg.slAvg;
   const el=document.getElementById('p-loss-pnl');
   if(el&&el.value!=='') return parseFloat(el.value)||230;
   try{const d=JSON.parse(localStorage.getItem('pft_v11')||'{}');if(d.settings?.lossPnl)return d.settings.lossPnl;}catch(e){}
   return 230;
 }
-function getEsp(sc){return sc.pWin*getWinPnl()+(1-sc.pWin)*(-getLossPnl());}
+function getFirmPWin(firmName,sc){
+  // sc.pWin is scenario-level override (optimiste/safe/pessimiste)
+  return sc.pWin;
+}
+function getEsp(sc,firmName){
+  const tp=getWinPnl(firmName);
+  const sl=getLossPnl(firmName);
+  return sc.pWin*tp+(1-sc.pWin)*(-sl);
+}
 function espLabel(sc){const e=getEsp(sc),s=e>=0?'+':'';return`${Math.round(sc.pWin*100)}% gagnants · E=${s}${e.toFixed(0)} $/j`;}
 function crashThreshold(acc){return Math.min(0,(acc.balanceMax||0)-DD_AMT);}
 function fmt(n){const s=Math.round(Math.abs(n)).toString();const g=[];for(let i=s.length;i>0;i-=3)g.unshift(s.slice(Math.max(0,i-3),i));return(n<0?'−':'')+g.join(' ');}
@@ -828,9 +835,10 @@ function calcPayout(acc,sc,fx){
     return{tradingDays:null,finalBalance:targetBalance,balanceAfter:Math.round(targetBalance*0.5),payoutEur:Math.round(payoutAmt*fx)};
   }
 
-  // Standard firms
-  const dl=DAYS_REQ-acc.gainDays;
-  const td=dl/sc.pWin,fb=acc.balance+td*getEsp(sc);
+  // Standard firms — use per-firm daysReq and winThr
+  const firmDaysReq=cfg.daysReq||DAYS_REQ;
+  const dl=firmDaysReq-acc.gainDays;
+  const td=dl/sc.pWin,fb=acc.balance+td*getEsp(sc,acc.firm);
   if(fb<=th)return null;
   const netSinceLastPayout=acc.balance-(acc.balanceAtLastPayout||acc.startBalance||10000);
   const netMin=cfg.netMin||0;
@@ -1245,6 +1253,17 @@ function renderFirmSettings(){
         <button class="firm-del-btn" onclick="confirmDeleteFirm(${i})"><i class="ti ti-trash"></i></button>
       </div>
       <div class="firm-card-grid">
+        <div class="firm-field"><label>Règle payout</label>
+          <select id="fs-rule-${i}" style="background:var(--bg3);border:0.5px solid var(--border);border-radius:8px;padding:7px 10px;color:var(--text1);font-size:12px;width:100%">
+            <option value="days" ${(f.payoutRule||'days')==='days'?'selected':''}>Jours de gain</option>
+            <option value="consistency" ${f.payoutRule==='consistency'?'selected':''}>Consistency</option>
+          </select>
+        </div>
+        <div class="firm-field"><label>Jours requis</label><input type="number" id="fs-days-${i}" value="${f.daysReq||5}" min="1" max="20" step="1"></div>
+        <div class="firm-field"><label>Seuil gain/j ($)</label><input type="number" id="fs-winthr-${i}" value="${f.winThr||150}" min="1" step="10"></div>
+        <div class="firm-field"><label>Consistency max (%)</label><input type="number" id="fs-consist-${i}" value="${f.consistencyThreshold||40}" min="1" max="100" step="1"></div>
+        <div class="firm-field"><label>TP moyen ($)</label><input type="number" id="fs-tp-${i}" value="${f.tpAvg||150}" min="1" step="10"></div>
+        <div class="firm-field"><label>SL moyen ($)</label><input type="number" id="fs-sl-${i}" value="${f.slAvg||230}" min="1" step="10"></div>
         <div class="firm-field"><label>Profit split (%)</label><input type="number" id="fs-split-${i}" value="${f.split||90}" min="1" max="100" step="1"></div>
         <div class="firm-field"><label>Prix éval ($)</label><input type="number" id="fs-price-${i}" value="${f.evalPrice||0}" min="0" step="1"></div>
         <div class="firm-field"><label>Payout cap (€, 0=illimité)</label><input type="number" id="fs-cap-${i}" value="${f.payoutCap||0}" min="0" step="100"></div>
@@ -1258,6 +1277,12 @@ function renderFirmSettings(){
 function saveFirmEdit(i){
   firmsConfig[i]={
     ...firmsConfig[i],
+    payoutRule:document.getElementById('fs-rule-'+i).value,
+    daysReq:parseFloat(document.getElementById('fs-days-'+i).value)||5,
+    winThr:parseFloat(document.getElementById('fs-winthr-'+i).value)||150,
+    consistencyThreshold:parseFloat(document.getElementById('fs-consist-'+i).value)||40,
+    tpAvg:parseFloat(document.getElementById('fs-tp-'+i).value)||150,
+    slAvg:parseFloat(document.getElementById('fs-sl-'+i).value)||230,
     split:parseFloat(document.getElementById('fs-split-'+i).value)||90,
     evalPrice:parseFloat(document.getElementById('fs-price-'+i).value)||0,
     payoutCap:parseFloat(document.getElementById('fs-cap-'+i).value)||0,
@@ -1313,6 +1338,12 @@ function confirmAddFirm(){
     name,
     color:document.getElementById('nf-color').value,
     initials,
+    payoutRule:'days',
+    daysReq:5,
+    winThr:150,
+    consistencyThreshold:40,
+    tpAvg:150,
+    slAvg:230,
     split:parseFloat(document.getElementById('nf-split').value)||90,
     evalPrice:parseFloat(document.getElementById('nf-price').value)||0,
     payoutCap:parseFloat(document.getElementById('nf-cap').value)||0,
@@ -1350,15 +1381,17 @@ function canPayoutCheck(acc){
   const cfg=getFirmCfg(acc.firm);
   const th=(acc.hasPayout&&acc.payoutBalance>0)?acc.payoutBalance:0;
   if(acc.balance<=th) return{ok:false,reason:'Balance insuffisante'};
-  // Topstep: no gainDays required, just positive cycle + consistency < 40%
-  if(acc.firm==='Topstep'){
+  const rule=cfg.payoutRule||'days';
+  if(rule==='consistency'){
+    const threshold=cfg.consistencyThreshold||40;
     const consistency=getCycleConsistency(acc);
     if(consistency===null) return{ok:false,reason:'Cycle non profitable'};
-    if(consistency>=40) return{ok:false,reason:`Consistency ${consistency}% ≥ 40%`};
+    if(consistency>=threshold) return{ok:false,reason:`Consistency ${consistency}% ≥ ${threshold}%`};
     return{ok:true,reason:null};
   }
-  // Other firms: standard gainDays rule
-  if(acc.gainDays<DAYS_REQ) return{ok:false,reason:`${acc.gainDays}/${DAYS_REQ} jours`};
+  // days rule
+  const daysReq=cfg.daysReq||DAYS_REQ;
+  if(acc.gainDays<daysReq) return{ok:false,reason:`${acc.gainDays}/${daysReq} jours`};
   return{ok:true,reason:null};
 }
 function toggleColl(key){
@@ -1410,23 +1443,24 @@ function renderDots(acc){
 }
 
 function renderBigDots(acc){
+  const cfg=getFirmCfg(acc.firm);
   const cycleDays=getCycleDays(acc);
-  if(acc.firm==='Topstep'){
-    // Show last 5 days as green/red history dots, no checkbox logic
+  if((cfg.payoutRule||'days')==='consistency'){
+    // Consistency rule: show last 5 days as green/red history
     const tradeDays=cycleDays.slice(0,5);
     return Array.from({length:5},(_,i)=>{
       const day=tradeDays[i];
       if(day){
         const color=day.win?'var(--green)':'var(--red)';
-        const bg=day.win?'var(--green)':'var(--red)';
-        return`<div style="width:26px;height:26px;border-radius:50%;border:0.5px solid ${color};background:${bg};display:flex;align-items:center;justify-content:center;font-size:10px;color:#000;font-family:var(--mono);font-weight:700">${day.win?'✓':'✕'}</div>`;
+        return`<div style="width:26px;height:26px;border-radius:50%;border:0.5px solid ${color};background:${color};display:flex;align-items:center;justify-content:center;font-size:10px;color:#000;font-family:var(--mono);font-weight:700">${day.win?'✓':'✕'}</div>`;
       }
       return`<div style="width:26px;height:26px;border-radius:50%;border:0.5px solid var(--border2);background:var(--bg3)"></div>`;
     }).join('');
   }
-  // Standard firms: only winning days count, grey for others
+  // Days rule: only winning days count
+  const daysReq=cfg.daysReq||DAYS_REQ;
   const winDays=cycleDays.filter(h=>h.win);
-  return Array.from({length:DAYS_REQ},(_,i)=>{
+  return Array.from({length:daysReq},(_,i)=>{
     const filled=i<winDays.length;
     if(filled){
       return`<div style="width:26px;height:26px;border-radius:50%;border:0.5px solid var(--green);background:var(--green);display:flex;align-items:center;justify-content:center;font-size:10px;color:#000;font-family:var(--mono);font-weight:700">✓</div>`;
@@ -1501,7 +1535,7 @@ function renderDash(){
         <div class="acc-info"><div class="acc-name">${acc.firm}</div><div class="acc-meta">Cycle ${acc.cycleCount||1} · ${getFirmCfg(acc.firm).split||90}% split</div></div>
         <div class="acc-right">
           <div class="acc-balance">${amountsHidden?"•••• $":fmt(acc.balance)+" $"}</div>
-          <div class="acc-days"><span style="font-size:10px;font-family:var(--mono);color:${canPayoutCheck(acc).ok?'var(--green)':'var(--text2)'}">${acc.firm==='Topstep'?(getCycleConsistency(acc)!==null?getCycleConsistency(acc)+'%':'—'):(acc.gainDays+'/'+DAYS_REQ)}</span>${renderDots(acc)}</div>
+          <div class="acc-days"><span style="font-size:10px;font-family:var(--mono);color:${canPayoutCheck(acc).ok?'var(--green)':'var(--text2)'}">${acc.firm==='Topstep'?(getCycleConsistency(acc)!==null?getCycleConsistency(acc)+'%':'—'):(acc.gainDays+'/'+(getFirmCfg(acc.firm).daysReq||DAYS_REQ))}</span>${renderDots(acc)}</div>
         </div>
       </div>
     </div>`;
@@ -1572,7 +1606,7 @@ function renderAccounts(){
         </div>
         <div class="acc-right">
           <div class="acc-balance">${fmt(acc.balance)} $</div>
-          <div class="acc-days"><span style="font-size:10px;font-family:var(--mono);color:${canPayoutCheck(acc).ok?'var(--green)':'var(--text2)'}">${acc.firm==='Topstep'?(getCycleConsistency(acc)!==null?getCycleConsistency(acc)+'%':'—'):(acc.gainDays+'/'+DAYS_REQ)}</span>${renderDots(acc)}</div>
+          <div class="acc-days"><span style="font-size:10px;font-family:var(--mono);color:${canPayoutCheck(acc).ok?'var(--green)':'var(--text2)'}">${acc.firm==='Topstep'?(getCycleConsistency(acc)!==null?getCycleConsistency(acc)+'%':'—'):(acc.gainDays+'/'+(getFirmCfg(acc.firm).daysReq||DAYS_REQ))}</span>${renderDots(acc)}</div>
         </div>
       </div>
       <div class="acc-expanded">
@@ -1586,7 +1620,7 @@ function renderAccounts(){
         </div>
         <div style="font-size:10px;color:var(--text2);margin-bottom:5px;display:flex;justify-content:space-between"><span>Drawdown</span><span style="font-family:var(--mono)">${fmt(ddLeft)} $ / ${fmt(ddRange)} $</span></div>
         <div class="dd-bar" style="margin-bottom:12px"><div class="dd-fill" style="width:${ddPct}%;background:${ddColor}"></div></div>
-        <div style="font-size:10px;color:var(--text2);margin-bottom:8px">${isTopstep?`Consistency — ${consistency!==null?consistency+'%':'—'} · seuil < 40%`:`Jours de gain — ${acc.gainDays}/${DAYS_REQ} · seuil ${getWinPnl()} $`}</div>
+        <div style="font-size:10px;color:var(--text2);margin-bottom:8px">${(getFirmCfg(acc.firm).payoutRule||'days')==='consistency'?`Consistency — ${consistency!==null?consistency+'%':'—'} · seuil < ${getFirmCfg(acc.firm).consistencyThreshold||40}%`:`Jours de gain — ${acc.gainDays}/${getFirmCfg(acc.firm).daysReq||DAYS_REQ} · seuil ${getFirmCfg(acc.firm).winThr||150} $`}</div>
         <div class="acc-dots" style="gap:6px;margin-bottom:12px">${isTopstep?'':renderBigDots(acc)}</div>
         ${canP?`<button class="btn-payout" onclick="doPayout(${acc.id})" style="margin-bottom:10px;width:100%"><i class="ti ti-cash" style="font-size:13px;vertical-align:-2px;margin-right:6px"></i>Encaisser le payout</button>`:`${!canP&&payoutStatus.reason?`<div style="font-size:10px;text-align:center;color:var(--text3);margin-bottom:10px">⏳ ${payoutStatus.reason}</div>`:''}`}
         ${cp?`<div class="crash-banner"><div class="crash-title"><i class="ti ti-alert-triangle" style="font-size:14px;margin-right:4px"></i>Compte cramé</div><div class="crash-sub">Balance (${fmt(acc.balance)} $) ≤ seuil (${fmt(ct)} $).<br>Archiver ou annuler le jour saisi ?</div><div class="crash-btns"><button class="btn-crash-c" onclick="cancelCrash(${acc.id})">Annuler le jour</button><button class="btn-crash-a" onclick="archiveAccount(${acc.id})">Archiver</button></div></div>`:''}
@@ -1620,7 +1654,7 @@ function saveHistEdit(accId,idx){
   if(isNaN(nv)){editingHistEntry=null;renderAccounts();return;}
   if(h.payout){h.payoutEur=nv;h.date=nd;}
   else{
-    const ow=h.win,nw=nv>=WIN_THR;
+    const ow=h.win,nw=nv>=(getFirmCfg(acc.firm).winThr||150);
     acc.balance=Math.round((acc.balance-h.val+nv)*100)/100;
     if(acc.balance>(acc.balanceMax||0))acc.balanceMax=acc.balance;
     if(ow&&!nw)acc.gainDays=Math.max(0,acc.gainDays-1);
@@ -1648,7 +1682,7 @@ function openSheet(){
     const inputStyle=todayEntry?(todayEntry.val>=0?'color:var(--green)':'color:var(--red)'):'';
     // Cycle dots
     const cycleDays=getCycleDays(acc);
-    const dots=Array.from({length:DAYS_REQ},(_,i)=>{
+    const dots=Array.from({length:getFirmCfg(acc.firm).daysReq||DAYS_REQ},(_,i)=>{
       const entry=cycleDays[i];
       if(entry){const c=entry.win?'var(--green)':'var(--red)';return`<div style="width:8px;height:8px;border-radius:50%;background:${c}"></div>`;}
       return`<div style="width:8px;height:8px;border-radius:50%;background:var(--border2)"></div>`;
@@ -1659,7 +1693,7 @@ function openSheet(){
         <div class="sheet-acc-name">${acc.firm}</div>
         <div class="sheet-acc-meta" style="display:flex;align-items:center;gap:8px">
           <span>${fmt(acc.balance)} $</span>
-          <span style="color:${canPayoutCheck(acc).ok?'var(--green)':'var(--text2)'};font-weight:600">${acc.firm==='Topstep'?(getCycleConsistency(acc)!==null?getCycleConsistency(acc)+'%<40%':'—'):(acc.gainDays+'/'+DAYS_REQ+'j')}</span>
+          <span style="color:${canPayoutCheck(acc).ok?'var(--green)':'var(--text2)'};font-weight:600">${acc.firm==='Topstep'?(getCycleConsistency(acc)!==null?getCycleConsistency(acc)+'%<40%':'—'):(acc.gainDays+'/'+(getFirmCfg(acc.firm).daysReq||DAYS_REQ)+'j')}</span>
           <div style="display:flex;gap:3px;align-items:center">${dots}</div>
         </div>
       </div>
@@ -1684,7 +1718,7 @@ function submitSheet(){
     if(!inp||inp.value==='')return;
     const val=parseFloat(inp.value);
     if(isNaN(val))return;
-    const isWin=val>=WIN_THR;
+    const isWin=val>=(getFirmCfg(acc.firm).winThr||150);
 
     // If a payout was recorded today, the P&L for today is already baked in — skip
     const todayPayoutExists=acc.history.some(h=>h.payout&&h.date===dateStr);
