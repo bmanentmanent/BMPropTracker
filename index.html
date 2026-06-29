@@ -815,23 +815,17 @@ function calcPayout(acc,sc,fx){
   const th=(acc.hasPayout&&acc.payoutBalance>0)?acc.payoutBalance:0;
 
   if(acc.firm==='Topstep'){
+    if(sc.key==='pes') return null;
     const lastPayoutIdx=acc.history.findIndex(h=>h.payout);
     const cycleTrades=(lastPayoutIdx>=0?acc.history.slice(0,lastPayoutIdx):acc.history).filter(h=>!h.payout&&h.val>0);
-    const bestDay=cycleTrades.length>0?Math.max(...cycleTrades.map(h=>h.val)):getWinPnl();
+    const bestDay=cycleTrades.length>0?Math.max(...cycleTrades.map(h=>h.val)):0;
     if(bestDay<=0) return null;
-    // Pessimiste: no payout projected
-    if(sc.key==='pes') return null;
-    // Target balance and payout amount depend on scenario
     const consistencyThreshold=sc.key==='opt'?0.33:0.40;
     const targetBalance=Math.round(bestDay/consistencyThreshold);
-    const payoutAmt=targetBalance*0.5*split;
     if(targetBalance<=th) return null;
-    // Days needed
-    const esp=getEsp(sc);
-    if(esp<=0) return null;
-    const remaining=Math.max(0,targetBalance-acc.balance);
-    const td=remaining>0?Math.ceil(remaining/esp):0;
-    return{tradingDays:td,finalBalance:targetBalance,balanceAfter:Math.round(targetBalance*0.5),payoutEur:Math.round(payoutAmt*fx)};
+    let payoutAmt=targetBalance*0.5*split;
+    if(cfg.payoutCap&&cfg.payoutCap>0) payoutAmt=Math.min(payoutAmt,cfg.payoutCap/fx);
+    return{tradingDays:null,finalBalance:targetBalance,balanceAfter:Math.round(targetBalance*0.5),payoutEur:Math.round(payoutAmt*fx)};
   }
 
   // Standard firms
@@ -1766,7 +1760,7 @@ function renderTreso(){
     let tot=0,rows='';
     accounts.forEach(acc=>{
       const r=calcPayout(acc,sc,fx);
-      if(r){tot+=r.payoutEur;rows+=`<div class="treso-sc-row"><span class="treso-sc-label">${acc.firm} ~${r.tradingDays}j · ${fmt(r.finalBalance)}$</span><span class="treso-sc-val g">+${fmt(r.payoutEur)} €</span></div>`;}
+      if(r){tot+=r.payoutEur;rows+=`<div class="treso-sc-row"><span class="treso-sc-label">${acc.firm}${r.tradingDays!==null?' ~'+r.tradingDays+'j':''} · ${fmt(r.finalBalance)}$</span><span class="treso-sc-val g">+${fmt(r.payoutEur)} €</span></div>`;}
       else rows+=`<div class="treso-sc-row"><span class="treso-sc-label">${acc.firm}</span><span class="treso-sc-val" style="color:var(--text3)">—</span></div>`;
     });
     const total=base+tot,color=getScColor(sc);
