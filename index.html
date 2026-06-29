@@ -815,26 +815,23 @@ function calcPayout(acc,sc,fx){
   const th=(acc.hasPayout&&acc.payoutBalance>0)?acc.payoutBalance:0;
 
   if(acc.firm==='Topstep'){
-    // Topstep: target balance = bestDay / 0.4 (consistency threshold)
-    // Find best winning day in current cycle
     const lastPayoutIdx=acc.history.findIndex(h=>h.payout);
-    const cycleTrades=(lastPayoutIdx>=0?acc.history.slice(0,lastPayoutIdx):acc.history).filter(h=>!h.payout);
+    const cycleTrades=(lastPayoutIdx>=0?acc.history.slice(0,lastPayoutIdx):acc.history).filter(h=>!h.payout&&h.val>0);
     const bestDay=cycleTrades.length>0?Math.max(...cycleTrades.map(h=>h.val)):getWinPnl();
-    const targetBalance=bestDay>0?Math.round(bestDay/0.4):null;
-    if(!targetBalance||acc.balance>=targetBalance){
-      // Already eligible or target reached — payout now
-      if(acc.balance<=th) return null;
-      const payoutAmt=acc.balance*0.5*split;
-      return{tradingDays:0,finalBalance:Math.round(acc.balance),balanceAfter:Math.round(acc.balance*0.5),payoutEur:Math.round(payoutAmt*fx)};
-    }
-    // Days needed to reach target balance
-    const remaining=targetBalance-acc.balance;
-    const td=Math.ceil(remaining/getEsp(sc));
-    if(td<0||!isFinite(td)) return null;
-    const fb=Math.round(acc.balance+td*getEsp(sc));
-    if(fb<=th) return null;
-    const payoutAmt=fb*0.5*split;
-    return{tradingDays:td,finalBalance:fb,balanceAfter:Math.round(fb*0.5),payoutEur:Math.round(payoutAmt*fx)};
+    if(bestDay<=0) return null;
+    // Pessimiste: no payout projected
+    if(sc.key==='pes') return null;
+    // Target balance and payout amount depend on scenario
+    const consistencyThreshold=sc.key==='opt'?0.33:0.40;
+    const targetBalance=Math.round(bestDay/consistencyThreshold);
+    const payoutAmt=targetBalance*0.5*split;
+    if(targetBalance<=th) return null;
+    // Days needed
+    const esp=getEsp(sc);
+    if(esp<=0) return null;
+    const remaining=Math.max(0,targetBalance-acc.balance);
+    const td=remaining>0?Math.ceil(remaining/esp):0;
+    return{tradingDays:td,finalBalance:targetBalance,balanceAfter:Math.round(targetBalance*0.5),payoutEur:Math.round(payoutAmt*fx)};
   }
 
   // Standard firms
@@ -1420,11 +1417,25 @@ function renderDots(acc){
 
 function renderBigDots(acc){
   const cycleDays=getCycleDays(acc);
+  if(acc.firm==='Topstep'){
+    // Show last 5 days as green/red history dots, no checkbox logic
+    const tradeDays=cycleDays.slice(0,5);
+    return Array.from({length:5},(_,i)=>{
+      const day=tradeDays[i];
+      if(day){
+        const color=day.win?'var(--green)':'var(--red)';
+        const bg=day.win?'var(--green)':'var(--red)';
+        return`<div style="width:26px;height:26px;border-radius:50%;border:0.5px solid ${color};background:${bg};display:flex;align-items:center;justify-content:center;font-size:10px;color:#000;font-family:var(--mono);font-weight:700">${day.win?'✓':'✕'}</div>`;
+      }
+      return`<div style="width:26px;height:26px;border-radius:50%;border:0.5px solid var(--border2);background:var(--bg3)"></div>`;
+    }).join('');
+  }
+  // Standard firms: only winning days count, grey for others
+  const winDays=cycleDays.filter(h=>h.win);
   return Array.from({length:DAYS_REQ},(_,i)=>{
-    const entry=cycleDays[i];
-    if(entry){
-      const isWin=entry.win;
-      return`<div style="width:26px;height:26px;border-radius:50%;border:0.5px solid ${isWin?'var(--green)':'var(--red)'};background:${isWin?'var(--green)':'var(--red)'};display:flex;align-items:center;justify-content:center;font-size:10px;color:#000;font-family:var(--mono);font-weight:700">${isWin?'✓':'✕'}</div>`;
+    const filled=i<winDays.length;
+    if(filled){
+      return`<div style="width:26px;height:26px;border-radius:50%;border:0.5px solid var(--green);background:var(--green);display:flex;align-items:center;justify-content:center;font-size:10px;color:#000;font-family:var(--mono);font-weight:700">✓</div>`;
     }
     return`<div style="width:26px;height:26px;border-radius:50%;border:0.5px solid var(--border2);background:var(--bg3);display:flex;align-items:center;justify-content:center;font-size:10px;color:var(--text3);font-family:var(--mono)">${i+1}</div>`;
   }).join('');
@@ -1582,7 +1593,7 @@ function renderAccounts(){
         <div style="font-size:10px;color:var(--text2);margin-bottom:5px;display:flex;justify-content:space-between"><span>Drawdown</span><span style="font-family:var(--mono)">${fmt(ddLeft)} $ / ${fmt(ddRange)} $</span></div>
         <div class="dd-bar" style="margin-bottom:12px"><div class="dd-fill" style="width:${ddPct}%;background:${ddColor}"></div></div>
         <div style="font-size:10px;color:var(--text2);margin-bottom:8px">${isTopstep?`Consistency — ${consistency!==null?consistency+'%':'—'} · seuil < 40%`:`Jours de gain — ${acc.gainDays}/${DAYS_REQ} · seuil ${getWinPnl()} $`}</div>
-        <div class="acc-dots" style="gap:6px;margin-bottom:12px">${renderBigDots(acc)}</div>
+        <div class="acc-dots" style="gap:6px;margin-bottom:12px">${isTopstep?'':renderBigDots(acc)}</div>
         ${canP?`<button class="btn-payout" onclick="doPayout(${acc.id})" style="margin-bottom:10px;width:100%"><i class="ti ti-cash" style="font-size:13px;vertical-align:-2px;margin-right:6px"></i>Encaisser le payout</button>`:`${!canP&&payoutStatus.reason?`<div style="font-size:10px;text-align:center;color:var(--text3);margin-bottom:10px">⏳ ${payoutStatus.reason}</div>`:''}`}
         ${cp?`<div class="crash-banner"><div class="crash-title"><i class="ti ti-alert-triangle" style="font-size:14px;margin-right:4px"></i>Compte cramé</div><div class="crash-sub">Balance (${fmt(acc.balance)} $) ≤ seuil (${fmt(ct)} $).<br>Archiver ou annuler le jour saisi ?</div><div class="crash-btns"><button class="btn-crash-c" onclick="cancelCrash(${acc.id})">Annuler le jour</button><button class="btn-crash-a" onclick="archiveAccount(${acc.id})">Archiver</button></div></div>`:''}
         ${cd?`<div class="del-confirm"><span>Supprimer ce compte ?</span><button class="btn-del-n" onclick="confirmDel[${acc.id}]=false;renderAccounts()">Non</button><button class="btn-del-y" onclick="confirmDeleteAcc(${acc.id})">Supprimer</button></div>`:''}
