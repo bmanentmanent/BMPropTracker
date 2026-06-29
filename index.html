@@ -812,10 +812,35 @@ function fmtSign(n){const r=Math.round(n);const s=Math.abs(r).toString();const g
 function calcPayout(acc,sc,fx){
   const cfg=getFirmCfg(acc.firm);
   const split=(cfg.split||90)/100;
-  const dl=DAYS_REQ-acc.gainDays,th=(acc.hasPayout&&acc.payoutBalance>0)?acc.payoutBalance:0;
+  const th=(acc.hasPayout&&acc.payoutBalance>0)?acc.payoutBalance:0;
+
+  if(acc.firm==='Topstep'){
+    // Topstep: target balance = bestDay / 0.4 (consistency threshold)
+    // Find best winning day in current cycle
+    const lastPayoutIdx=acc.history.findIndex(h=>h.payout);
+    const cycleTrades=(lastPayoutIdx>=0?acc.history.slice(0,lastPayoutIdx):acc.history).filter(h=>!h.payout);
+    const bestDay=cycleTrades.length>0?Math.max(...cycleTrades.map(h=>h.val)):getWinPnl();
+    const targetBalance=bestDay>0?Math.round(bestDay/0.4):null;
+    if(!targetBalance||acc.balance>=targetBalance){
+      // Already eligible or target reached — payout now
+      if(acc.balance<=th) return null;
+      const payoutAmt=acc.balance*0.5*split;
+      return{tradingDays:0,finalBalance:Math.round(acc.balance),balanceAfter:Math.round(acc.balance*0.5),payoutEur:Math.round(payoutAmt*fx)};
+    }
+    // Days needed to reach target balance
+    const remaining=targetBalance-acc.balance;
+    const td=Math.ceil(remaining/getEsp(sc));
+    if(td<0||!isFinite(td)) return null;
+    const fb=Math.round(acc.balance+td*getEsp(sc));
+    if(fb<=th) return null;
+    const payoutAmt=fb*0.5*split;
+    return{tradingDays:td,finalBalance:fb,balanceAfter:Math.round(fb*0.5),payoutEur:Math.round(payoutAmt*fx)};
+  }
+
+  // Standard firms
+  const dl=DAYS_REQ-acc.gainDays;
   const td=dl/sc.pWin,fb=acc.balance+td*getEsp(sc);
   if(fb<=th)return null;
-  // netMin check: balance since last payout must be >= netMin
   const netSinceLastPayout=acc.balance-(acc.balanceAtLastPayout||acc.startBalance||10000);
   const netMin=cfg.netMin||0;
   if(netMin>0&&netSinceLastPayout<netMin)return null;
