@@ -969,14 +969,19 @@ function calcPayout(acc,sc,fx){
   const split=(cfg.split||90)/100;
   const th=(acc.hasPayout&&acc.payoutBalance>0)?acc.payoutBalance:0;
 
-  if(acc.firm==='Topstep'){
+  if((cfg.payoutRule||'days')==='consistency'){
     if(sc.key==='pes') return null;
     const lastPayoutIdx=acc.history.findIndex(h=>h.payout);
     const cycleTrades=(lastPayoutIdx>=0?acc.history.slice(0,lastPayoutIdx):acc.history).filter(h=>!h.payout&&h.val>0);
     const bestDay=cycleTrades.length>0?Math.max(...cycleTrades.map(h=>h.val)):0;
     if(bestDay<=0) return null;
-    const consistencyThreshold=sc.key==='opt'?0.33:0.40;
-    const targetBalance=Math.round(bestDay/consistencyThreshold);
+    const consistencyThreshold=(cfg.consistencyThreshold||40)/100;
+    // Balance at start of cycle = balance right after last payout, or starting balance
+    const cycleStartBalance=th>0?th:(acc.startBalance||acc.balance);
+    const cycleGain=bestDay/consistencyThreshold;
+    const targetBalance=sc.key==='opt'
+      ? Math.round(cycleStartBalance+cycleGain*1.2)
+      : Math.round(cycleStartBalance+cycleGain);
     if(targetBalance<=th) return null;
     let payoutAmt=targetBalance*0.5*split;
     if(cfg.payoutCap&&cfg.payoutCap>0) payoutAmt=Math.min(payoutAmt,cfg.payoutCap/fx);
@@ -1400,25 +1405,37 @@ function renderFirmSettings(){
       </div>
       <div class="firm-card-grid">
         <div class="firm-field"><label>Règle payout</label>
-          <select id="fs-rule-${i}" style="background:var(--bg3);border:0.5px solid var(--border);border-radius:8px;padding:7px 10px;color:var(--text1);font-size:12px;width:100%">
+          <select id="fs-rule-${i}" onchange="toggleFirmRuleFields(${i})" style="background:var(--bg3);border:0.5px solid var(--border);border-radius:8px;padding:7px 10px;color:var(--text1);font-size:12px;width:100%">
             <option value="days" ${(f.payoutRule||'days')==='days'?'selected':''}>Jours de gain</option>
             <option value="consistency" ${f.payoutRule==='consistency'?'selected':''}>Consistency</option>
           </select>
         </div>
-        <div class="firm-field"><label>Jours requis</label><input type="number" id="fs-days-${i}" value="${f.daysReq||5}" min="1" max="20" step="1"></div>
-        <div class="firm-field"><label>Seuil gain/j ($)</label><input type="number" id="fs-winthr-${i}" value="${f.winThr||150}" min="1" step="10"></div>
-        <div class="firm-field"><label>Consistency max (%)</label><input type="number" id="fs-consist-${i}" value="${f.consistencyThreshold||40}" min="1" max="100" step="1"></div>
-        <div class="firm-field"><label>TP moyen ($)</label><input type="number" id="fs-tp-${i}" value="${f.tpAvg||150}" min="1" step="10"></div>
-        <div class="firm-field"><label>SL moyen ($)</label><input type="number" id="fs-sl-${i}" value="${f.slAvg||230}" min="1" step="10"></div>
+        <div class="firm-field" data-rule-field="days" id="fs-days-wrap-${i}"><label>Jours requis</label><input type="number" id="fs-days-${i}" value="${f.daysReq||5}" min="1" max="20" step="1"></div>
+        <div class="firm-field" data-rule-field="days" id="fs-winthr-wrap-${i}"><label>Seuil gain/j ($)</label><input type="number" id="fs-winthr-${i}" value="${f.winThr||150}" min="1" step="10"></div>
+        <div class="firm-field" data-rule-field="consistency" id="fs-consist-wrap-${i}"><label>Consistency max (%)</label><input type="number" id="fs-consist-${i}" value="${f.consistencyThreshold||40}" min="1" max="100" step="1"></div>
+        <div class="firm-field" data-rule-field="days" id="fs-tp-wrap-${i}"><label>TP moyen ($)</label><input type="number" id="fs-tp-${i}" value="${f.tpAvg||150}" min="1" step="10"></div>
+        <div class="firm-field" data-rule-field="days" id="fs-sl-wrap-${i}"><label>SL moyen ($)</label><input type="number" id="fs-sl-${i}" value="${f.slAvg||230}" min="1" step="10"></div>
         <div class="firm-field"><label>Profit split (%)</label><input type="number" id="fs-split-${i}" value="${f.split||90}" min="1" max="100" step="1"></div>
         <div class="firm-field"><label>Prix éval ($)</label><input type="number" id="fs-price-${i}" value="${f.evalPrice||0}" min="0" step="1"></div>
         <div class="firm-field"><label>Payout cap (€, 0=illimité)</label><input type="number" id="fs-cap-${i}" value="${f.payoutCap||0}" min="0" step="100"></div>
-        <div class="firm-field"><label>Profit net min/cycle ($)</label><input type="number" id="fs-net-${i}" value="${f.netMin||0}" min="0" step="100"></div>
+        <div class="firm-field" data-rule-field="days" id="fs-net-wrap-${i}"><label>Profit net min/cycle ($)</label><input type="number" id="fs-net-${i}" value="${f.netMin||0}" min="0" step="100"></div>
         <div class="firm-field"><label>Couleur</label><input type="color" id="fs-color-${i}" value="${f.color}" style="height:34px;padding:2px 4px;width:100%;border-radius:8px;border:0.5px solid var(--border);background:var(--bg3);cursor:pointer"></div>
         <div class="firm-field"><label>Initiales</label><input type="text" id="fs-init-${i}" value="${f.initials||f.name.slice(0,2).toUpperCase()}" maxlength="3" style="text-transform:uppercase"></div>
       </div>
       <button class="firm-save-btn" onclick="saveFirmEdit(${i})">Enregistrer</button>
     </div>`).join('');
+  firmsConfig.forEach((f,i)=>toggleFirmRuleFields(i));
+}
+function toggleFirmRuleFields(i){
+  const sel=document.getElementById('fs-rule-'+i);
+  if(!sel)return;
+  const rule=sel.value;
+  ['fs-days-wrap-'+i,'fs-winthr-wrap-'+i,'fs-tp-wrap-'+i,'fs-sl-wrap-'+i,'fs-net-wrap-'+i].forEach(id=>{
+    const el=document.getElementById(id);
+    if(el)el.style.display=rule==='days'?'flex':'none';
+  });
+  const consistWrap=document.getElementById('fs-consist-wrap-'+i);
+  if(consistWrap)consistWrap.style.display=rule==='consistency'?'flex':'none';
 }
 function saveFirmEdit(i){
   firmsConfig[i]={
@@ -1617,8 +1634,10 @@ function getCycleDays(acc){
 
 function renderDots(acc){
   const cycleDays=getCycleDays(acc);
+  const cfg=getFirmCfg(acc.firm);
+  const n=(cfg.payoutRule||'days')==='consistency'?5:(cfg.daysReq||DAYS_REQ);
   const dots=[];
-  for(let i=0;i<DAYS_REQ;i++){
+  for(let i=0;i<n;i++){
     const entry=cycleDays[i];
     if(entry){
       const color=entry.win?'var(--green)':'var(--red)';
@@ -1723,7 +1742,7 @@ function renderDash(){
         <div class="acc-info"><div class="acc-name">${acc.firm}</div><div class="acc-meta">Cycle ${acc.cycleCount||1} · ${getFirmCfg(acc.firm).split||90}% split</div></div>
         <div class="acc-right">
           <div class="acc-balance">${amountsHidden?"•••• $":fmt(acc.balance)+" $"}</div>
-          <div class="acc-days"><span style="font-size:10px;font-family:var(--mono);color:${canPayoutCheck(acc).ok?'var(--green)':'var(--text2)'}">${acc.firm==='Topstep'?(getCycleConsistency(acc)!==null?getCycleConsistency(acc)+'%':'—'):(acc.gainDays+'/'+(getFirmCfg(acc.firm).daysReq||DAYS_REQ))}</span>${renderDots(acc)}</div>
+          <div class="acc-days"><span style="font-size:10px;font-family:var(--mono);color:${canPayoutCheck(acc).ok?'var(--green)':'var(--text2)'}">${(getFirmCfg(acc.firm).payoutRule||'days')==='consistency'?(getCycleConsistency(acc)!==null?getCycleConsistency(acc)+'%':'—'):(acc.gainDays+'/'+(getFirmCfg(acc.firm).daysReq||DAYS_REQ))}</span>${renderDots(acc)}</div>
         </div>
       </div>
     </div>`;
@@ -1741,7 +1760,7 @@ function renderAccounts(){
     const th=(acc.hasPayout&&acc.payoutBalance>0)?acc.payoutBalance:0;
     const payoutStatus=canPayoutCheck(acc);
     const canP=payoutStatus.ok;
-    const isTopstep=acc.firm==='Topstep';
+    const isTopstep=(getFirmCfg(acc.firm).payoutRule||'days')==='consistency';
     const consistency=isTopstep?getCycleConsistency(acc):null;
     const ct=crashThreshold(acc);
     const ddRange=(acc.balanceMax||0)-ct;
@@ -1794,7 +1813,7 @@ function renderAccounts(){
         </div>
         <div class="acc-right">
           <div class="acc-balance">${fmt(acc.balance)} $</div>
-          <div class="acc-days"><span style="font-size:10px;font-family:var(--mono);color:${canPayoutCheck(acc).ok?'var(--green)':'var(--text2)'}">${acc.firm==='Topstep'?(getCycleConsistency(acc)!==null?getCycleConsistency(acc)+'%':'—'):(acc.gainDays+'/'+(getFirmCfg(acc.firm).daysReq||DAYS_REQ))}</span>${renderDots(acc)}</div>
+          <div class="acc-days"><span style="font-size:10px;font-family:var(--mono);color:${canPayoutCheck(acc).ok?'var(--green)':'var(--text2)'}">${(getFirmCfg(acc.firm).payoutRule||'days')==='consistency'?(getCycleConsistency(acc)!==null?getCycleConsistency(acc)+'%':'—'):(acc.gainDays+'/'+(getFirmCfg(acc.firm).daysReq||DAYS_REQ))}</span>${renderDots(acc)}</div>
         </div>
       </div>
       <div class="acc-expanded">
@@ -1870,7 +1889,9 @@ function openSheet(){
     const inputStyle=todayEntry?(todayEntry.val>=0?'color:var(--green)':'color:var(--red)'):'';
     // Cycle dots
     const cycleDays=getCycleDays(acc);
-    const dots=Array.from({length:getFirmCfg(acc.firm).daysReq||DAYS_REQ},(_,i)=>{
+    const sheetCfg=getFirmCfg(acc.firm);
+    const sheetDotsCount=(sheetCfg.payoutRule||'days')==='consistency'?5:(sheetCfg.daysReq||DAYS_REQ);
+    const dots=Array.from({length:sheetDotsCount},(_,i)=>{
       const entry=cycleDays[i];
       if(entry){const c=entry.win?'var(--green)':'var(--red)';return`<div style="width:8px;height:8px;border-radius:50%;background:${c}"></div>`;}
       return`<div style="width:8px;height:8px;border-radius:50%;background:var(--border2)"></div>`;
@@ -1881,7 +1902,7 @@ function openSheet(){
         <div class="sheet-acc-name">${acc.firm}</div>
         <div class="sheet-acc-meta" style="display:flex;align-items:center;gap:8px">
           <span>${fmt(acc.balance)} $</span>
-          <span style="color:${canPayoutCheck(acc).ok?'var(--green)':'var(--text2)'};font-weight:600">${acc.firm==='Topstep'?(getCycleConsistency(acc)!==null?getCycleConsistency(acc)+'%<40%':'—'):(acc.gainDays+'/'+(getFirmCfg(acc.firm).daysReq||DAYS_REQ)+'j')}</span>
+          <span style="color:${canPayoutCheck(acc).ok?'var(--green)':'var(--text2)'};font-weight:600">${(getFirmCfg(acc.firm).payoutRule||'days')==='consistency'?(getCycleConsistency(acc)!==null?getCycleConsistency(acc)+'%<'+(getFirmCfg(acc.firm).consistencyThreshold||40)+'%':'—'):(acc.gainDays+'/'+(getFirmCfg(acc.firm).daysReq||DAYS_REQ)+'j')}</span>
           <div style="display:flex;gap:3px;align-items:center">${dots}</div>
         </div>
       </div>
