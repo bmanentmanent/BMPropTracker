@@ -2192,8 +2192,7 @@ function renderFirmStats(){
     const evalsPerMonth=nMonths>0?(totalEvalsQty/nMonths).toFixed(1):null;
 
     // Avg cycle duration (from archived accounts on this firm)
-    const archFirm=archived.filter(a=>a.firm===firm&&a.totalDays>0);
-    const avgCycleDays=archFirm.length>0?Math.round(archFirm.reduce((s,a)=>s+a.totalDays,0)/archFirm.length):null;
+    const roi=totalEvalsEur>0?Math.round(netTotal/totalEvalsEur*100):null;
 
     if(totalAccounts===0&&totalEvalsQty===0) return;
 
@@ -2205,7 +2204,7 @@ function renderFirmStats(){
         <div class="month-stat" style="text-align:center"><div class="month-stat-label">% réussite éval</div><div class="month-stat-val" style="color:${convColorF(convRate)}">${convRate!==null?convRate+'%':'—'}</div></div>
         <div class="month-stat" style="text-align:center"><div class="month-stat-label">Évals/mois moy.</div><div class="month-stat-val">${evalsPerMonth||'—'}</div></div>
         <div class="month-stat" style="text-align:center"><div class="month-stat-label">Payout moyen</div><div class="month-stat-val">${avgPayout>0?fmt(avgPayout)+' €':'—'}</div></div>
-        <div class="month-stat" style="text-align:center"><div class="month-stat-label">Durée moy. cycle</div><div class="month-stat-val">${avgCycleDays!==null?avgCycleDays+'j':'—'}</div></div>
+        <div class="month-stat" style="text-align:center"><div class="month-stat-label">ROI</div><div class="month-stat-val" style="color:${roi===null?'var(--text2)':roi>=0?'var(--green)':'var(--red)'}">${roi!==null?(roi>=0?'+':'')+roi+'%':'—'}</div></div>
         <div class="month-stat" style="text-align:center"><div class="month-stat-label">Net total</div><div class="month-stat-val" style="color:${netTotal>=0?'var(--green)':'var(--red)'}">${totalEvalsQty>0?(netTotal>=0?'+':'')+fmt(netTotal)+' €':'—'}</div></div>
         <div class="month-stat" style="text-align:center"><div class="month-stat-label">Net / éval</div><div class="month-stat-val" style="color:${netPerEval===null?'var(--text2)':netPerEval>=0?'var(--green)':'var(--red)'}">${netPerEval!==null?(netPerEval>=0?'+':'')+fmt(netPerEval)+' €':'—'}</div></div>
       </div>
