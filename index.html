@@ -972,12 +972,14 @@ function calcPayout(acc,sc,fx){
   if((cfg.payoutRule||'days')==='consistency'){
     if(sc.key==='pes') return null;
     const lastPayoutIdx=acc.history.findIndex(h=>h.payout);
-    const cycleTrades=(lastPayoutIdx>=0?acc.history.slice(0,lastPayoutIdx):acc.history).filter(h=>!h.payout&&h.val>0);
-    const bestDay=cycleTrades.length>0?Math.max(...cycleTrades.map(h=>h.val)):0;
+    const allCycleTrades=(lastPayoutIdx>=0?acc.history.slice(0,lastPayoutIdx):acc.history).filter(h=>!h.payout);
+    const winningTrades=allCycleTrades.filter(h=>h.val>0);
+    const bestDay=winningTrades.length>0?Math.max(...winningTrades.map(h=>h.val)):0;
     if(bestDay<=0) return null;
     const consistencyThreshold=(cfg.consistencyThreshold||40)/100;
-    // Balance at start of cycle = balance right after last payout, or starting balance
-    const cycleStartBalance=th>0?th:(acc.startBalance||acc.balance);
+    // Real balance at the start of the current cycle = current balance minus all trade P&L in this cycle (wins and losses)
+    const cycleSum=allCycleTrades.reduce((s,h)=>s+h.val,0);
+    const cycleStartBalance=acc.balance-cycleSum;
     const cycleGain=bestDay/consistencyThreshold;
     const targetBalance=sc.key==='opt'
       ? Math.round(cycleStartBalance+cycleGain*1.2)
