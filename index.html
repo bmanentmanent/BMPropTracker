@@ -2156,12 +2156,6 @@ function renderFirmStats(){
 
   allFirms.forEach(firm=>{
     const cfg=getFirmCfg(firm);
-    // Accounts on this firm
-    const firmAccounts=allAccounts.filter(a=>a.firm===firm);
-    const activeCount=accounts.filter(a=>a.firm===firm).length;
-    const archivedCount=archived.filter(a=>a.firm===firm).length;
-    const totalAccounts=firmAccounts.length;
-
     // Revenues from payouts on this firm
     const firmPayouts=allP.filter(p=>p.firm===firm);
     const totalRevenues=firmPayouts.reduce((s,p)=>s+(p.payoutEur||0),0);
@@ -2194,12 +2188,12 @@ function renderFirmStats(){
     // Avg cycle duration (from archived accounts on this firm)
     const roi=totalEvalsEur>0?Math.round(netTotal/totalEvalsEur*100):null;
 
-    if(totalAccounts===0&&totalEvalsQty===0) return;
+    if(totalEvalsSuccess===0&&totalEvalsQty===0) return;
 
     html+=`<div class="month-row" style="margin-bottom:10px">
       <div class="firm-card-header">${firmAvatar(firm,32)}<span class="firm-card-name">${firm}</span></div>
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px">
-        <div class="month-stat" style="text-align:center"><div class="month-stat-label">Comptes financés</div><div class="month-stat-val">${totalAccounts} <span style="font-size:9px;color:var(--text3)">(${activeCount} actif${activeCount>1?'s':''})</span></div></div>
+        <div class="month-stat" style="text-align:center"><div class="month-stat-label">Comptes financés</div><div class="month-stat-val">${totalEvalsSuccess||'—'}</div></div>
         <div class="month-stat" style="text-align:center"><div class="month-stat-label">Évals achetées</div><div class="month-stat-val">${totalEvalsQty||'—'}</div></div>
         <div class="month-stat" style="text-align:center"><div class="month-stat-label">% réussite éval</div><div class="month-stat-val" style="color:${convColorF(convRate)}">${convRate!==null?convRate+'%':'—'}</div></div>
         <div class="month-stat" style="text-align:center"><div class="month-stat-label">Évals/mois moy.</div><div class="month-stat-val">${evalsPerMonth||'—'}</div></div>
