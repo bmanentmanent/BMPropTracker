@@ -820,14 +820,14 @@ function renderEvalRowsForMonth(monthKey){
     let exp={};try{const r=localStorage.getItem('pft_expenses');if(r)exp=JSON.parse(r);}catch(e){}
     let succ={};try{const r=localStorage.getItem('pft_eval_success_'+currentKey);if(r)succ=JSON.parse(r);}catch(e){}
     el.innerHTML=firmsConfig.map(f=>`
-      <div class="setting-row" style="flex-wrap:wrap">
-        <div class="setting-label" style="flex:1 1 100%">Évals ${f.name}<small>${f.evalPrice}$/unité</small></div>
-        <div style="display:flex;align-items:center;gap:6px;margin-top:4px">
-          <input class="setting-input" type="number" id="eval-qty-${f.name}" value="${exp['qty_'+f.name]||''}" placeholder="0" min="0" step="1" style="width:55px" oninput="onExpenseInputChange()">
+      <div class="setting-row" style="flex-wrap:wrap;justify-content:center;text-align:center">
+        <div class="setting-label" style="flex:1 1 100%;text-align:center">Évals ${f.name}<small>${f.evalPrice}$/unité</small></div>
+        <div style="display:flex;align-items:center;justify-content:center;gap:6px;margin-top:4px;flex:1">
+          <input class="setting-input" type="number" id="eval-qty-${f.name}" value="${exp['qty_'+f.name]||''}" placeholder="0" min="0" step="1" style="width:55px;text-align:center" oninput="onExpenseInputChange()">
           <span class="setting-unit" style="font-size:10px">achetées</span>
         </div>
-        <div style="display:flex;align-items:center;gap:6px;margin-top:4px">
-          <input class="setting-input" type="number" id="eval-succ-${f.name}" value="${succ[f.name]||''}" placeholder="0" min="0" step="1" style="width:55px">
+        <div style="display:flex;align-items:center;justify-content:center;gap:6px;margin-top:4px;flex:1">
+          <input class="setting-input" type="number" id="eval-succ-${f.name}" value="${succ[f.name]||''}" placeholder="0" min="0" step="1" style="width:55px;text-align:center">
           <span class="setting-unit" style="font-size:10px;color:var(--green)">réussies</span>
         </div>
       </div>`).join('');
@@ -844,14 +844,14 @@ function renderEvalRowsForMonth(monthKey){
       const v=bd[f.name];
       const qty=v?v.evalsQty:0;
       const succ=v?(v.evalsSuccess||0):0;
-      return`<div class="setting-row" style="flex-wrap:wrap">
-        <div class="setting-label" style="flex:1 1 100%">Évals ${f.name}<small>${f.evalPrice}$/unité</small></div>
-        <div style="display:flex;align-items:center;gap:6px;margin-top:4px">
-          <input class="setting-input" type="number" id="eval-qty-${f.name}" value="${qty||''}" placeholder="0" min="0" step="1" style="width:55px">
+      return`<div class="setting-row" style="flex-wrap:wrap;justify-content:center;text-align:center">
+        <div class="setting-label" style="flex:1 1 100%;text-align:center">Évals ${f.name}<small>${f.evalPrice}$/unité</small></div>
+        <div style="display:flex;align-items:center;justify-content:center;gap:6px;margin-top:4px;flex:1">
+          <input class="setting-input" type="number" id="eval-qty-${f.name}" value="${qty||''}" placeholder="0" min="0" step="1" style="width:55px;text-align:center">
           <span class="setting-unit" style="font-size:10px">achetées</span>
         </div>
-        <div style="display:flex;align-items:center;gap:6px;margin-top:4px">
-          <input class="setting-input" type="number" id="eval-succ-${f.name}" value="${succ||''}" placeholder="0" min="0" step="1" style="width:55px">
+        <div style="display:flex;align-items:center;justify-content:center;gap:6px;margin-top:4px;flex:1">
+          <input class="setting-input" type="number" id="eval-succ-${f.name}" value="${succ||''}" placeholder="0" min="0" step="1" style="width:55px;text-align:center">
           <span class="setting-unit" style="font-size:10px;color:var(--green)">réussies</span>
         </div>
       </div>`;
@@ -2148,7 +2148,7 @@ function renderFirmStats(){
     html+=`<div class="month-row" style="margin-bottom:10px">
       <div class="firm-card-header">${firmAvatar(firm,32)}<span class="firm-card-name">${firm}</span></div>
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px">
-        <div class="month-stat" style="text-align:center"><div class="month-stat-label">Comptes financés</div><div class="month-stat-val">${totalAccounts} <span style="font-size:9px;color:var(--text3)">(${activeCount} actifs)</span></div></div>
+        <div class="month-stat" style="text-align:center"><div class="month-stat-label">Comptes financés</div><div class="month-stat-val">${totalAccounts} <span style="font-size:9px;color:var(--text3)">(${activeCount} actif${activeCount>1?'s':''})</span></div></div>
         <div class="month-stat" style="text-align:center"><div class="month-stat-label">Évals achetées</div><div class="month-stat-val">${totalEvalsQty||'—'}</div></div>
         <div class="month-stat" style="text-align:center"><div class="month-stat-label">% réussite éval</div><div class="month-stat-val" style="color:${convColorF(convRate)}">${convRate!==null?convRate+'%':'—'}</div></div>
         <div class="month-stat" style="text-align:center"><div class="month-stat-label">Évals/mois moy.</div><div class="month-stat-val">${evalsPerMonth||'—'}</div></div>
