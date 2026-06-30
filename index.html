@@ -1636,8 +1636,7 @@ function getCycleDays(acc){
 
 function renderDots(acc){
   const cycleDays=getCycleDays(acc);
-  const cfg=getFirmCfg(acc.firm);
-  const n=(cfg.payoutRule||'days')==='consistency'?5:(cfg.daysReq||DAYS_REQ);
+  const n=5;
   const dots=[];
   for(let i=0;i<n;i++){
     const entry=cycleDays[i];
