@@ -1173,15 +1173,18 @@ function renderMonthlyHistory(){
     const convRate=evals>0?Math.round(newAcc/evals*100):null;
     // Firm breakdown section
     const bd=h.firmBreakdown||{};
-    const hasBd=Object.keys(bd).length>0;
-    const bdRows=hasBd?Object.entries(bd).map(([firm,v])=>`
-      <div style="display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:0.5px solid var(--border)">
-        <div style="display:flex;align-items:center;gap:8px">${firmAvatar(firm,24)}<span style="font-size:12px;font-weight:600">${firm}</span></div>
-        <div style="text-align:right">
-          <div style="font-size:11px;font-family:var(--mono)">${v.evalsQty} éval${v.evalsQty>1?'s':''} · −${fmt(v.evalsEur)} €</div>
-          <div style="font-size:10px;color:var(--text3)"><input class="setting-input" type="number" id="bd-qty-${realIdx}-${firm.replace(/\s/g,'_')}" value="${v.evalsQty}" style="width:45px;text-align:center;padding:2px 4px"> évals</div>
+    const bdRows=firmsConfig.map(f=>{
+      const v=bd[f.name];
+      const qty=v?v.evalsQty:0;
+      const eur=v?v.evalsEur:0;
+      return`<div style="display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:0.5px solid var(--border)">
+        <div style="display:flex;align-items:center;gap:8px">${firmAvatar(f.name,24)}<span style="font-size:12px;font-weight:600">${f.name}</span></div>
+        <div style="display:flex;align-items:center;gap:6px">
+          <input class="setting-input" type="number" id="bd-qty-${realIdx}-${f.name.replace(/\s/g,'_')}" value="${qty||''}" placeholder="0" style="width:50px;text-align:center;padding:5px 4px">
+          <span style="font-size:10px;color:var(--text3)">évals${eur>0?' · −'+fmt(eur)+' €':''}</span>
         </div>
-      </div>`).join(''):'<div style="font-size:11px;color:var(--text3);padding:8px 0">Aucune ventilation saisie pour ce mois.</div>';
+      </div>`;
+    }).join('');
 
     return`<div class="month-row">
       <div class="month-row-header">
@@ -1243,29 +1246,21 @@ function renderMonthlyHistory(){
 function saveFirmBreakdown(idx){
   const history=loadMonthlyHistory();
   const h=history[idx];
-  const bd=h.firmBreakdown||{};
-  // Read edited qty values for each firm in breakdown
-  Object.keys(bd).forEach(firm=>{
-    const key='bd-qty-'+idx+'-'+firm.replace(/\s/g,'_');
-    const el=document.getElementById(key);
-    if(el){
-      const qty=parseFloat(el.value)||0;
-      bd[firm]={...bd[firm],evalsQty:qty,evalsEur:Math.round(qty*(getFirmCfg(firm).evalPrice||0)*getFx())};
-    }
-  });
-  // Also allow adding firms not in breakdown
+  const bd={};
   firmsConfig.forEach(f=>{
     const key='bd-qty-'+idx+'-'+f.name.replace(/\s/g,'_');
     const el=document.getElementById(key);
-    if(el&&!bd[f.name]){
-      const qty=parseFloat(el.value)||0;
-      if(qty>0) bd[f.name]={evalsQty:qty,evalsEur:Math.round(qty*(f.evalPrice||0)*getFx())};
+    const qty=el?parseFloat(el.value)||0:0;
+    if(qty>0){
+      bd[f.name]={evalsQty:qty,evalsEur:Math.round(qty*(f.evalPrice||0)*getFx())};
     }
   });
-  history[idx]={...h,firmBreakdown:bd};
+  const totalQty=Object.values(bd).reduce((s,v)=>s+v.evalsQty,0);
+  history[idx]={...h,firmBreakdown:bd,evalsCount:totalQty};
   saveMonthlyHistory(history);
   showToast('✓ Ventilation mise à jour');
   renderMonthlyHistory();
+  renderFirmStats();
 }
 
 function saveMonthEdit(idx){
