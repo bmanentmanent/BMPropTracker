@@ -1743,7 +1743,7 @@ function renderDash(){
         <div class="acc-info"><div class="acc-name">${acc.firm}</div><div class="acc-meta">Cycle ${acc.cycleCount||1} · ${getFirmCfg(acc.firm).split||90}% split</div></div>
         <div class="acc-right">
           <div class="acc-balance">${amountsHidden?"•••• $":fmt(acc.balance)+" $"}</div>
-          <div class="acc-days"><span style="font-size:10px;font-family:var(--mono);color:${canPayoutCheck(acc).ok?'var(--green)':'var(--text2)'}">${(getFirmCfg(acc.firm).payoutRule||'days')==='consistency'?(getCycleConsistency(acc)!==null?getCycleConsistency(acc)+'%':'—'):(acc.gainDays+'/'+(getFirmCfg(acc.firm).daysReq||DAYS_REQ))}</span>${renderDots(acc)}</div>
+          <div class="acc-days" style="justify-content:center;font-weight:600"><span style="font-size:10px;font-family:var(--mono);color:${canPayoutCheck(acc).ok?'var(--green)':'var(--text2)'}">${(getFirmCfg(acc.firm).payoutRule||'days')==='consistency'?(getCycleConsistency(acc)!==null?getCycleConsistency(acc)+'%':'—'):(acc.gainDays+'/'+(getFirmCfg(acc.firm).daysReq||DAYS_REQ))}</span></div>
         </div>
       </div>
     </div>`;
@@ -1814,7 +1814,7 @@ function renderAccounts(){
         </div>
         <div class="acc-right">
           <div class="acc-balance">${fmt(acc.balance)} $</div>
-          <div class="acc-days"><span style="font-size:10px;font-family:var(--mono);color:${canPayoutCheck(acc).ok?'var(--green)':'var(--text2)'}">${(getFirmCfg(acc.firm).payoutRule||'days')==='consistency'?(getCycleConsistency(acc)!==null?getCycleConsistency(acc)+'%':'—'):(acc.gainDays+'/'+(getFirmCfg(acc.firm).daysReq||DAYS_REQ))}</span>${renderDots(acc)}</div>
+          <div class="acc-days" style="justify-content:center;font-weight:600"><span style="font-size:10px;font-family:var(--mono);color:${canPayoutCheck(acc).ok?'var(--green)':'var(--text2)'}">${(getFirmCfg(acc.firm).payoutRule||'days')==='consistency'?(getCycleConsistency(acc)!==null?getCycleConsistency(acc)+'%':'—'):(acc.gainDays+'/'+(getFirmCfg(acc.firm).daysReq||DAYS_REQ))}</span></div>
         </div>
       </div>
       <div class="acc-expanded">
