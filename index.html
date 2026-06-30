@@ -1005,10 +1005,16 @@ function getSorted(){
     return sortAsc?va-vb:vb-va;
   });
 }
+function loadManualPayouts(){
+  try{const r=localStorage.getItem('pft_manual_payouts');return r?JSON.parse(r):[];}catch(e){return[];}
+}
+function saveManualPayouts(list){try{localStorage.setItem('pft_manual_payouts',JSON.stringify(list));}catch(e){}}
+
 function getAllPayouts(){
   const p=[];
   accounts.forEach(acc=>{if(!acc||!acc.history)return;acc.history.forEach((h,idx)=>{if(h.payout)p.push({source:'account',accId:acc.id,histIdx:idx,firm:acc.firm,date:h.date,payoutEur:h.payoutEur||0,active:true});});});
   archived.forEach((a,ai)=>(a.payoutHistory||[]).forEach((ph,pi)=>p.push({source:'archived',archivedIdx:ai,payoutHistIdx:pi,firm:a.firm,date:ph.date,payoutEur:ph.payoutEur||0,active:false})));
+  loadManualPayouts().forEach((mp,mi)=>p.push({source:'manual',manualIdx:mi,firm:mp.firm,date:mp.date,payoutEur:mp.payoutEur||0,active:null}));
   p.sort((a,b)=>{const pa=a.date.split('/'),pb=b.date.split('/');const ma=parseInt(pa[1]||0),mb=parseInt(pb[1]||0),da=parseInt(pa[0]||0),db=parseInt(pb[0]||0);return mb!==ma?mb-ma:db-da;});
   return p;
 }
@@ -1445,6 +1451,48 @@ function confirmDeleteFirm(i){
   showToast('✓ Firm supprimée');
   renderFirmSettings();
 }
+// ── MANUAL PAYOUT ENTRY ──
+function openAddManualPayoutForm(){
+  const f=document.getElementById('add-manual-payout-form');
+  const btn=document.getElementById('add-manual-payout-btn');
+  f.style.display='block';
+  if(btn)btn.style.display='none';
+  const today=new Date().toLocaleDateString('fr-FR',{day:'2-digit',month:'2-digit'});
+  f.innerHTML=`
+    <div style="font-size:12px;font-weight:700;margin-bottom:12px;color:var(--text1)">Nouveau payout manuel</div>
+    <div class="firm-card-grid" style="margin-bottom:10px">
+      <div class="firm-field"><label>Prop firm</label>
+        <select id="mp-firm" style="background:var(--bg3);border:0.5px solid var(--border);border-radius:8px;padding:7px 10px;color:var(--text1);font-size:12px;width:100%">
+          ${firmsConfig.map(f=>`<option value="${f.name}">${f.name}</option>`).join('')}
+        </select>
+      </div>
+      <div class="firm-field"><label>Montant (€)</label><input type="number" id="mp-amount" placeholder="0" min="0" step="1"></div>
+      <div class="firm-field" style="grid-column:1/-1"><label>Date (JJ/MM)</label><input type="text" id="mp-date" value="${today}" placeholder="JJ/MM" maxlength="5"></div>
+    </div>
+    <div style="display:flex;gap:8px">
+      <button onclick="cancelAddManualPayout()" style="flex:1;padding:9px;background:var(--bg3);border:0.5px solid var(--border);border-radius:8px;color:var(--text2);font-size:12px;font-weight:600;cursor:pointer;font-family:var(--font)">Annuler</button>
+      <button onclick="confirmAddManualPayout()" style="flex:2;padding:9px;background:var(--green-bg);border:0.5px solid var(--border2);border-radius:8px;color:var(--green);font-size:12px;font-weight:600;cursor:pointer;font-family:var(--font)">Ajouter</button>
+    </div>`;
+}
+function cancelAddManualPayout(){
+  document.getElementById('add-manual-payout-form').style.display='none';
+  const btn=document.getElementById('add-manual-payout-btn');
+  if(btn)btn.style.display='flex';
+}
+function confirmAddManualPayout(){
+  const firm=document.getElementById('mp-firm').value;
+  const amount=parseFloat(document.getElementById('mp-amount').value)||0;
+  const date=document.getElementById('mp-date').value.trim();
+  if(amount<=0){showToast('⚠ Montant requis');return;}
+  if(!/^\d{1,2}\/\d{1,2}$/.test(date)){showToast('⚠ Format date invalide (JJ/MM)');return;}
+  const list=loadManualPayouts();
+  list.push({firm,payoutEur:Math.round(amount),date});
+  saveManualPayouts(list);
+  showToast('✓ Payout manuel ajouté');
+  cancelAddManualPayout();
+  renderStats();
+}
+
 function openAddFirmForm(){
   const f=document.getElementById('add-firm-form');
   f.style.display='block';
@@ -1990,13 +2038,17 @@ function renderStats(){
   window._payoutList=getAllPayouts();
   const pb=document.getElementById('payout-archive');
   if(pb){
-    if(window._payoutList.length===0){pb.innerHTML=`<div class="empty" style="padding:20px 0"><i class="ti ti-cash"></i>Aucun payout.</div>`;}
-    else pb.innerHTML=window._payoutList.map((p,i)=>`
+    let html='';
+    if(window._payoutList.length===0){html=`<div class="empty" style="padding:20px 0"><i class="ti ti-cash"></i>Aucun payout.</div>`;}
+    else html=window._payoutList.map((p,i)=>`
       <div class="payout-row">
-        <div class="payout-row-left">${firmAvatar(p.firm,30)}<div><div class="payout-firm">${p.firm}</div><div class="payout-date">${p.date}</div><div class="payout-status">${p.active?'Actif':'Archivé'}</div></div></div>
+        <div class="payout-row-left">${firmAvatar(p.firm,30)}<div><div class="payout-firm">${p.firm}</div><div class="payout-date">${p.date}</div><div class="payout-status">${p.source==='manual'?'Manuel':(p.active?'Actif':'Archivé')}</div></div></div>
         <div class="payout-amt">+${fmt(p.payoutEur)} €</div>
         <div class="payout-actions"><button class="btn-p-edit" onclick="openPayoutModal(${i})"><i class="ti ti-pencil"></i></button><button class="btn-p-del" onclick="deletePayoutEntry(${i})"><i class="ti ti-trash"></i></button></div>
       </div>`).join('');
+    html+=`<button onclick="openAddManualPayoutForm()" id="add-manual-payout-btn" style="width:100%;margin-top:10px;padding:10px;border:0.5px dashed var(--border2);border-radius:12px;background:transparent;color:var(--green);cursor:pointer;font-size:12px;font-family:var(--font);font-weight:600;display:flex;align-items:center;justify-content:center;gap:8px"><i class="ti ti-plus"></i> Ajouter un payout manuel</button>
+    <div id="add-manual-payout-form" style="display:none;margin-top:10px;background:var(--bg2);border:0.5px solid var(--border);border-radius:12px;padding:14px"></div>`;
+    pb.innerHTML=html;
   }
 
   // Archived
@@ -2178,13 +2230,15 @@ function savePayoutEdit(){
   const nd=document.getElementById('pm-date').value.trim();
   if(isNaN(na)){closePayoutModal();return;}
   if(editingPayout.source==='account'){const acc=accounts.find(a=>a.id===editingPayout.accId);if(acc){const h=acc.history[editingPayout.histIdx];if(h&&h.payout){h.payoutEur=na;if(nd)h.date=nd;}}}
-  else{const a=archived[editingPayout.archivedIdx];if(a&&a.payoutHistory){const ph=a.payoutHistory[editingPayout.payoutHistIdx];if(ph){ph.payoutEur=na;if(nd)ph.date=nd;}}}
+  else if(editingPayout.source==='archived'){const a=archived[editingPayout.archivedIdx];if(a&&a.payoutHistory){const ph=a.payoutHistory[editingPayout.payoutHistIdx];if(ph){ph.payoutEur=na;if(nd)ph.date=nd;}}}
+  else if(editingPayout.source==='manual'){const list=loadManualPayouts();const mp=list[editingPayout.manualIdx];if(mp){mp.payoutEur=na;if(nd)mp.date=nd;saveManualPayouts(list);}}
   closePayoutModal();saveAll();renderAccounts();renderStats();
 }
 function deletePayoutEntry(idx){
   const p=(window._payoutList||[])[idx];if(!p)return;
   if(p.source==='account'){const acc=accounts.find(a=>a.id===p.accId);if(acc)acc.history.splice(p.histIdx,1);}
-  else{const a=archived[p.archivedIdx];if(a&&a.payoutHistory)a.payoutHistory.splice(p.payoutHistIdx,1);}
+  else if(p.source==='archived'){const a=archived[p.archivedIdx];if(a&&a.payoutHistory)a.payoutHistory.splice(p.payoutHistIdx,1);}
+  else if(p.source==='manual'){const list=loadManualPayouts();list.splice(p.manualIdx,1);saveManualPayouts(list);}
   saveAll();renderAccounts();renderStats();
 }
 
