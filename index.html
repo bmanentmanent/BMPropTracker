@@ -1665,11 +1665,12 @@ function renderBigDots(acc){
       return`<div style="width:26px;height:26px;border-radius:50%;border:0.5px solid var(--border2);background:var(--bg3)"></div>`;
     }).join('');
   }
-  // Days rule: only winning days count
+  // Days rule: only winning days count — use ALL cycle trades, not just last 5
   const daysReq=cfg.daysReq||DAYS_REQ;
-  const winDays=cycleDays.filter(h=>h.win);
+  const lastPayoutIdx=acc.history.findIndex(h=>h.payout);
+  const allCycleWins=(lastPayoutIdx>=0?acc.history.slice(0,lastPayoutIdx):acc.history).filter(h=>!h.payout&&h.win);
   return Array.from({length:daysReq},(_,i)=>{
-    const filled=i<winDays.length;
+    const filled=i<allCycleWins.length;
     if(filled){
       return`<div style="width:26px;height:26px;border-radius:50%;border:0.5px solid var(--green);background:var(--green);display:flex;align-items:center;justify-content:center;font-size:10px;color:#000;font-family:var(--mono);font-weight:700">✓</div>`;
     }
