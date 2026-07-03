@@ -1309,8 +1309,8 @@ function renderMonthlyHistory(){
     <div class="month-row-grid">
       <div class="month-stat" style="text-align:center"><div class="month-stat-label">Revenus</div><div class="month-stat-val" style="color:var(--green)">+${fmt(curRevenues)} €</div></div>
       <div class="month-stat" style="text-align:center"><div class="month-stat-label">Dépenses</div><div class="month-stat-val" style="color:var(--red)">−${fmt(Math.round(curExpenses))} €</div></div>
-      <div class="month-stat" style="text-align:center"><div class="month-stat-label">Évals achetées</div><div class="month-stat-val">${curEvals||'—'}</div></div>
-      <div class="month-stat" style="text-align:center;grid-column:1/-1"><div class="month-stat-label">Taux conversion eval</div><div class="month-stat-val" style="color:${convColor(curConv)}">${curConv!==null?curConv+'%':'—'}</div></div>
+      <div class="month-stat" style="text-align:center"><div class="month-stat-label">Évals</div><div class="month-stat-val">${curEvals||'—'} <span style="font-size:10px;color:${convColor(curConv)}">${curConv!==null?'· '+curConv+'%':''}</span></div></div>
+      <div class="month-stat" style="text-align:center"><div class="month-stat-label">Marge opé.</div><div class="month-stat-val" style="color:${curRevenues>0?(curNet>=0?'var(--green)':'var(--red)'):'var(--text2)'}">${curRevenues>0?(Math.round(curNet/curRevenues*100)+'%'):'—'}</div></div>
     </div>
     <div style="font-size:9px;color:var(--text3);text-align:center;margin-top:8px">Évals modifiables dans "Dépenses historiques"</div>
   </div>`;
@@ -1332,8 +1332,8 @@ function renderMonthlyHistory(){
       <div class="month-row-grid">
         <div class="month-stat" style="text-align:center"><div class="month-stat-label">Revenus</div><div class="month-stat-val" style="color:var(--green)">+${fmt(h.revenues)} €</div></div>
         <div class="month-stat" style="text-align:center"><div class="month-stat-label">Dépenses</div><div class="month-stat-val" style="color:var(--red)">−${fmt(h.expenses)} €</div></div>
-        <div class="month-stat" style="text-align:center"><div class="month-stat-label">Évals achetées</div><div class="month-stat-val">${evals||'—'}</div></div>
-        <div class="month-stat" style="text-align:center;grid-column:1/-1"><div class="month-stat-label">Taux conversion eval</div><div class="month-stat-val" style="color:${convColor(convRate)}">${convRate!==null?convRate+'%':'—'}</div></div>
+        <div class="month-stat" style="text-align:center"><div class="month-stat-label">Évals</div><div class="month-stat-val">${evals||'—'} <span style="font-size:10px;color:${convColor(convRate)}">${convRate!==null?'· '+convRate+'%':''}</span></div></div>
+        <div class="month-stat" style="text-align:center"><div class="month-stat-label">Marge opé.</div><div class="month-stat-val" style="color:${h.revenues>0?(h.net>=0?'var(--green)':'var(--red)'):'var(--text2)'}">${h.revenues>0?(Math.round(h.net/h.revenues*100)+'%'):'—'}</div></div>
       </div>
       <div class="month-edit-row" style="grid-template-columns:1fr;margin-top:10px">
         <div class="month-edit-group"><label>Revenus (€) — correction</label><input class="setting-input" type="number" id="medit-rev-${realIdx}" value="${h.revenues}" style="width:100%"></div>
