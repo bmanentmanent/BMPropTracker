@@ -984,8 +984,8 @@ function calcPayout(acc,sc,fx){
       ? Math.round(cycleStartBalance+cycleGain*1.2)
       : Math.round(cycleStartBalance+cycleGain);
     if(targetBalance<=th) return null;
-    let payoutAmt=targetBalance*0.5*split;
-    if(cfg.payoutCap&&cfg.payoutCap>0) payoutAmt=Math.min(payoutAmt,cfg.payoutCap/fx);
+    const payoutBrut1=cfg.payoutCap&&cfg.payoutCap>0?Math.min(targetBalance*0.5,cfg.payoutCap):targetBalance*0.5;
+    let payoutAmt=payoutBrut1*split;
     return{tradingDays:null,finalBalance:targetBalance,balanceAfter:Math.round(targetBalance*0.5),payoutEur:Math.round(payoutAmt*fx)};
   }
 
@@ -997,8 +997,8 @@ function calcPayout(acc,sc,fx){
   const netSinceLastPayout=acc.balance-(acc.balanceAtLastPayout||acc.startBalance||10000);
   const netMin=cfg.netMin||0;
   if(netMin>0&&netSinceLastPayout<netMin)return null;
-  let payoutAmt=fb*0.5*split;
-  if(cfg.payoutCap&&cfg.payoutCap>0) payoutAmt=Math.min(payoutAmt,cfg.payoutCap/fx);
+  const payoutBrut2=cfg.payoutCap&&cfg.payoutCap>0?Math.min(fb*0.5,cfg.payoutCap):fb*0.5;
+  let payoutAmt=payoutBrut2*split;
   return{tradingDays:Math.round(td*10)/10,finalBalance:Math.round(fb),balanceAfter:Math.round(fb*0.5),payoutEur:Math.round(payoutAmt*fx)};
 }
 function getSorted(){
@@ -1416,9 +1416,9 @@ function renderFirmSettings(){
         <div class="firm-field" data-rule-field="consistency" id="fs-consist-wrap-${i}"><label>Consistency max (%)</label><input type="number" id="fs-consist-${i}" value="${f.consistencyThreshold||40}" min="1" max="100" step="1"></div>
         <div class="firm-field" data-rule-field="days" id="fs-tp-wrap-${i}"><label>TP moyen ($)</label><input type="number" id="fs-tp-${i}" value="${f.tpAvg||150}" min="1" step="10"></div>
         <div class="firm-field" data-rule-field="days" id="fs-sl-wrap-${i}"><label>SL moyen ($)</label><input type="number" id="fs-sl-${i}" value="${f.slAvg||230}" min="1" step="10"></div>
+        <div class="firm-field"><label>Payout cap ($, 0=illimité)</label><input type="number" id="fs-cap-${i}" value="${f.payoutCap||0}" min="0" step="100"></div>
         <div class="firm-field"><label>Profit split (%)</label><input type="number" id="fs-split-${i}" value="${f.split||90}" min="1" max="100" step="1"></div>
         <div class="firm-field"><label>Prix éval ($)</label><input type="number" id="fs-price-${i}" value="${f.evalPrice||0}" min="0" step="1"></div>
-        <div class="firm-field"><label>Payout cap (€, 0=illimité)</label><input type="number" id="fs-cap-${i}" value="${f.payoutCap||0}" min="0" step="100"></div>
         <div class="firm-field" data-rule-field="days" id="fs-net-wrap-${i}"><label>Profit net min/cycle ($)</label><input type="number" id="fs-net-${i}" value="${f.netMin||0}" min="0" step="100"></div>
         <div class="firm-field"><label>Couleur</label><input type="color" id="fs-color-${i}" value="${f.color}" style="height:34px;padding:2px 4px;width:100%;border-radius:8px;border:0.5px solid var(--border);background:var(--bg3);cursor:pointer"></div>
         <div class="firm-field"><label>Initiales</label><input type="text" id="fs-init-${i}" value="${f.initials||f.name.slice(0,2).toUpperCase()}" maxlength="3" style="text-transform:uppercase"></div>
@@ -1821,7 +1821,7 @@ function renderAccounts(){
         ${acc.hasPayout?`<div style="background:var(--blue-bg);border:0.5px solid rgba(68,136,255,0.2);border-radius:10px;padding:8px 12px;margin-bottom:10px;font-size:11px;color:var(--blue)">Seuil : > ${fmt(acc.payoutBalance)} $ · P&L cycle : ${fmtSign(acc.balance-acc.payoutBalance)} $</div>`:''}
         <div class="acc-exp-grid">
           <div class="acc-exp-stat"><div class="acc-exp-label">Balance</div><div class="acc-exp-val n">${fmt(acc.balance)} $</div></div>
-          <div class="acc-exp-stat"><div class="acc-exp-label">Payout immédiat</div><div class="acc-exp-val g">+${fmt(acc.balance*0.5*((getFirmCfg(acc.firm).split||90)/100)*getFx())} €</div></div>
+          <div class="acc-exp-stat"><div class="acc-exp-label">Payout immédiat</div><div class="acc-exp-val g">+${fmt(Math.round((getFirmCfg(acc.firm).payoutCap>0?Math.min(acc.balance*0.5,getFirmCfg(acc.firm).payoutCap):acc.balance*0.5)*((getFirmCfg(acc.firm).split||90)/100)*getFx()))} €</div></div>
           <div class="acc-exp-stat"><div class="acc-exp-label">Jours tradés</div><div class="acc-exp-val n">${realDays.length}</div></div>
           <div class="acc-exp-stat"><div class="acc-exp-label">Taux réussite</div><div class="acc-exp-val ${wrC}">${winRate!==null?winRate+'%':'—'}</div></div>
           ${payoutEvents.length>0?`<div class="acc-exp-stat" style="grid-column:1/-1;display:flex;justify-content:space-between;align-items:center"><div><div class="acc-exp-label">Payouts encaissés</div><div style="font-size:9px;color:var(--text3)">${payoutEvents.length} payout${payoutEvents.length>1?'s':''}</div></div><div class="acc-exp-val g">+${fmt(payoutEvents.reduce((s,h)=>s+(h.payoutEur||0),0))} €</div></div>`:''}
@@ -2300,8 +2300,8 @@ function doPayout(id){
   const acc=accounts.find(a=>a.id===id);if(!acc)return;
   const cfg=getFirmCfg(acc.firm);
   const split=(cfg.split||90)/100;
-  let payoutAmt=acc.balance*0.5*split;
-  if(cfg.payoutCap&&cfg.payoutCap>0) payoutAmt=Math.min(payoutAmt,cfg.payoutCap/getFx());
+  const payoutBrut3=cfg.payoutCap&&cfg.payoutCap>0?Math.min(acc.balance*0.5,cfg.payoutCap):acc.balance*0.5;
+  let payoutAmt=payoutBrut3*split;
   const eur=Math.round(payoutAmt*getFx());
   const nb=Math.round(acc.balance*0.5);
   const d=new Date();
