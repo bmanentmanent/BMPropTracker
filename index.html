@@ -301,7 +301,8 @@ body { overflow-x: hidden; }
 .color-swatch{width:28px;height:28px;border-radius:8px;border:2px solid var(--border2);cursor:pointer;flex-shrink:0}
 .live-badge{display:inline-flex;align-items:center;gap:3px;background:rgba(255,170,0,0.15);border:0.5px solid rgba(255,170,0,0.4);border-radius:6px;padding:2px 6px;font-size:9px;font-weight:800;color:#ffaa00;letter-spacing:0.06em}
 .btn-live-payout{width:100%;padding:10px;border-radius:10px;border:0.5px solid rgba(255,170,0,0.4);background:rgba(255,170,0,0.1);color:#ffaa00;font-size:13px;font-weight:700;cursor:pointer;font-family:var(--font);margin-bottom:8px}
-.btn-go-live{width:100%;padding:8px;border-radius:10px;border:0.5px dashed var(--border2);background:transparent;color:var(--text3);font-size:11px;cursor:pointer;font-family:var(--font);margin-top:4px}border:0.5px solid var(--border);border-radius:16px;padding:16px 18px;margin-bottom:8px}
+.btn-go-live{width:100%;padding:8px;border-radius:10px;border:0.5px dashed var(--border2);background:transparent;color:var(--text3);font-size:11px;cursor:pointer;font-family:var(--font);margin-top:4px}
+.monthly-chart-card{background:var(--bg2);border:0.5px solid var(--border);border-radius:16px;padding:16px 18px;margin-bottom:8px}
 [data-theme="dark"] .monthly-chart-card{background:var(--glass);backdrop-filter:blur(10px)}
 .month-row{background:var(--bg2);border:0.5px solid var(--border);border-radius:12px;padding:12px 14px;margin-bottom:8px}
 [data-theme="dark"] .month-row{background:var(--glass)}
@@ -536,6 +537,7 @@ body { overflow-x: hidden; }
           <div id="exp-month-selector" style="margin-bottom:12px"></div>
           <div id="eval-rows-container"></div>
           <div class="setting-row"><div class="setting-label">Frais annexes</div><input class="setting-input" type="number" id="misc-expenses" value="" placeholder="0" step="1" oninput="onExpenseInputChange()"><span class="setting-unit">€</span></div>
+          <div class="setting-row"><div class="setting-label">Frais récupérables<small>tréso seulement</small></div><input class="setting-input" type="number" id="misc-recoverable" value="" placeholder="0" step="1" oninput="onExpenseInputChange()"><span class="setting-unit">€</span></div>
           <button id="exp-save-btn" onclick="saveHistoricalMonth()" style="display:none;width:100%;margin-top:10px;padding:9px;background:var(--green-bg);border:0.5px solid var(--border2);border-radius:8px;color:var(--green);font-size:12px;font-weight:600;cursor:pointer;font-family:var(--font)">Enregistrer ce mois</button>
         </div>
       </div>
@@ -627,17 +629,18 @@ body { overflow-x: hidden; }
 </div>
 
 <!-- LIVE PAYOUT MODAL -->
-<div class="modal-overlay" id="live-payout-overlay" onclick="closeLivePayoutModal()"></div>
-<div class="modal" id="live-payout-modal">
-  <div class="modal-title" id="live-payout-title">Payout Live</div>
-  <div class="form-group">
-    <label class="form-label">Montant demandé ($)</label>
-    <input type="number" id="lp-amount" class="form-input" placeholder="0" min="1" step="1">
-  </div>
-  <div style="font-size:10px;color:var(--text3);margin-bottom:12px" id="lp-info"></div>
-  <div style="display:flex;gap:10px">
-    <button onclick="closeLivePayoutModal()" style="flex:1;padding:10px;border-radius:10px;border:0.5px solid var(--border);background:var(--bg3);color:var(--text2);font-size:13px;font-weight:600;cursor:pointer;font-family:var(--font)">Annuler</button>
-    <button onclick="confirmLivePayout()" style="flex:2;padding:10px;border-radius:10px;border:0.5px solid rgba(255,170,0,0.4);background:rgba(255,170,0,0.1);color:#ffaa00;font-size:13px;font-weight:700;cursor:pointer;font-family:var(--font)">Encaisser</button>
+<div class="overlay" id="live-payout-overlay" style="display:none" onclick="if(event.target===this)closeLivePayoutModal()">
+  <div class="modal">
+    <div class="modal-title" id="live-payout-title">Payout Live</div>
+    <div class="form-group">
+      <label class="form-label">Montant demandé ($)</label>
+      <input type="number" id="lp-amount" class="form-input" placeholder="0" min="1" step="1">
+    </div>
+    <div style="font-size:10px;color:var(--text3);margin-bottom:12px" id="lp-info"></div>
+    <div style="display:flex;gap:10px">
+      <button onclick="closeLivePayoutModal()" style="flex:1;padding:10px;border-radius:10px;border:0.5px solid var(--border);background:var(--bg3);color:var(--text2);font-size:13px;font-weight:600;cursor:pointer;font-family:var(--font)">Annuler</button>
+      <button onclick="confirmLivePayout()" style="flex:2;padding:10px;border-radius:10px;border:0.5px solid rgba(255,170,0,0.4);background:rgba(255,170,0,0.1);color:#ffaa00;font-size:13px;font-weight:700;cursor:pointer;font-family:var(--font)">Encaisser</button>
+    </div>
   </div>
 </div>
 
@@ -738,13 +741,15 @@ function saveExpenses(){
     const fx=getFx();
     const raw=localStorage.getItem('pft_expenses');
     const prevExp=raw?JSON.parse(raw):{};
-    // Previous frozen eval total in €
     const prevEvalEur=prevExp.evalEur||0;
     const prevMisc=prevExp.misc||0;
-    const prevTotal=prevEvalEur+prevMisc;
+    const prevRecoverable=prevExp.recoverable||0;
+    const prevTotal=prevEvalEur+prevMisc+prevRecoverable;
 
-    const exp={misc:parseFloat(document.getElementById('misc-expenses').value)||0};
-    // Compute new eval total in € at current fx rate (frozen at time of save)
+    const exp={
+      misc:parseFloat(document.getElementById('misc-expenses').value)||0,
+      recoverable:parseFloat(document.getElementById('misc-recoverable').value)||0,
+    };
     let newEvalEur=0;
     firmsConfig.forEach(f=>{
       const qe=document.getElementById('eval-qty-'+f.name);
@@ -754,7 +759,7 @@ function saveExpenses(){
     });
     exp.evalEur=Math.round(newEvalEur);
 
-    const newTotal=exp.evalEur+exp.misc;
+    const newTotal=exp.evalEur+exp.misc+exp.recoverable;
     const delta=-(newTotal-prevTotal);
     localStorage.setItem('pft_expenses',JSON.stringify(exp));
     if(Math.abs(delta)>0.5) updateTresoBase(Math.round(delta));
@@ -849,7 +854,8 @@ function renderEvalRowsForMonth(monthKey){
       </div>`).join('');
     const me=document.getElementById('misc-expenses');
     if(me)me.value=exp.misc||'';
-    if(saveBtn)saveBtn.style.display='block';
+    const mr=document.getElementById('misc-recoverable');
+    if(mr)mr.value=exp.recoverable||'';
     if(saveBtn)saveBtn.textContent='Enregistrer évals réussies';
   } else {
     // Historical mode — load from firmBreakdown
@@ -874,6 +880,8 @@ function renderEvalRowsForMonth(monthKey){
     }).join('');
     const me=document.getElementById('misc-expenses');
     if(me)me.value=entry?(entry.expenses-Object.values(bd).reduce((s,v)=>s+v.evalsEur,0)):'';
+    const mr=document.getElementById('misc-recoverable');
+    if(mr)mr.value=entry?(entry.recoverable||''):'';
     if(saveBtn)saveBtn.style.display='block';
     if(saveBtn)saveBtn.textContent='Enregistrer ce mois';
   }
@@ -929,7 +937,15 @@ function saveHistoricalMonth(){
     }
   });
   const misc=parseFloat(document.getElementById('misc-expenses').value)||0;
+  const recoverable=parseFloat(document.getElementById('misc-recoverable').value)||0;
   const totalExpenses=evalEurTotal+misc;
+  // Recoverable impacts treso but not the month result — save it separately
+  if(recoverable>0){
+    const prevRec=entry.recoverable||0;
+    const delta=-(recoverable-prevRec);
+    if(Math.abs(delta)>0.5) updateTresoBase(Math.round(delta));
+    entry.recoverable=recoverable;
+  }
   const totalEvalsQty=Object.values(bd).reduce((s,v)=>s+v.evalsQty,0);
 
   entry.firmBreakdown=bd;
@@ -1213,6 +1229,7 @@ function closeCurrentMonth(){
   try{localStorage.removeItem('pft_eval_success_'+prevKey);}catch(e){}
   firmsConfig.forEach(f=>{exp['qty_'+f.name]=0;});
   exp.evalEur=0;
+  exp.recoverable=0;
   try{localStorage.setItem('pft_expenses',JSON.stringify(exp));}catch(e){}
   return true;
 }
@@ -1646,14 +1663,12 @@ function openLivePayoutModal(id){
   document.getElementById('lp-amount').value='';
   document.getElementById('lp-amount').max=acc.balance;
   document.getElementById('lp-info').textContent=`Balance : ${fmt(acc.balance)} $ · Split ${cfg.split||90}% · max encaissable ${fmt(Math.round(acc.balance*split*getFx()))} €`;
-  document.getElementById('live-payout-overlay').classList.add('open');
-  document.getElementById('live-payout-modal').classList.add('open');
+  document.getElementById('live-payout-overlay').style.display='flex';
   setTimeout(()=>document.getElementById('lp-amount').focus(),100);
 }
 function closeLivePayoutModal(){
   livePyId=null;
-  document.getElementById('live-payout-overlay').classList.remove('open');
-  document.getElementById('live-payout-modal').classList.remove('open');
+  document.getElementById('live-payout-overlay').style.display='none';
 }
 function confirmLivePayout(){
   const acc=accounts.find(a=>a.id===livePyId);if(!acc)return;
