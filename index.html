@@ -509,7 +509,12 @@ body { overflow-x: hidden; }
   <div class="page" id="page-stats">
     <div class="page-header" style="padding-top:20px">
       <div class="page-title">Statistiques</div>
-      <button class="theme-btn" onclick="toggleTheme()"><i class="ti ti-sun" id="theme-icon-stats"></i></button>
+      <div style="display:flex;gap:8px">
+        <button class="theme-btn" onclick="exportData()" title="Exporter les données"><i class="ti ti-download"></i></button>
+        <button class="theme-btn" onclick="document.getElementById('import-file').click()" title="Importer les données"><i class="ti ti-upload"></i></button>
+        <input type="file" id="import-file" accept=".json" style="display:none" onchange="importData(this)">
+        <button class="theme-btn" onclick="toggleTheme()"><i class="ti ti-sun" id="theme-icon-stats"></i></button>
+      </div>
     </div>
     <div class="section">
       <div id="global-stats" style="margin-bottom:12px"></div>
@@ -1647,7 +1652,50 @@ function canPayoutCheck(acc){
   if(acc.gainDays<daysReq) return{ok:false,reason:`${acc.gainDays}/${daysReq} jours`};
   return{ok:true,reason:null};
 }
-// ── LIVE ACCOUNT ──
+// ── EXPORT / IMPORT ──
+function exportData(){
+  const keys=[
+    'pft_v11','pft_expenses','pft_firms','pft_monthly','pft_manual_payouts',
+    'pft_hide_amounts','pft_v10'
+  ];
+  // Also grab eval success keys
+  const allKeys=Object.keys(localStorage).filter(k=>k.startsWith('pft_'));
+  const data={};
+  [...new Set([...keys,...allKeys])].forEach(k=>{
+    const v=localStorage.getItem(k);
+    if(v!=null)data[k]=v;
+  });
+  const json=JSON.stringify(data,null,2);
+  const blob=new Blob([json],{type:'application/json'});
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement('a');
+  const date=new Date().toISOString().slice(0,10);
+  a.href=url;
+  a.download=`b2m-tracker-${date}.json`;
+  a.click();
+  URL.revokeObjectURL(url);
+  showToast('✓ Données exportées !');
+}
+function importData(input){
+  const file=input.files[0];
+  if(!file)return;
+  const reader=new FileReader();
+  reader.onload=e=>{
+    try{
+      const data=JSON.parse(e.target.result);
+      if(typeof data!=='object'){showToast('⚠ Fichier invalide');return;}
+      const count=Object.keys(data).length;
+      if(!confirm(`Importer ${count} entrées ? Cela remplacera toutes les données actuelles.`))return;
+      Object.entries(data).forEach(([k,v])=>localStorage.setItem(k,v));
+      showToast('✓ Import réussi — rechargement...');
+      setTimeout(()=>location.reload(),1200);
+    }catch(err){
+      showToast('⚠ Erreur import : '+err.message);
+    }
+  };
+  reader.readAsText(file);
+  input.value='';
+}
 let livePyId=null;
 function goLive(id){
   const acc=accounts.find(a=>a.id===id);if(!acc)return;
