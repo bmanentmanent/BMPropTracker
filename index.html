@@ -913,6 +913,8 @@ function saveHistoricalMonth(){
     // Save success counts only — quantities are already live-saved via saveExpenses()
     try{localStorage.setItem('pft_eval_success_'+currentKey,JSON.stringify(successMap));}catch(e){}
     showToast('✓ Évals réussies enregistrées');
+    renderMonthlyHistory();
+    renderPayoutDistribution();
     renderFirmStats();
     return;
   }
@@ -956,6 +958,13 @@ function saveHistoricalMonth(){
   saveMonthlyHistory(history);
   showToast('✓ '+entry.label+' mis à jour');
   renderMonthlyHistory();
+  // Ensure the monthly history list is visible
+  const listEl=document.getElementById('monthly-history-list');
+  if(listEl&&listEl.style.display==='none'){
+    listEl.style.display='block';
+    const chev=document.getElementById('monthly-history-chev');
+    if(chev)chev.className='ti ti-chevron-up';
+  }
   renderFirmStats();
   renderStats();
 }
