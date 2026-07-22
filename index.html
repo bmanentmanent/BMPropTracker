@@ -299,6 +299,7 @@ body { overflow-x: hidden; }
 .firm-del-btn{background:var(--red-bg,rgba(255,68,102,0.1));border:0.5px solid rgba(255,68,102,0.3);border-radius:8px;color:var(--red);padding:4px 10px;font-size:11px;cursor:pointer;font-family:var(--font);font-weight:600}
 .firm-save-btn{width:100%;margin-top:10px;padding:8px;background:var(--green-bg);border:0.5px solid var(--border2);border-radius:8px;color:var(--green);font-size:12px;font-weight:600;cursor:pointer;font-family:var(--font)}
 .color-swatch{width:28px;height:28px;border-radius:8px;border:2px solid var(--border2);cursor:pointer;flex-shrink:0}
+@keyframes spin{to{transform:rotate(360deg)}}
 .live-badge{display:inline-flex;align-items:center;gap:3px;background:rgba(255,170,0,0.15);border:0.5px solid rgba(255,170,0,0.4);border-radius:6px;padding:2px 6px;font-size:9px;font-weight:800;color:#ffaa00;letter-spacing:0.06em}
 .btn-live-payout{width:100%;padding:10px;border-radius:10px;border:0.5px solid rgba(255,170,0,0.4);background:rgba(255,170,0,0.1);color:#ffaa00;font-size:13px;font-weight:700;cursor:pointer;font-family:var(--font);margin-bottom:8px}
 .btn-go-live{width:100%;padding:8px;border-radius:10px;border:0.5px dashed var(--border2);background:transparent;color:var(--text3);font-size:11px;cursor:pointer;font-family:var(--font);margin-top:4px}
@@ -509,7 +510,9 @@ body { overflow-x: hidden; }
   <div class="page" id="page-stats">
     <div class="page-header" style="padding-top:20px">
       <div class="page-title">Statistiques</div>
-      <div style="display:flex;gap:8px">
+      <div style="display:flex;gap:8px;align-items:center">
+        <i class="ti ti-cloud" id="sync-icon" style="color:var(--text3);font-size:16px;cursor:pointer" onclick="initGistSync()" title="Sync cloud"></i>
+        <button class="theme-btn" onclick="gistPush()" title="Envoyer mes données vers le cloud"><i class="ti ti-cloud-upload"></i></button>
         <button class="theme-btn" onclick="exportData()" title="Exporter les données"><i class="ti ti-download"></i></button>
         <button class="theme-btn" onclick="document.getElementById('import-file').click()" title="Importer les données"><i class="ti ti-upload"></i></button>
         <input type="file" id="import-file" accept=".json" style="display:none" onchange="importData(this)">
@@ -672,7 +675,7 @@ const DEFAULT_FIRMS=[
 function loadFirmsConfig(){
   try{const r=localStorage.getItem('pft_firms');return r?JSON.parse(r):JSON.parse(JSON.stringify(DEFAULT_FIRMS));}catch(e){return JSON.parse(JSON.stringify(DEFAULT_FIRMS));}
 }
-function saveFirmsConfig(firms){try{localStorage.setItem('pft_firms',JSON.stringify(firms));}catch(e){}}
+function saveFirmsConfig(firms){try{localStorage.setItem('pft_firms',JSON.stringify(firms));scheduleSave();}catch(e){}}
 let firmsConfig=loadFirmsConfig();
 
 function getFirmCfg(name){return firmsConfig.find(f=>f.name===name)||{name,color:'#5a6a80',initials:name.slice(0,2).toUpperCase(),split:90,evalPrice:0,payoutCap:0,netMin:0};}
@@ -709,6 +712,7 @@ function saveAll(){
     fxRate:parseFloat(document.getElementById('fx-rate').value)||0.85,
   };
   try{localStorage.setItem('pft_v11',JSON.stringify({accounts,archived,nextId,scConfigs,settings:s,theme:currentTheme}));}catch(e){}
+  scheduleSave();
 }
 function loadAll(){
   try{
@@ -768,6 +772,7 @@ function saveExpenses(){
     const delta=-(newTotal-prevTotal);
     localStorage.setItem('pft_expenses',JSON.stringify(exp));
     if(Math.abs(delta)>0.5) updateTresoBase(Math.round(delta));
+    scheduleSave();
   }catch(e){}
 }
 function loadExpenses(){
@@ -1061,7 +1066,7 @@ function getSorted(){
 function loadManualPayouts(){
   try{const r=localStorage.getItem('pft_manual_payouts');return r?JSON.parse(r):[];}catch(e){return[];}
 }
-function saveManualPayouts(list){try{localStorage.setItem('pft_manual_payouts',JSON.stringify(list));}catch(e){}}
+function saveManualPayouts(list){try{localStorage.setItem('pft_manual_payouts',JSON.stringify(list));scheduleSave();}catch(e){}}
 
 function getAllPayouts(){
   const p=[];
@@ -1139,7 +1144,7 @@ function loadMonthlyHistory(){
   try{const r=localStorage.getItem('pft_monthly');return r?JSON.parse(r):[];}catch(e){return[];}
 }
 function saveMonthlyHistory(history){
-  try{localStorage.setItem('pft_monthly',JSON.stringify(history));}catch(e){}
+  try{localStorage.setItem('pft_monthly',JSON.stringify(history));scheduleSave();}catch(e){}
 }
 function getMonthKey(date){
   return `${date.getFullYear()}-${String(date.getMonth()+1).padStart(2,'0')}`;
@@ -1652,7 +1657,99 @@ function canPayoutCheck(acc){
   if(acc.gainDays<daysReq) return{ok:false,reason:`${acc.gainDays}/${daysReq} jours`};
   return{ok:true,reason:null};
 }
-// ── EXPORT / IMPORT ──
+// ── GIST SYNC ──
+const GIST_ID='f0bbe9338e9e6ab5f42cf69b26b5031e';
+const GIST_FILE='b2m-tracker-data.json';
+let gistToken=localStorage.getItem('pft_gist_token')||'';
+let gistSyncing=false;
+let gistSyncTimeout=null;
+
+function getGistHeaders(){
+  return{'Authorization':'token '+gistToken,'Content-Type':'application/json'};
+}
+
+async function gistLoad(){
+  if(!gistToken)return false;
+  try{
+    const r=await fetch(`https://api.github.com/gists/${GIST_ID}`,{headers:getGistHeaders()});
+    if(!r.ok)return false;
+    const data=await r.json();
+    const content=data.files[GIST_FILE]?.content;
+    if(!content)return false;
+    const parsed=JSON.parse(content);
+    if(!parsed||typeof parsed!=='object')return false;
+    Object.entries(parsed).forEach(([k,v])=>localStorage.setItem(k,v));
+    return true;
+  }catch(e){return false;}
+}
+
+async function gistSave(){
+  if(!gistToken||gistSyncing)return;
+  gistSyncing=true;
+  updateSyncIcon('syncing');
+  try{
+    const allKeys=Object.keys(localStorage).filter(k=>k.startsWith('pft_')&&k!=='pft_gist_token');
+    const data={};
+    allKeys.forEach(k=>{const v=localStorage.getItem(k);if(v!=null)data[k]=v;});
+    const body={files:{[GIST_FILE]:{content:JSON.stringify(data)}}};
+    const r=await fetch(`https://api.github.com/gists/${GIST_ID}`,{
+      method:'PATCH',headers:getGistHeaders(),body:JSON.stringify(body)
+    });
+    updateSyncIcon(r.ok?'ok':'error');
+  }catch(e){updateSyncIcon('error');}
+  gistSyncing=false;
+}
+
+function scheduleSave(){
+  clearTimeout(gistSyncTimeout);
+  gistSyncTimeout=setTimeout(gistSave,2000);
+}
+
+function updateSyncIcon(state){
+  const el=document.getElementById('sync-icon');
+  if(!el)return;
+  if(state==='syncing'){el.className='ti ti-refresh';el.style.color='var(--text3)';el.style.animation='spin 1s linear infinite';}
+  else if(state==='ok'){el.className='ti ti-cloud-check';el.style.color='var(--green)';el.style.animation='';}
+  else{el.className='ti ti-cloud-x';el.style.color='var(--red)';el.style.animation='';}
+}
+
+async function gistPush(){
+  if(!gistToken){
+    const tok=prompt('Token GitHub Gist (ghp_...) :');
+    if(!tok)return;
+    gistToken=tok.trim();
+    localStorage.setItem('pft_gist_token',gistToken);
+  }
+  updateSyncIcon('syncing');
+  showToast('⏳ Envoi vers le cloud...');
+  const allKeys=Object.keys(localStorage).filter(k=>k.startsWith('pft_')&&k!=='pft_gist_token');
+  const data={};
+  allKeys.forEach(k=>{const v=localStorage.getItem(k);if(v!=null)data[k]=v;});
+  try{
+    const body={files:{[GIST_FILE]:{content:JSON.stringify(data)}}};
+    const r=await fetch(`https://api.github.com/gists/${GIST_ID}`,{
+      method:'PATCH',headers:getGistHeaders(),body:JSON.stringify(body)
+    });
+    if(r.ok){updateSyncIcon('ok');showToast('✓ Données envoyées vers le cloud !');}
+    else{updateSyncIcon('error');showToast('⚠ Erreur envoi : '+r.status);}
+  }catch(e){updateSyncIcon('error');showToast('⚠ Erreur réseau');}
+}
+async function initGistSync(){
+  if(!gistToken){
+    // Prompt for token on first use
+    const tok=prompt('Token GitHub Gist (ghp_...) :');
+    if(!tok)return;
+    gistToken=tok.trim();
+    localStorage.setItem('pft_gist_token',gistToken);
+  }
+  updateSyncIcon('syncing');
+  const loaded=await gistLoad();
+  if(loaded){
+    showToast('✓ Données synchronisées depuis le cloud');
+    loadAll();applyTheme(currentTheme);applyAmountsVisibility();renderAccounts();renderDash();setTimeout(loadExpenses,0);setTimeout(initMonthlyHistory,150);
+  }
+  updateSyncIcon(loaded?'ok':'error');
+}
 function exportData(){
   const keys=[
     'pft_v11','pft_expenses','pft_firms','pft_monthly','pft_manual_payouts',
@@ -2523,6 +2620,18 @@ renderAccounts();
 renderDash();
 setTimeout(loadExpenses,0);
 setTimeout(initMonthlyHistory,150);
+// Auto-sync from Gist if token already configured
+async function autoSyncOnLoad(){
+  if(!localStorage.getItem('pft_gist_token'))return;
+  updateSyncIcon('syncing');
+  const loaded=await gistLoad();
+  if(loaded){
+    loadAll();applyTheme(currentTheme);applyAmountsVisibility();renderAccounts();renderDash();setTimeout(loadExpenses,0);setTimeout(initMonthlyHistory,150);
+    showToast('✓ Sync cloud OK');
+  }
+  updateSyncIcon(loaded?'ok':'error');
+}
+setTimeout(autoSyncOnLoad,500);
 </script>
 </body>
 </html>
