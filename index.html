@@ -546,7 +546,7 @@ body { overflow-x: hidden; }
           <div id="eval-rows-container"></div>
           <div class="setting-row"><div class="setting-label">Frais annexes</div><input class="setting-input" type="number" id="misc-expenses" value="" placeholder="0" step="1" oninput="onExpenseInputChange()"><span class="setting-unit">€</span></div>
           <div class="setting-row"><div class="setting-label">Frais récupérables<small>tréso seulement</small></div><input class="setting-input" type="number" id="misc-recoverable" value="" placeholder="0" step="1" oninput="onExpenseInputChange()"><span class="setting-unit">€</span></div>
-          <button id="exp-save-btn" onclick="saveHistoricalMonth()" style="display:none;width:100%;margin-top:10px;padding:9px;background:var(--green-bg);border:0.5px solid var(--border2);border-radius:8px;color:var(--green);font-size:12px;font-weight:600;cursor:pointer;font-family:var(--font)">Enregistrer ce mois</button>
+          <button id="exp-save-btn" onclick="saveHistoricalMonth()" style="width:100%;margin-top:10px;padding:9px;background:var(--green-bg);border:0.5px solid var(--border2);border-radius:8px;color:var(--green);font-size:12px;font-weight:600;cursor:pointer;font-family:var(--font)">Enregistrer</button>
         </div>
       </div>
       <div class="coll-header" id="firm-perf-h" onclick="toggleColl('firm-perf')">
@@ -854,7 +854,7 @@ function renderEvalRowsForMonth(monthKey){
       <div class="setting-row" style="flex-wrap:wrap;justify-content:center;text-align:center">
         <div class="setting-label" style="flex:1 1 100%;text-align:center">Évals ${f.name}<small>${f.evalPrice}$/unité</small></div>
         <div style="display:flex;align-items:center;justify-content:center;gap:6px;margin-top:4px;flex:1">
-          <input class="setting-input" type="number" id="eval-qty-${f.name}" value="${exp['qty_'+f.name]||''}" placeholder="0" min="0" step="1" style="width:55px;text-align:center" oninput="onExpenseInputChange()">
+          <input class="setting-input" type="number" id="eval-qty-${f.name}" value="${exp['qty_'+f.name]||''}" placeholder="0" min="0" step="1" style="width:55px;text-align:center">
           <span class="setting-unit" style="font-size:10px">achetées</span>
         </div>
         <div style="display:flex;align-items:center;justify-content:center;gap:6px;margin-top:4px;flex:1">
@@ -866,7 +866,7 @@ function renderEvalRowsForMonth(monthKey){
     if(me)me.value=exp.misc||'';
     const mr=document.getElementById('misc-recoverable');
     if(mr)mr.value=exp.recoverable||'';
-    if(saveBtn)saveBtn.textContent='Enregistrer évals réussies';
+    if(saveBtn){saveBtn.style.display='block';saveBtn.textContent='Enregistrer';}
   } else {
     // Historical mode — load from firmBreakdown
     const history=loadMonthlyHistory();
@@ -892,8 +892,7 @@ function renderEvalRowsForMonth(monthKey){
     if(me)me.value=entry?(entry.expenses-Object.values(bd).reduce((s,v)=>s+v.evalsEur,0)):'';
     const mr=document.getElementById('misc-recoverable');
     if(mr)mr.value=entry?(entry.recoverable||''):'';
-    if(saveBtn)saveBtn.style.display='block';
-    if(saveBtn)saveBtn.textContent='Enregistrer ce mois';
+    if(saveBtn){saveBtn.style.display='block';saveBtn.textContent='Enregistrer';}
   }
 }
 
@@ -967,8 +966,8 @@ function saveHistoricalMonth(){
 
   saveMonthlyHistory(history);
   showToast('✓ '+entry.label+' mis à jour');
+  // Refresh month history display without touching expense inputs
   renderMonthlyHistory();
-  // Ensure the monthly history list is visible
   const listEl=document.getElementById('monthly-history-list');
   if(listEl&&listEl.style.display==='none'){
     listEl.style.display='block';
@@ -976,7 +975,6 @@ function saveHistoricalMonth(){
     if(chev)chev.className='ti ti-chevron-up';
   }
   renderFirmStats();
-  renderStats();
 }
 function getFx(){return parseFloat(document.getElementById('fx-rate').value)||0.85;}
 function getBase(){
@@ -1019,6 +1017,16 @@ function calcPayout(acc,sc,fx){
   const cfg=getFirmCfg(acc.firm);
   const split=(cfg.split||90)/100;
   const th=(acc.hasPayout&&acc.payoutBalance>0)?acc.payoutBalance:0;
+
+  // Live account — payout = (balance - 100) × split, same for all scenarios
+  if(acc.isLive){
+    if(sc.key==='pes') return null;
+    const available=acc.balance-100;
+    if(available<=0) return null;
+    let payoutAmt=available*split;
+    if(cfg.payoutCap&&cfg.payoutCap>0) payoutAmt=Math.min(available,cfg.payoutCap)*split;
+    return{tradingDays:null,finalBalance:Math.round(acc.balance),balanceAfter:Math.round(acc.balance-available),payoutEur:Math.round(payoutAmt*fx)};
+  }
 
   if((cfg.payoutRule||'days')==='consistency'){
     if(sc.key==='pes') return null;
