@@ -911,7 +911,7 @@ function saveHistoricalMonth(){
   const currentKey=getMonthKey(now);
   const isCurrent=expSelectedMonth===currentKey;
 
-  // Read success counts for all firms regardless of mode
+  // Read success counts for all firms
   const successMap={};
   firmsConfig.forEach(f=>{
     const se=document.getElementById('eval-succ-'+f.name);
@@ -919,9 +919,11 @@ function saveHistoricalMonth(){
   });
 
   if(isCurrent){
-    // Save success counts only — quantities are already live-saved via saveExpenses()
+    // Save quantities to pft_expenses (live)
+    saveExpenses();
+    // Save success counts
     try{localStorage.setItem('pft_eval_success_'+currentKey,JSON.stringify(successMap));}catch(e){}
-    showToast('✓ Évals réussies enregistrées');
+    showToast('✓ Dépenses enregistrées');
     renderMonthlyHistory();
     renderPayoutDistribution();
     renderFirmStats();
