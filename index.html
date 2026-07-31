@@ -933,8 +933,9 @@ function saveHistoricalMonth(){
   const history=loadMonthlyHistory();
   let entry=history.find(h=>h.month===expSelectedMonth);
   if(!entry){
-    showToast('⚠ Mois introuvable');
-    return;
+    // Month not yet in history — create a minimal entry
+    entry={month:expSelectedMonth,label:getMonthLabel(expSelectedMonth),revenues:0,expenses:0,net:0,evalsCount:0,firmBreakdown:{}};
+    history.push(entry);
   }
 
   const bd={};
@@ -1256,10 +1257,13 @@ function closeCurrentMonth(){
   history.push({month:prevKey,label:getMonthLabel(prevKey),revenues,expenses,net,evalsCount,newAccounts,firmBreakdown});
   saveMonthlyHistory(history);
   try{localStorage.removeItem('pft_eval_success_'+prevKey);}catch(e){}
+  // Fully reset current month expenses
   firmsConfig.forEach(f=>{exp['qty_'+f.name]=0;});
   exp.evalEur=0;
+  exp.misc=0;
   exp.recoverable=0;
   try{localStorage.setItem('pft_expenses',JSON.stringify(exp));}catch(e){}
+  expSelectedMonth=getMonthKey(now); // reset selector to new current month
   return true;
 }
 
