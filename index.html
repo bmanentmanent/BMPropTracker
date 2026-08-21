@@ -511,7 +511,6 @@ body { overflow-x: hidden; }
       <div class="page-title">Statistiques</div>
       <div style="display:flex;gap:8px;align-items:center">
         <button class="theme-btn" onclick="exportData()" title="Exporter les données"><i class="ti ti-download"></i></button>
-        <button class="theme-btn" onclick="clearAndImport()" title="Vider et importer" style="color:var(--red)"><i class="ti ti-database-import"></i></button>
         <button class="theme-btn" onclick="document.getElementById('import-file').click()" title="Importer les données"><i class="ti ti-upload"></i></button>
         <input type="file" id="import-file" accept=".json" style="display:none" onchange="importData(this)">
         <button class="theme-btn" onclick="toggleTheme()"><i class="ti ti-sun" id="theme-icon-stats"></i></button>
@@ -1692,8 +1691,7 @@ function canPayoutCheck(acc){
   if(acc.balance<=th) return{ok:false,reason:'Balance insuffisante'};
   // Buffer firm — payout available if balance > cycleStart + buffer
   if(cfg.buffer&&cfg.buffer>0){
-    const cycleStart=acc.balanceAtLastPayout||(acc.startBalance||acc.balance);
-    const floor=cycleStart+cfg.buffer;
+    const floor=cfg.buffer;
     if(acc.balance<=floor) return{ok:false,reason:`Balance ≤ floor (${fmt(floor)} $)`};
     return{ok:true,reason:null};
   }
@@ -2130,7 +2128,7 @@ function renderAccounts(){
       </div>`;
     }
 
-    const payImm=(()=>{const c=getFirmCfg(acc.firm);const hasB=c.buffer&&c.buffer>0;const cs=acc.balanceAtLastPayout||(acc.startBalance||acc.balance);const floor=hasB?cs+c.buffer:0;const av=hasB?Math.max(0,acc.balance-floor):acc.balance*0.5;const br=c.payoutCap&&c.payoutCap>0?Math.min(av,c.payoutCap):av;return Math.round(br*((c.split||90)/100)*getFx());})();
+    const payImm=(()=>{const c=getFirmCfg(acc.firm);const hasB=c.buffer&&c.buffer>0;const floor=hasB?c.buffer:0;const av=hasB?Math.max(0,acc.balance-floor):acc.balance*0.5;const br=c.payoutCap&&c.payoutCap>0?Math.min(av,c.payoutCap):av;return Math.round(br*((c.split||90)/100)*getFx());})();
     const cfg2=getFirmCfg(acc.firm);
     const showBonus=acc.isLive&&cfg2.liveBonusThr>0&&acc.balance>=cfg2.liveBonusThr&&!acc.liveBonusClaimed;
     const bonusBtnHtml=showBonus?`<button class="btn-payout" onclick="claimLiveBonus(${acc.id})" style="margin-bottom:10px;width:100%;background:rgba(255,170,0,0.1);border-color:rgba(255,170,0,0.4);color:#ffaa00"><i class="ti ti-gift" style="font-size:13px;vertical-align:-2px;margin-right:6px"></i>Encaisser bonus (+${fmt(cfg2.liveBonusAmt)}$)</button>`:'';
@@ -2634,8 +2632,7 @@ function doPayout(id){
   const cfg=getFirmCfg(acc.firm);
   const split=(cfg.split||90)/100;
   const hasBuffer=cfg.buffer&&cfg.buffer>0;
-  const cycleStart=acc.balanceAtLastPayout||(acc.startBalance||acc.balance);
-  const floor=hasBuffer?cycleStart+cfg.buffer:0;
+  const floor=hasBuffer?cfg.buffer:0;
   const available=hasBuffer
     ? Math.max(0,acc.balance-floor)
     : acc.balance*0.5;
