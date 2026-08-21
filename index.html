@@ -1501,14 +1501,12 @@ function renderFirmSettings(){
         <div class="firm-field" data-rule-field="days" id="fs-sl-wrap-${i}"><label>SL moyen ($)</label><input type="number" id="fs-sl-${i}" value="${f.slAvg||230}" min="1" step="10"></div>
         <div class="firm-field"><label>Payout cap ($, 0=illimité)</label><input type="number" id="fs-cap-${i}" value="${f.payoutCap||0}" min="0" step="100"></div>
         <div class="firm-field"><label>Buffer ($, 0=désactivé)</label><input type="number" id="fs-buffer-${i}" value="${f.buffer||0}" min="0" step="100"></div>
-        <div class="firm-field"><label>Prix activation ($, 0=aucun)</label><input type="number" id="fs-actprice-${i}" value="${f.activationPrice||0}" min="0" step="1"></div>
         <div class="firm-field"><label>Profit split (%)</label><input type="number" id="fs-split-${i}" value="${f.split||90}" min="1" max="100" step="1"></div>
         <div class="firm-field"><label>Prix éval ($)</label><input type="number" id="fs-price-${i}" value="${f.evalPrice||0}" min="0" step="1"></div>
         <div class="firm-field" data-rule-field="days" id="fs-net-wrap-${i}"><label>Profit net min/cycle ($)</label><input type="number" id="fs-net-${i}" value="${f.netMin||0}" min="0" step="100"></div>
         <div class="firm-field"><label>Couleur</label><input type="color" id="fs-color-${i}" value="${f.color}" style="height:34px;padding:2px 4px;width:100%;border-radius:8px;border:0.5px solid var(--border);background:var(--bg3);cursor:pointer"></div>
         <div class="firm-field"><label>Initiales</label><input type="text" id="fs-init-${i}" value="${f.initials||f.name.slice(0,2).toUpperCase()}" maxlength="3" style="text-transform:uppercase"></div>
         <div class="firm-field" style="grid-column:1/-1;border-top:0.5px solid var(--border);padding-top:8px;margin-top:4px"><label style="color:var(--amber)">Frais activation ($, 0=aucun)</label><input type="number" id="fs-activation-${i}" value="${f.activationPrice||0}" min="0" step="1"></div>
-        <div class="firm-field"><label>Buffer ($, 0=désactivé)</label><input type="number" id="fs-buffer-${i}" value="${f.buffer||0}" min="0" step="100"></div>
         <div class="firm-field" style="grid-column:1/-1;border-top:0.5px solid var(--border);padding-top:8px;margin-top:4px"><label style="color:var(--green)">Bonus Live — seuil ($, 0=désactivé)</label><input type="number" id="fs-bonus-thr-${i}" value="${f.liveBonusThr||0}" min="0" step="100"></div>
         <div class="firm-field"><label>Montant bonus ($)</label><input type="number" id="fs-bonus-amt-${i}" value="${f.liveBonusAmt||0}" min="0" step="100"></div>
       </div>
@@ -1540,14 +1538,12 @@ function saveFirmEdit(i){
     evalPrice:parseFloat(document.getElementById('fs-price-'+i).value)||0,
     payoutCap:parseFloat(document.getElementById('fs-cap-'+i).value)||0,
     buffer:parseFloat(document.getElementById('fs-buffer-'+i).value)||0,
-    activationPrice:parseFloat(document.getElementById('fs-actprice-'+i).value)||0,
     netMin:parseFloat(document.getElementById('fs-net-'+i).value)||0,
     color:document.getElementById('fs-color-'+i).value,
     initials:document.getElementById('fs-init-'+i).value.toUpperCase().slice(0,3)||firmsConfig[i].name.slice(0,2).toUpperCase(),
     liveBonusThr:parseFloat(document.getElementById('fs-bonus-thr-'+i).value)||0,
     liveBonusAmt:parseFloat(document.getElementById('fs-bonus-amt-'+i).value)||0,
     activationPrice:parseFloat(document.getElementById('fs-activation-'+i).value)||0,
-    buffer:parseFloat(document.getElementById('fs-buffer-'+i).value)||0,
   };
   saveFirmsConfig(firmsConfig);
   showToast('✓ '+firmsConfig[i].name+' mis à jour');
@@ -1682,9 +1678,11 @@ function canPayoutCheck(acc){
   const cfg=getFirmCfg(acc.firm);
   const th=(acc.hasPayout&&acc.payoutBalance>0)?acc.payoutBalance:0;
   if(acc.balance<=th) return{ok:false,reason:'Balance insuffisante'};
-  // Buffer firm — payout available if balance > buffer
+  // Buffer firm — payout available if balance > cycleStart + buffer
   if(cfg.buffer&&cfg.buffer>0){
-    if(acc.balance<=cfg.buffer) return{ok:false,reason:`Balance ≤ buffer (${fmt(cfg.buffer)} $)`};
+    const cycleStart=acc.balanceAtLastPayout||(acc.startBalance||acc.balance);
+    const floor=cycleStart+cfg.buffer;
+    if(acc.balance<=floor) return{ok:false,reason:`Balance ≤ floor (${fmt(floor)} $)`};
     return{ok:true,reason:null};
   }
   const rule=cfg.payoutRule||'days';
@@ -2073,10 +2071,6 @@ function renderAccounts(){
     const isTopstep=(getFirmCfg(acc.firm).payoutRule||'days')==='consistency';
     const consistency=isTopstep?getCycleConsistency(acc):null;
     const ct=crashThreshold(acc);
-    const ddRange=(acc.balanceMax||0)-ct;
-    const ddLeft=acc.balance-ct;
-    const ddPct=ddRange>0?Math.max(0,Math.min(100,Math.round(ddLeft/ddRange*100))):100;
-    const ddColor=ddPct>60?'var(--green)':ddPct>30?'var(--amber)':'var(--red)';
     const realDays=acc.history.filter(h=>!h.payout);
     const winDays=realDays.filter(h=>h.win).length;
     const payoutEvents=acc.history.filter(h=>h.payout);
@@ -2114,7 +2108,7 @@ function renderAccounts(){
       </div>`;
     }
 
-    const payImm=(()=>{const c=getFirmCfg(acc.firm);const hasB=c.buffer&&c.buffer>0;const floor=hasB?(acc.startBalance||10000)+c.buffer:0;const av=hasB?Math.max(0,acc.balance-floor):acc.balance*0.5;const br=c.payoutCap&&c.payoutCap>0?Math.min(av,c.payoutCap):av;return Math.round(br*((c.split||90)/100)*getFx());})();
+    const payImm=(()=>{const c=getFirmCfg(acc.firm);const hasB=c.buffer&&c.buffer>0;const cs=acc.balanceAtLastPayout||(acc.startBalance||acc.balance);const floor=hasB?cs+c.buffer:0;const av=hasB?Math.max(0,acc.balance-floor):acc.balance*0.5;const br=c.payoutCap&&c.payoutCap>0?Math.min(av,c.payoutCap):av;return Math.round(br*((c.split||90)/100)*getFx());})();
     const cfg2=getFirmCfg(acc.firm);
     const showBonus=acc.isLive&&cfg2.liveBonusThr>0&&acc.balance>=cfg2.liveBonusThr&&!acc.liveBonusClaimed;
     const bonusBtnHtml=showBonus?`<button class="btn-payout" onclick="claimLiveBonus(${acc.id})" style="margin-bottom:10px;width:100%;background:rgba(255,170,0,0.1);border-color:rgba(255,170,0,0.4);color:#ffaa00"><i class="ti ti-gift" style="font-size:13px;vertical-align:-2px;margin-right:6px"></i>Encaisser bonus (+${fmt(cfg2.liveBonusAmt)}$)</button>`:'';
@@ -2140,8 +2134,6 @@ function renderAccounts(){
           <div class="acc-exp-stat"><div class="acc-exp-label">Taux réussite</div><div class="acc-exp-val ${wrC}">${winRate!==null?winRate+'%':'—'}</div></div>
           ${payoutEvents.length>0?`<div class="acc-exp-stat" style="grid-column:1/-1;display:flex;justify-content:space-between;align-items:center"><div><div class="acc-exp-label">Payouts encaissés</div><div style="font-size:9px;color:var(--text3)">${payoutEvents.length} payout${payoutEvents.length>1?'s':''}</div></div><div class="acc-exp-val g">+${fmt(payoutEvents.reduce((s,h)=>s+(h.payoutEur||0),0))} €</div></div>`:''}
         </div>
-        <div style="font-size:10px;color:var(--text2);margin-bottom:5px;display:flex;justify-content:space-between"><span>Drawdown</span><span style="font-family:var(--mono)">${fmt(ddLeft)} $ / ${fmt(ddRange)} $</span></div>
-        <div class="dd-bar" style="margin-bottom:12px"><div class="dd-fill" style="width:${ddPct}%;background:${ddColor}"></div></div>
         ${acc.isLive?'':`<div style="font-size:10px;color:var(--text2);margin-bottom:8px">${(getFirmCfg(acc.firm).payoutRule||'days')==='consistency'?`Consistency — ${consistency!==null?consistency+'%':'—'} · seuil < ${getFirmCfg(acc.firm).consistencyThreshold||40}%`:`Jours de gain — ${acc.gainDays}/${getFirmCfg(acc.firm).daysReq||DAYS_REQ} · seuil ${getFirmCfg(acc.firm).winThr||150} $`}</div>
         <div class="acc-dots" style="gap:6px;margin-bottom:12px">${isTopstep?'':renderBigDots(acc)}</div>`}
         ${acc.isLive
@@ -2620,7 +2612,8 @@ function doPayout(id){
   const cfg=getFirmCfg(acc.firm);
   const split=(cfg.split||90)/100;
   const hasBuffer=cfg.buffer&&cfg.buffer>0;
-  const floor=hasBuffer?(acc.startBalance||10000)+cfg.buffer:0;
+  const cycleStart=acc.balanceAtLastPayout||(acc.startBalance||acc.balance);
+  const floor=hasBuffer?cycleStart+cfg.buffer:0;
   const available=hasBuffer
     ? Math.max(0,acc.balance-floor)
     : acc.balance*0.5;
@@ -2656,7 +2649,7 @@ function saveAccount(){
   const payoutBalance=hasPayout?parseFloat(document.getElementById('f-payout-balance').value)||0:0;
   if(hasPayout&&!payoutBalance)return;
   if(editingId){const idx=accounts.findIndex(a=>a.id===editingId);accounts[idx]={...accounts[idx],firm,balance,gainDays:days,hasPayout,payoutBalance:hasPayout?payoutBalance:0};}
-  else accounts.push({id:nextId++,firm,balance,gainDays:days,hasPayout,payoutBalance:hasPayout?payoutBalance:0,cycleCount:hasPayout?2:1,history:[],balanceMax:balance});
+  else accounts.push({id:nextId++,firm,balance,gainDays:days,hasPayout,payoutBalance:hasPayout?payoutBalance:0,cycleCount:hasPayout?2:1,history:[],balanceMax:balance,startBalance:balance});
   closeModal();saveAll();renderAccounts();
 }
 
