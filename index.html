@@ -2114,7 +2114,7 @@ function renderAccounts(){
       </div>`;
     }
 
-    const payImm=(()=>{const c=getFirmCfg(acc.firm);const hasB=c.buffer&&c.buffer>0;const av=hasB?Math.max(0,acc.balance-c.buffer):acc.balance*0.5;const br=c.payoutCap&&c.payoutCap>0?Math.min(av,c.payoutCap):av;return Math.round(br*((c.split||90)/100)*getFx());})();
+    const payImm=(()=>{const c=getFirmCfg(acc.firm);const hasB=c.buffer&&c.buffer>0;const floor=hasB?(acc.startBalance||10000)+c.buffer:0;const av=hasB?Math.max(0,acc.balance-floor):acc.balance*0.5;const br=c.payoutCap&&c.payoutCap>0?Math.min(av,c.payoutCap):av;return Math.round(br*((c.split||90)/100)*getFx());})();
     const cfg2=getFirmCfg(acc.firm);
     const showBonus=acc.isLive&&cfg2.liveBonusThr>0&&acc.balance>=cfg2.liveBonusThr&&!acc.liveBonusClaimed;
     const bonusBtnHtml=showBonus?`<button class="btn-payout" onclick="claimLiveBonus(${acc.id})" style="margin-bottom:10px;width:100%;background:rgba(255,170,0,0.1);border-color:rgba(255,170,0,0.4);color:#ffaa00"><i class="ti ti-gift" style="font-size:13px;vertical-align:-2px;margin-right:6px"></i>Encaisser bonus (+${fmt(cfg2.liveBonusAmt)}$)</button>`:'';
@@ -2620,8 +2620,9 @@ function doPayout(id){
   const cfg=getFirmCfg(acc.firm);
   const split=(cfg.split||90)/100;
   const hasBuffer=cfg.buffer&&cfg.buffer>0;
+  const floor=hasBuffer?(acc.startBalance||10000)+cfg.buffer:0;
   const available=hasBuffer
-    ? Math.max(0,acc.balance-cfg.buffer)
+    ? Math.max(0,acc.balance-floor)
     : acc.balance*0.5;
   const payoutBrut3=cfg.payoutCap&&cfg.payoutCap>0?Math.min(available,cfg.payoutCap):available;
   let payoutAmt=payoutBrut3*split;
