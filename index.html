@@ -299,7 +299,6 @@ body { overflow-x: hidden; }
 .firm-del-btn{background:var(--red-bg,rgba(255,68,102,0.1));border:0.5px solid rgba(255,68,102,0.3);border-radius:8px;color:var(--red);padding:4px 10px;font-size:11px;cursor:pointer;font-family:var(--font);font-weight:600}
 .firm-save-btn{width:100%;margin-top:10px;padding:8px;background:var(--green-bg);border:0.5px solid var(--border2);border-radius:8px;color:var(--green);font-size:12px;font-weight:600;cursor:pointer;font-family:var(--font)}
 .color-swatch{width:28px;height:28px;border-radius:8px;border:2px solid var(--border2);cursor:pointer;flex-shrink:0}
-@keyframes spin{to{transform:rotate(360deg)}}
 .live-badge{display:inline-flex;align-items:center;gap:3px;background:rgba(255,170,0,0.15);border:0.5px solid rgba(255,170,0,0.4);border-radius:6px;padding:2px 6px;font-size:9px;font-weight:800;color:#ffaa00;letter-spacing:0.06em}
 .btn-live-payout{width:100%;padding:10px;border-radius:10px;border:0.5px solid rgba(255,170,0,0.4);background:rgba(255,170,0,0.1);color:#ffaa00;font-size:13px;font-weight:700;cursor:pointer;font-family:var(--font);margin-bottom:8px}
 .btn-go-live{width:100%;padding:8px;border-radius:10px;border:0.5px dashed var(--border2);background:transparent;color:var(--text3);font-size:11px;cursor:pointer;font-family:var(--font);margin-top:4px}
@@ -511,9 +510,6 @@ body { overflow-x: hidden; }
     <div class="page-header" style="padding-top:20px">
       <div class="page-title">Statistiques</div>
       <div style="display:flex;gap:8px;align-items:center">
-        <i class="ti ti-cloud" id="sync-icon" style="color:var(--text3);font-size:16px;cursor:pointer" onclick="initGistSync()" title="Sync cloud"></i>
-        <button class="theme-btn" onclick="changeGistToken()" title="Changer le token cloud"><i class="ti ti-key"></i></button>
-        <button class="theme-btn" onclick="gistPush()" title="Envoyer mes données vers le cloud"><i class="ti ti-cloud-upload"></i></button>
         <button class="theme-btn" onclick="exportData()" title="Exporter les données"><i class="ti ti-download"></i></button>
         <button class="theme-btn" onclick="clearAndImport()" title="Vider et importer" style="color:var(--red)"><i class="ti ti-database-import"></i></button>
         <button class="theme-btn" onclick="document.getElementById('import-file').click()" title="Importer les données"><i class="ti ti-upload"></i></button>
@@ -693,7 +689,7 @@ const DEFAULT_FIRMS=[
 function loadFirmsConfig(){
   try{const r=localStorage.getItem('pft_firms');return r?JSON.parse(r):JSON.parse(JSON.stringify(DEFAULT_FIRMS));}catch(e){return JSON.parse(JSON.stringify(DEFAULT_FIRMS));}
 }
-function saveFirmsConfig(firms){try{localStorage.setItem('pft_firms',JSON.stringify(firms));scheduleSave();}catch(e){}}
+function saveFirmsConfig(firms){try{localStorage.setItem('pft_firms',JSON.stringify(firms));}catch(e){}}
 let firmsConfig=loadFirmsConfig();
 
 function getFirmCfg(name){return firmsConfig.find(f=>f.name===name)||{name,color:'#5a6a80',initials:name.slice(0,2).toUpperCase(),split:90,evalPrice:0,payoutCap:0,netMin:0};}
@@ -730,7 +726,6 @@ function saveAll(){
     fxRate:parseFloat(document.getElementById('fx-rate').value)||0.85,
   };
   try{localStorage.setItem('pft_v11',JSON.stringify({accounts,archived,nextId,scConfigs,settings:s,theme:currentTheme}));}catch(e){}
-  scheduleSave();
 }
 function loadAll(){
   try{
@@ -794,8 +789,7 @@ function saveExpenses(){
     const delta=-(newTotal-prevTotal);
     localStorage.setItem('pft_expenses',JSON.stringify(exp));
     if(Math.abs(delta)>0.5) updateTresoBase(Math.round(delta));
-    scheduleSave();
-  }catch(e){}
+      }catch(e){}
 }
 function loadExpenses(){
   try{
@@ -1111,7 +1105,7 @@ function getSorted(){
 function loadManualPayouts(){
   try{const r=localStorage.getItem('pft_manual_payouts');return r?JSON.parse(r):[];}catch(e){return[];}
 }
-function saveManualPayouts(list){try{localStorage.setItem('pft_manual_payouts',JSON.stringify(list));scheduleSave();}catch(e){}}
+function saveManualPayouts(list){try{localStorage.setItem('pft_manual_payouts',JSON.stringify(list));}catch(e){}}
 
 function getAllPayouts(){
   const p=[];
@@ -1189,7 +1183,7 @@ function loadMonthlyHistory(){
   try{const r=localStorage.getItem('pft_monthly');return r?JSON.parse(r):[];}catch(e){return[];}
 }
 function saveMonthlyHistory(history){
-  try{localStorage.setItem('pft_monthly',JSON.stringify(history));scheduleSave();}catch(e){}
+  try{localStorage.setItem('pft_monthly',JSON.stringify(history));}catch(e){}
 }
 function getMonthKey(date){
   return `${date.getFullYear()}-${String(date.getMonth()+1).padStart(2,'0')}`;
@@ -1818,7 +1812,7 @@ async function initGistSync(){
 function exportData(){
   const keys=[
     'pft_v11','pft_expenses','pft_firms','pft_monthly','pft_manual_payouts',
-    'pft_hide_amounts','pft_v10'
+    'pft_hide_amounts'
   ];
   // Also grab eval success keys
   const allKeys=Object.keys(localStorage).filter(k=>k.startsWith('pft_'));
@@ -2716,8 +2710,6 @@ function clearAndImport(){
   localStorage.clear();
   document.getElementById('import-file').click();
 }
-// Auto-sync on load disabled — use ☁️ button to sync manually
-// setTimeout(autoSyncOnLoad,500);
 </script>
 </body>
 </html>
