@@ -512,6 +512,7 @@ body { overflow-x: hidden; }
       <div class="page-title">Statistiques</div>
       <div style="display:flex;gap:8px;align-items:center">
         <i class="ti ti-cloud" id="sync-icon" style="color:var(--text3);font-size:16px;cursor:pointer" onclick="initGistSync()" title="Sync cloud"></i>
+        <button class="theme-btn" onclick="changeGistToken()" title="Changer le token cloud"><i class="ti ti-key"></i></button>
         <button class="theme-btn" onclick="gistPush()" title="Envoyer mes données vers le cloud"><i class="ti ti-cloud-upload"></i></button>
         <button class="theme-btn" onclick="exportData()" title="Exporter les données"><i class="ti ti-download"></i></button>
         <button class="theme-btn" onclick="document.getElementById('import-file').click()" title="Importer les données"><i class="ti ti-upload"></i></button>
@@ -1774,9 +1775,16 @@ async function gistPush(){
     else{updateSyncIcon('error');showToast('⚠ Erreur envoi : '+r.status);}
   }catch(e){updateSyncIcon('error');showToast('⚠ Erreur réseau');}
 }
+function changeGistToken(){
+  const tok=prompt('Nouveau token GitHub (ghp_...) :');
+  if(!tok)return;
+  gistToken=tok.trim();
+  localStorage.setItem('pft_gist_token',gistToken);
+  showToast('✓ Token mis à jour');
+  initGistSync();
+}
 async function initGistSync(){
   if(!gistToken){
-    // Prompt for token on first use
     const tok=prompt('Token GitHub Gist (ghp_...) :');
     if(!tok)return;
     gistToken=tok.trim();
