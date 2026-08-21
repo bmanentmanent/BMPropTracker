@@ -667,10 +667,10 @@ const DAYS_REQ=5,DD_AMT=2000;
 
 // ── FIRMS CONFIG (dynamic) ──
 const DEFAULT_FIRMS=[
-  {name:'Topstep',   color:'#4488ff',initials:'TS',split:90,evalPrice:111,payoutCap:0,netMin:0,payoutRule:'consistency',consistencyThreshold:40,daysReq:5,winThr:150,tpAvg:150,slAvg:230,pWin:70,liveBonusThr:0,liveBonusAmt:0},
-  {name:'Lucid',     color:'#a259ff',initials:'LT',split:90,evalPrice:95, payoutCap:0,netMin:0,payoutRule:'days',       consistencyThreshold:40,daysReq:5,winThr:150,tpAvg:150,slAvg:230,pWin:60,liveBonusThr:0,liveBonusAmt:0},
-  {name:'MyFundedFX',color:'#ff9900',initials:'MF',split:90,evalPrice:127,payoutCap:0,netMin:0,payoutRule:'days',       consistencyThreshold:40,daysReq:5,winThr:150,tpAvg:150,slAvg:230,pWin:60,liveBonusThr:0,liveBonusAmt:0},
-  {name:'Tradeify',  color:'#00ff87',initials:'TD',split:90,evalPrice:98, payoutCap:0,netMin:0,payoutRule:'days',       consistencyThreshold:40,daysReq:5,winThr:150,tpAvg:150,slAvg:230,pWin:60,liveBonusThr:0,liveBonusAmt:0},
+  {name:'Topstep',   color:'#4488ff',initials:'TS',split:90,evalPrice:111,payoutCap:0,netMin:0,payoutRule:'consistency',consistencyThreshold:40,daysReq:5,winThr:150,tpAvg:150,slAvg:230,pWin:70,liveBonusThr:0,liveBonusAmt:0,activationPrice:0,buffer:0},
+  {name:'Lucid',     color:'#a259ff',initials:'LT',split:90,evalPrice:95, payoutCap:0,netMin:0,payoutRule:'days',       consistencyThreshold:40,daysReq:5,winThr:150,tpAvg:150,slAvg:230,pWin:60,liveBonusThr:0,liveBonusAmt:0,activationPrice:0,buffer:0},
+  {name:'MyFundedFX',color:'#ff9900',initials:'MF',split:90,evalPrice:127,payoutCap:0,netMin:0,payoutRule:'days',       consistencyThreshold:40,daysReq:5,winThr:150,tpAvg:150,slAvg:230,pWin:60,liveBonusThr:0,liveBonusAmt:0,activationPrice:0,buffer:0},
+  {name:'Tradeify',  color:'#00ff87',initials:'TD',split:90,evalPrice:98, payoutCap:0,netMin:0,payoutRule:'days',       consistencyThreshold:40,daysReq:5,winThr:150,tpAvg:150,slAvg:230,pWin:60,liveBonusThr:0,liveBonusAmt:0,activationPrice:0,buffer:0},
 ];
 function loadFirmsConfig(){
   try{const r=localStorage.getItem('pft_firms');return r?JSON.parse(r):JSON.parse(JSON.stringify(DEFAULT_FIRMS));}catch(e){return JSON.parse(JSON.stringify(DEFAULT_FIRMS));}
@@ -762,9 +762,13 @@ function saveExpenses(){
     let newEvalEur=0;
     firmsConfig.forEach(f=>{
       const qe=document.getElementById('eval-qty-'+f.name);
+      const se=document.getElementById('eval-succ-'+f.name);
       const qty=qe?parseFloat(qe.value)||0:0;
+      const succ=se?parseFloat(se.value)||0:0;
       exp['qty_'+f.name]=qty;
+      exp['succ_'+f.name]=succ;
       newEvalEur+=qty*(f.evalPrice||0)*fx;
+      newEvalEur+=succ*(f.activationPrice||0)*fx;
     });
     exp.evalEur=Math.round(newEvalEur);
 
@@ -799,7 +803,11 @@ function getExpensesEur(){
   } else {
     const fx=getFx();
     let usd=0;
-    firmsConfig.forEach(f=>{usd+=(f.evalPrice||0)*(exp['qty_'+f.name]||0);});
+    firmsConfig.forEach(f=>{
+      const qty=exp['qty_'+f.name]||0;
+      const succ=exp['succ_'+f.name]||0;
+      usd+=qty*(f.evalPrice||0)+succ*(f.activationPrice||0);
+    });
     evalEur=Math.round(usd*fx);
   }
   const misc=exp.misc||0;
@@ -945,7 +953,7 @@ function saveHistoricalMonth(){
     const qty=qe?parseFloat(qe.value)||0:0;
     const succ=successMap[f.name]||0;
     if(qty>0||succ>0){
-      const eur=Math.round(qty*(f.evalPrice||0)*getFx());
+      const eur=Math.round((qty*(f.evalPrice||0)+succ*(f.activationPrice||0))*getFx());
       bd[f.name]={evalsQty:qty,evalsSuccess:succ,evalsEur:eur};
       evalEurTotal+=eur;
     }
@@ -1060,6 +1068,14 @@ function calcPayout(acc,sc,fx){
   const netSinceLastPayout=acc.balance-(acc.balanceAtLastPayout||acc.startBalance||10000);
   const netMin=cfg.netMin||0;
   if(netMin>0&&netSinceLastPayout<netMin)return null;
+  // Buffer firm — no projection, just current available amount
+  if(cfg.buffer&&cfg.buffer>0){
+    if(sc.key==='pes') return null;
+    // No projection for buffer firms — return null for all scenarios
+    return null;
+  }
+
+  // Standard payout amount calc (no buffer)
   const payoutBrut2=cfg.payoutCap&&cfg.payoutCap>0?Math.min(fb*0.5,cfg.payoutCap):fb*0.5;
   let payoutAmt=payoutBrut2*split;
   return{tradingDays:Math.round(td*10)/10,finalBalance:Math.round(fb),balanceAfter:Math.round(fb*0.5),payoutEur:Math.round(payoutAmt*fx)};
@@ -1251,7 +1267,7 @@ function closeCurrentMonth(){
   firmsConfig.forEach(f=>{
     const qty=exp['qty_'+f.name]||0;
     const succ=succMap[f.name]||0;
-    const eur=Math.round(qty*(f.evalPrice||0)*getFx());
+    const eur=Math.round((qty*(f.evalPrice||0)+succ*(f.activationPrice||0))*getFx());
     if(qty>0||succ>0) firmBreakdown[f.name]={evalsQty:qty,evalsSuccess:succ,evalsEur:eur};
   });
   history.push({month:prevKey,label:getMonthLabel(prevKey),revenues,expenses,net,evalsCount,newAccounts,firmBreakdown});
@@ -1484,11 +1500,15 @@ function renderFirmSettings(){
         <div class="firm-field" data-rule-field="days" id="fs-tp-wrap-${i}"><label>TP moyen ($)</label><input type="number" id="fs-tp-${i}" value="${f.tpAvg||150}" min="1" step="10"></div>
         <div class="firm-field" data-rule-field="days" id="fs-sl-wrap-${i}"><label>SL moyen ($)</label><input type="number" id="fs-sl-${i}" value="${f.slAvg||230}" min="1" step="10"></div>
         <div class="firm-field"><label>Payout cap ($, 0=illimité)</label><input type="number" id="fs-cap-${i}" value="${f.payoutCap||0}" min="0" step="100"></div>
+        <div class="firm-field"><label>Buffer ($, 0=désactivé)</label><input type="number" id="fs-buffer-${i}" value="${f.buffer||0}" min="0" step="100"></div>
+        <div class="firm-field"><label>Prix activation ($, 0=aucun)</label><input type="number" id="fs-actprice-${i}" value="${f.activationPrice||0}" min="0" step="1"></div>
         <div class="firm-field"><label>Profit split (%)</label><input type="number" id="fs-split-${i}" value="${f.split||90}" min="1" max="100" step="1"></div>
         <div class="firm-field"><label>Prix éval ($)</label><input type="number" id="fs-price-${i}" value="${f.evalPrice||0}" min="0" step="1"></div>
         <div class="firm-field" data-rule-field="days" id="fs-net-wrap-${i}"><label>Profit net min/cycle ($)</label><input type="number" id="fs-net-${i}" value="${f.netMin||0}" min="0" step="100"></div>
         <div class="firm-field"><label>Couleur</label><input type="color" id="fs-color-${i}" value="${f.color}" style="height:34px;padding:2px 4px;width:100%;border-radius:8px;border:0.5px solid var(--border);background:var(--bg3);cursor:pointer"></div>
         <div class="firm-field"><label>Initiales</label><input type="text" id="fs-init-${i}" value="${f.initials||f.name.slice(0,2).toUpperCase()}" maxlength="3" style="text-transform:uppercase"></div>
+        <div class="firm-field" style="grid-column:1/-1;border-top:0.5px solid var(--border);padding-top:8px;margin-top:4px"><label style="color:var(--amber)">Frais activation ($, 0=aucun)</label><input type="number" id="fs-activation-${i}" value="${f.activationPrice||0}" min="0" step="1"></div>
+        <div class="firm-field"><label>Buffer ($, 0=désactivé)</label><input type="number" id="fs-buffer-${i}" value="${f.buffer||0}" min="0" step="100"></div>
         <div class="firm-field" style="grid-column:1/-1;border-top:0.5px solid var(--border);padding-top:8px;margin-top:4px"><label style="color:var(--green)">Bonus Live — seuil ($, 0=désactivé)</label><input type="number" id="fs-bonus-thr-${i}" value="${f.liveBonusThr||0}" min="0" step="100"></div>
         <div class="firm-field"><label>Montant bonus ($)</label><input type="number" id="fs-bonus-amt-${i}" value="${f.liveBonusAmt||0}" min="0" step="100"></div>
       </div>
@@ -1519,11 +1539,15 @@ function saveFirmEdit(i){
     split:parseFloat(document.getElementById('fs-split-'+i).value)||90,
     evalPrice:parseFloat(document.getElementById('fs-price-'+i).value)||0,
     payoutCap:parseFloat(document.getElementById('fs-cap-'+i).value)||0,
+    buffer:parseFloat(document.getElementById('fs-buffer-'+i).value)||0,
+    activationPrice:parseFloat(document.getElementById('fs-actprice-'+i).value)||0,
     netMin:parseFloat(document.getElementById('fs-net-'+i).value)||0,
     color:document.getElementById('fs-color-'+i).value,
     initials:document.getElementById('fs-init-'+i).value.toUpperCase().slice(0,3)||firmsConfig[i].name.slice(0,2).toUpperCase(),
     liveBonusThr:parseFloat(document.getElementById('fs-bonus-thr-'+i).value)||0,
     liveBonusAmt:parseFloat(document.getElementById('fs-bonus-amt-'+i).value)||0,
+    activationPrice:parseFloat(document.getElementById('fs-activation-'+i).value)||0,
+    buffer:parseFloat(document.getElementById('fs-buffer-'+i).value)||0,
   };
   saveFirmsConfig(firmsConfig);
   showToast('✓ '+firmsConfig[i].name+' mis à jour');
@@ -1658,6 +1682,11 @@ function canPayoutCheck(acc){
   const cfg=getFirmCfg(acc.firm);
   const th=(acc.hasPayout&&acc.payoutBalance>0)?acc.payoutBalance:0;
   if(acc.balance<=th) return{ok:false,reason:'Balance insuffisante'};
+  // Buffer firm — payout available if balance > buffer
+  if(cfg.buffer&&cfg.buffer>0){
+    if(acc.balance<=cfg.buffer) return{ok:false,reason:`Balance ≤ buffer (${fmt(cfg.buffer)} $)`};
+    return{ok:true,reason:null};
+  }
   const rule=cfg.payoutRule||'days';
   if(rule==='consistency'){
     const threshold=cfg.consistencyThreshold||40;
@@ -1666,7 +1695,6 @@ function canPayoutCheck(acc){
     if(consistency>=threshold) return{ok:false,reason:`Consistency ${consistency}% ≥ ${threshold}%`};
     return{ok:true,reason:null};
   }
-  // days rule
   const daysReq=cfg.daysReq||DAYS_REQ;
   if(acc.gainDays<daysReq) return{ok:false,reason:`${acc.gainDays}/${daysReq} jours`};
   return{ok:true,reason:null};
@@ -2086,6 +2114,7 @@ function renderAccounts(){
       </div>`;
     }
 
+    const payImm=(()=>{const c=getFirmCfg(acc.firm);const hasB=c.buffer&&c.buffer>0;const av=hasB?Math.max(0,acc.balance-c.buffer):acc.balance*0.5;const br=c.payoutCap&&c.payoutCap>0?Math.min(av,c.payoutCap):av;return Math.round(br*((c.split||90)/100)*getFx());})();
     const cfg2=getFirmCfg(acc.firm);
     const showBonus=acc.isLive&&cfg2.liveBonusThr>0&&acc.balance>=cfg2.liveBonusThr&&!acc.liveBonusClaimed;
     const bonusBtnHtml=showBonus?`<button class="btn-payout" onclick="claimLiveBonus(${acc.id})" style="margin-bottom:10px;width:100%;background:rgba(255,170,0,0.1);border-color:rgba(255,170,0,0.4);color:#ffaa00"><i class="ti ti-gift" style="font-size:13px;vertical-align:-2px;margin-right:6px"></i>Encaisser bonus (+${fmt(cfg2.liveBonusAmt)}$)</button>`:'';
@@ -2106,7 +2135,7 @@ function renderAccounts(){
         ${acc.hasPayout&&!acc.isLive?`<div style="background:var(--blue-bg);border:0.5px solid rgba(68,136,255,0.2);border-radius:10px;padding:8px 12px;margin-bottom:10px;font-size:11px;color:var(--blue)">Seuil : > ${fmt(acc.payoutBalance)} $ · P&L cycle : ${fmtSign(acc.balance-acc.payoutBalance)} $</div>`:''}
         <div class="acc-exp-grid">
           <div class="acc-exp-stat"><div class="acc-exp-label">Balance</div><div class="acc-exp-val n">${fmt(acc.balance)} $</div></div>
-          <div class="acc-exp-stat"><div class="acc-exp-label">Payout immédiat</div><div class="acc-exp-val g">+${fmt(Math.round((getFirmCfg(acc.firm).payoutCap>0?Math.min(acc.balance*0.5,getFirmCfg(acc.firm).payoutCap):acc.balance*0.5)*((getFirmCfg(acc.firm).split||90)/100)*getFx()))} €</div></div>
+          <div class="acc-exp-stat"><div class="acc-exp-label">Payout immédiat</div><div class="acc-exp-val g">+${fmt(payImm)} €</div></div>
           <div class="acc-exp-stat"><div class="acc-exp-label">Jours tradés</div><div class="acc-exp-val n">${realDays.length}</div></div>
           <div class="acc-exp-stat"><div class="acc-exp-label">Taux réussite</div><div class="acc-exp-val ${wrC}">${winRate!==null?winRate+'%':'—'}</div></div>
           ${payoutEvents.length>0?`<div class="acc-exp-stat" style="grid-column:1/-1;display:flex;justify-content:space-between;align-items:center"><div><div class="acc-exp-label">Payouts encaissés</div><div style="font-size:9px;color:var(--text3)">${payoutEvents.length} payout${payoutEvents.length>1?'s':''}</div></div><div class="acc-exp-val g">+${fmt(payoutEvents.reduce((s,h)=>s+(h.payoutEur||0),0))} €</div></div>`:''}
@@ -2590,14 +2619,18 @@ function doPayout(id){
   const acc=accounts.find(a=>a.id===id);if(!acc)return;
   const cfg=getFirmCfg(acc.firm);
   const split=(cfg.split||90)/100;
-  const payoutBrut3=cfg.payoutCap&&cfg.payoutCap>0?Math.min(acc.balance*0.5,cfg.payoutCap):acc.balance*0.5;
+  const hasBuffer=cfg.buffer&&cfg.buffer>0;
+  const available=hasBuffer
+    ? Math.max(0,acc.balance-cfg.buffer)
+    : acc.balance*0.5;
+  const payoutBrut3=cfg.payoutCap&&cfg.payoutCap>0?Math.min(available,cfg.payoutCap):available;
   let payoutAmt=payoutBrut3*split;
   const eur=Math.round(payoutAmt*getFx());
-  const nb=Math.round(acc.balance*0.5);
+  const balanceAfter=hasBuffer?Math.round(acc.balance-payoutBrut3):Math.round(acc.balance*0.5);
   const d=new Date();
   acc.history.unshift({date:d.toLocaleDateString('fr-FR',{day:'2-digit',month:'2-digit'}),payout:true,payoutEur:eur,win:false});
-  acc.hasPayout=true;acc.payoutBalance=nb;acc.cycleCount=(acc.cycleCount||1)+1;acc.gainDays=0;acc.balance=nb;
-  acc.balanceAtLastPayout=nb;
+  acc.hasPayout=true;acc.payoutBalance=balanceAfter;acc.cycleCount=(acc.cycleCount||1)+1;acc.gainDays=0;acc.balance=balanceAfter;
+  acc.balanceAtLastPayout=balanceAfter;
   updateTresoBase(eur);
   saveAll();renderAccounts();
 }
