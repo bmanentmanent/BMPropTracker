@@ -515,6 +515,7 @@ body { overflow-x: hidden; }
         <button class="theme-btn" onclick="changeGistToken()" title="Changer le token cloud"><i class="ti ti-key"></i></button>
         <button class="theme-btn" onclick="gistPush()" title="Envoyer mes données vers le cloud"><i class="ti ti-cloud-upload"></i></button>
         <button class="theme-btn" onclick="exportData()" title="Exporter les données"><i class="ti ti-download"></i></button>
+        <button class="theme-btn" onclick="clearAndImport()" title="Vider et importer" style="color:var(--red)"><i class="ti ti-database-import"></i></button>
         <button class="theme-btn" onclick="document.getElementById('import-file').click()" title="Importer les données"><i class="ti ti-upload"></i></button>
         <input type="file" id="import-file" accept=".json" style="display:none" onchange="importData(this)">
         <button class="theme-btn" onclick="toggleTheme()"><i class="ti ti-sun" id="theme-icon-stats"></i></button>
@@ -2676,12 +2677,28 @@ setTimeout(initMonthlyHistory,150);
 async function autoSyncOnLoad(){
   if(!localStorage.getItem('pft_gist_token'))return;
   updateSyncIcon('syncing');
-  const loaded=await gistLoad();
-  if(loaded){
+  try{
+    const r=await fetch(`https://api.github.com/gists/${GIST_ID}`,{headers:getGistHeaders()});
+    if(!r.ok){updateSyncIcon('error');return;}
+    const data=await r.json();
+    const content=data.files[GIST_FILE]?.content;
+    // Don't overwrite local data if Gist is empty
+    if(!content||content==='{}'||content.length<100){
+      updateSyncIcon('ok');
+      return;
+    }
+    const parsed=JSON.parse(content);
+    if(!parsed||typeof parsed!=='object'){updateSyncIcon('error');return;}
+    Object.entries(parsed).forEach(([k,v])=>localStorage.setItem(k,v));
     loadAll();applyTheme(currentTheme);applyAmountsVisibility();renderAccounts();renderDash();setTimeout(loadExpenses,0);setTimeout(initMonthlyHistory,150);
     showToast('✓ Sync cloud OK');
-  }
-  updateSyncIcon(loaded?'ok':'error');
+    updateSyncIcon('ok');
+  }catch(e){updateSyncIcon('error');}
+}
+function clearAndImport(){
+  if(!confirm('Vider toutes les données locales et importer un fichier JSON ?'))return;
+  localStorage.clear();
+  document.getElementById('import-file').click();
 }
 setTimeout(autoSyncOnLoad,500);
 </script>
