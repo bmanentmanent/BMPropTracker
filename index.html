@@ -1831,7 +1831,10 @@ function importData(input){
       if(typeof data!=='object'){showToast('⚠ Fichier invalide');return;}
       const count=Object.keys(data).length;
       if(!confirm(`Importer ${count} entrées ? Cela remplacera toutes les données actuelles.`))return;
-      Object.entries(data).forEach(([k,v])=>localStorage.setItem(k,v));
+      // Remove gist token from import to avoid using a potentially old/revoked token
+      Object.entries(data).forEach(([k,v])=>{
+        if(k!=='pft_gist_token') localStorage.setItem(k,v);
+      });
       showToast('✓ Import réussi — rechargement...');
       setTimeout(()=>location.reload(),1200);
     }catch(err){
