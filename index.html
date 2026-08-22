@@ -2260,8 +2260,10 @@ function submitSheet(){
     if(isNaN(val))return;
     const isWin=val>=(getFirmCfg(acc.firm).winThr||150);
 
-    // If a payout was recorded today, the P&L for today is already baked in — skip
-    const todayPayoutExists=acc.history.some(h=>h.payout&&h.date===dateStr);
+    // If a payout was recorded today on a non-buffer account, skip (P&L already baked in)
+    const cfg2=getFirmCfg(acc.firm);
+    const hasBuffer=cfg2.buffer&&cfg2.buffer>0;
+    const todayPayoutExists=!hasBuffer&&acc.history.some(h=>h.payout&&h.date===dateStr);
     if(todayPayoutExists) return;
 
     // Find last payout to scope search to current cycle only
