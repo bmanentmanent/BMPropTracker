@@ -375,6 +375,9 @@ body { overflow-x: hidden; }
   box-shadow: 0 4px 20px var(--green-dim);
 }
 .sheet-submit:active { opacity: 0.85; transform: scale(0.98); }
+.sheet-tabs { display:flex; gap:6px; padding:12px 20px 0; }
+.sheet-tab { flex:1; padding:9px; border-radius:10px; border:0.5px solid var(--border); background:var(--bg3); color:var(--text2); font-size:12px; font-weight:700; cursor:pointer; font-family:var(--font); }
+.sheet-tab.active { background:var(--green-bg); border-color:var(--border2); color:var(--green); }
 
 /* ── MODAL ── */
 .overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.7); z-index: 100; align-items: flex-end; justify-content: center; backdrop-filter: blur(4px); }
@@ -595,8 +598,14 @@ body { overflow-x: hidden; }
 <div class="sheet" id="sheet">
   <div class="sheet-handle"></div>
   <div class="sheet-title">Saisir ma journée</div>
+  <div class="sheet-tabs">
+    <button class="sheet-tab active" id="sheet-tab-pnl" onclick="setSheetMode('pnl')">P&L</button>
+    <button class="sheet-tab" id="sheet-tab-evals" onclick="setSheetMode('evals')">Achat d'évaluations</button>
+  </div>
   <div id="sheet-accounts"></div>
-  <button class="sheet-submit" onclick="submitSheet()">Valider tous les P&L</button>
+  <div id="sheet-evals" style="display:none"></div>
+  <button class="sheet-submit" id="sheet-submit-pnl" onclick="submitSheet()">Valider tous les P&L</button>
+  <button class="sheet-submit" id="sheet-submit-evals" onclick="submitEvalPurchases()" style="display:none">Ajouter les évals</button>
 </div>
 
 <!-- ACCOUNT MODAL -->
@@ -2209,8 +2218,61 @@ function deleteHistEntry(accId,idx){
 }
 
 // ── DAILY SHEET ──
+function setSheetMode(mode){
+  const isPnl=mode==='pnl';
+  document.getElementById('sheet-tab-pnl').classList.toggle('active',isPnl);
+  document.getElementById('sheet-tab-evals').classList.toggle('active',!isPnl);
+  document.getElementById('sheet-accounts').style.display=isPnl?'block':'none';
+  document.getElementById('sheet-evals').style.display=isPnl?'none':'block';
+  document.getElementById('sheet-submit-pnl').style.display=isPnl?'block':'none';
+  document.getElementById('sheet-submit-evals').style.display=isPnl?'none':'block';
+  if(!isPnl)renderEvalPurchaseList();
+}
+function renderEvalPurchaseList(){
+  let exp={};try{const r=localStorage.getItem('pft_expenses');if(r)exp=JSON.parse(r);}catch(e){}
+  document.getElementById('sheet-evals').innerHTML=firmsConfig.map(f=>{
+    const cur=exp['qty_'+f.name]||0;
+    return`<div class="sheet-account">
+      ${firmAvatar(f.name,34)}
+      <div class="sheet-acc-info">
+        <div class="sheet-acc-name">${f.name}</div>
+        <div class="sheet-acc-meta">${cur} acheté${cur>1?'es':'e'} ce mois · ${f.evalPrice||0} $/éval</div>
+      </div>
+      <div class="sheet-acc-input">
+        <input class="sheet-input" type="number" id="sheet-evq-${f.name}" placeholder="+ évals" min="0" step="1">
+      </div>
+    </div>`;
+  }).join('');
+}
+function submitEvalPurchases(){
+  const fx=getFx();
+  let exp={};try{const r=localStorage.getItem('pft_expenses');if(r)exp=JSON.parse(r);}catch(e){}
+  let addedCost=0,addedQty=0;
+  firmsConfig.forEach(f=>{
+    const inp=document.getElementById('sheet-evq-'+f.name);
+    const n=inp?Math.max(0,Math.floor(parseFloat(inp.value)||0)):0;
+    if(n>0){
+      exp['qty_'+f.name]=(exp['qty_'+f.name]||0)+n;
+      addedCost+=n*(f.evalPrice||0)*fx;
+      addedQty+=n;
+    }
+  });
+  if(addedQty===0){showToast('⚠ Aucune éval saisie');return;}
+  const costEur=Math.round(addedCost);
+  exp.evalEur=(exp.evalEur||0)+costEur;
+  try{localStorage.setItem('pft_expenses',JSON.stringify(exp));}catch(e){}
+  updateTresoBase(-costEur);
+  // Refresh the expenses inputs if the current month is the one displayed
+  const curKey=getMonthKey(new Date());
+  if(expSelectedMonth===null||expSelectedMonth===curKey)renderEvalRowsForMonth(curKey);
+  closeSheet();
+  renderDash();
+  try{renderStats();}catch(e){}
+  showToast('✓ '+addedQty+' éval'+(addedQty>1?'s':'')+' ajoutée'+(addedQty>1?'s':'')+' au mois');
+}
 function openSheet(){
-  if(accounts.length===0){openModal();return;}
+  setSheetMode('pnl');
+  if(accounts.length===0){document.getElementById('sheet-accounts').innerHTML='<div class="empty" style="padding:20px 0">Aucun compte actif.</div>';document.getElementById('sheet-overlay').classList.add('open');document.getElementById('sheet').classList.add('open');return;}
   const block=document.getElementById('sheet-accounts');
   const todayStr=new Date().toLocaleDateString('fr-FR',{day:'2-digit',month:'2-digit'});
   block.innerHTML=accounts.map(acc=>{
