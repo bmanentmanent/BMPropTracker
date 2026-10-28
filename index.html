@@ -695,7 +695,18 @@ const DEFAULT_FIRMS=[
   {name:'Tradeify',  color:'#00ff87',initials:'TD',split:90,evalPrice:98, payoutCap:0,netMin:0,payoutRule:'days',       consistencyThreshold:40,daysReq:5,winThr:150,tpAvg:150,slAvg:230,pWin:60,liveBonusThr:0,liveBonusAmt:0,activationPrice:0,buffer:0},
 ];
 function loadFirmsConfig(){
-  try{const r=localStorage.getItem('pft_firms');return r?JSON.parse(r):JSON.parse(JSON.stringify(DEFAULT_FIRMS));}catch(e){return JSON.parse(JSON.stringify(DEFAULT_FIRMS));}
+  let firms;
+  try{const r=localStorage.getItem('pft_firms');firms=r?JSON.parse(r):JSON.parse(JSON.stringify(DEFAULT_FIRMS));}catch(e){firms=JSON.parse(JSON.stringify(DEFAULT_FIRMS));}
+  // One-time migration: firms already using a buffer had no days/consistency condition -> keep that behaviour ("none")
+  try{
+    if(!localStorage.getItem('pft_buffer_mig')){
+      let changed=false;
+      firms.forEach(f=>{if(f.buffer>0&&(f.payoutRule||'days')!=='none'){f.payoutRule='none';changed=true;}});
+      if(changed)localStorage.setItem('pft_firms',JSON.stringify(firms));
+      localStorage.setItem('pft_buffer_mig','1');
+    }
+  }catch(e){}
+  return firms;
 }
 function saveFirmsConfig(firms){try{localStorage.setItem('pft_firms',JSON.stringify(firms));}catch(e){}}
 let firmsConfig=loadFirmsConfig();
@@ -1058,6 +1069,9 @@ function calcPayout(acc,sc,fx){
     if(cfg.payoutCap&&cfg.payoutCap>0) payoutAmt=Math.min(available,cfg.payoutCap)*split;
     return{tradingDays:null,finalBalance:Math.round(acc.balance),balanceAfter:Math.round(acc.balance-available),payoutEur:Math.round(payoutAmt*fx)};
   }
+
+  // Buffer firms (any rule): no projection in the treso scenarios
+  if(cfg.buffer&&cfg.buffer>0) return null;
 
   if((cfg.payoutRule||'days')==='consistency'){
     if(sc.key==='pes') return null;
@@ -1512,6 +1526,7 @@ function renderFirmSettings(){
           <select id="fs-rule-${i}" onchange="toggleFirmRuleFields(${i})" style="background:var(--bg3);border:0.5px solid var(--border);border-radius:8px;padding:7px 10px;color:var(--text1);font-size:12px;width:100%">
             <option value="days" ${(f.payoutRule||'days')==='days'?'selected':''}>Jours de gain</option>
             <option value="consistency" ${f.payoutRule==='consistency'?'selected':''}>Consistency</option>
+            <option value="none" ${f.payoutRule==='none'?'selected':''}>Aucune condition (buffer seul)</option>
           </select>
         </div>
         <div class="firm-field" data-rule-field="days" id="fs-days-wrap-${i}"><label>Jours requis</label><input type="number" id="fs-days-${i}" value="${f.daysReq||5}" min="1" max="20" step="1"></div>
@@ -1694,16 +1709,8 @@ function getCycleConsistency(acc){
 }
 
 // Returns {ok, reason} for payout eligibility
-function canPayoutCheck(acc){
-  const cfg=getFirmCfg(acc.firm);
-  const th=(acc.hasPayout&&acc.payoutBalance>0)?acc.payoutBalance:0;
-  if(acc.balance<=th) return{ok:false,reason:'Balance insuffisante'};
-  // Buffer firm — payout available if balance > cycleStart + buffer
-  if(cfg.buffer&&cfg.buffer>0){
-    const floor=cfg.buffer;
-    if(acc.balance<=floor) return{ok:false,reason:`Balance ≤ floor (${fmt(floor)} $)`};
-    return{ok:true,reason:null};
-  }
+// Eligibility from the payout RULE only (days / consistency / none)
+function ruleCheck(acc,cfg){
   const rule=cfg.payoutRule||'days';
   if(rule==='consistency'){
     const threshold=cfg.consistencyThreshold||40;
@@ -1712,117 +1719,58 @@ function canPayoutCheck(acc){
     if(consistency>=threshold) return{ok:false,reason:`Consistency ${consistency}% ≥ ${threshold}%`};
     return{ok:true,reason:null};
   }
-  const daysReq=cfg.daysReq||DAYS_REQ;
-  if(acc.gainDays<daysReq) return{ok:false,reason:`${acc.gainDays}/${daysReq} jours`};
+  if(rule==='days'){
+    const daysReq=cfg.daysReq||DAYS_REQ;
+    if(acc.gainDays<daysReq) return{ok:false,reason:`${acc.gainDays}/${daysReq} jours`};
+  }
   return{ok:true,reason:null};
 }
-// ── GIST SYNC ──
-const GIST_ID='f0bbe9338e9e6ab5f42cf69b26b5031e';
-const GIST_FILE='b2m-tracker-data.json';
-let gistToken=localStorage.getItem('pft_gist_token')||'';
-let gistSyncing=false;
-let gistSyncTimeout=null;
-
-function getGistHeaders(){
-  return{'Authorization':'token '+gistToken,'Content-Type':'application/json'};
+// Returns {ok, reason}: the rule decides WHEN, the buffer (if any) decides there is something above it
+function canPayoutCheck(acc){
+  const cfg=getFirmCfg(acc.firm);
+  const hasBuffer=cfg.buffer&&cfg.buffer>0;
+  const th=(!hasBuffer&&acc.hasPayout&&acc.payoutBalance>0)?acc.payoutBalance:0;
+  if(acc.balance<=th) return{ok:false,reason:'Balance insuffisante'};
+  const rc=ruleCheck(acc,cfg);
+  if(!rc.ok) return rc;
+  if(hasBuffer&&acc.balance<=cfg.buffer) return{ok:false,reason:`Balance ≤ buffer (${fmt(cfg.buffer)} $)`};
+  return{ok:true,reason:null};
 }
-
-async function gistLoad(){
-  if(!gistToken)return false;
-  try{
-    const r=await fetch(`https://api.github.com/gists/${GIST_ID}`,{headers:getGistHeaders()});
-    if(!r.ok)return false;
-    const data=await r.json();
-    const content=data.files[GIST_FILE]?.content;
-    if(!content)return false;
-    const parsed=JSON.parse(content);
-    if(!parsed||typeof parsed!=='object')return false;
-    Object.entries(parsed).forEach(([k,v])=>localStorage.setItem(k,v));
-    return true;
-  }catch(e){return false;}
-}
-
-async function gistSave(){
-  if(!gistToken||gistSyncing)return;
-  gistSyncing=true;
-  updateSyncIcon('syncing');
-  try{
-    const allKeys=Object.keys(localStorage).filter(k=>k.startsWith('pft_')&&k!=='pft_gist_token');
-    const data={};
-    allKeys.forEach(k=>{const v=localStorage.getItem(k);if(v!=null)data[k]=v;});
-    const body={files:{[GIST_FILE]:{content:JSON.stringify(data)}}};
-    const r=await fetch(`https://api.github.com/gists/${GIST_ID}`,{
-      method:'PATCH',headers:getGistHeaders(),body:JSON.stringify(body)
-    });
-    updateSyncIcon(r.ok?'ok':'error');
-  }catch(e){updateSyncIcon('error');}
-  gistSyncing=false;
-}
-
-function scheduleSave(){
-  clearTimeout(gistSyncTimeout);
-  gistSyncTimeout=setTimeout(gistSave,2000);
-}
-
-function updateSyncIcon(state){
-  const el=document.getElementById('sync-icon');
-  if(!el)return;
-  if(state==='syncing'){el.className='ti ti-refresh';el.style.color='var(--text3)';el.style.animation='spin 1s linear infinite';}
-  else if(state==='ok'){el.className='ti ti-cloud-check';el.style.color='var(--green)';el.style.animation='';}
-  else{el.className='ti ti-cloud-x';el.style.color='var(--red)';el.style.animation='';}
-}
-
-async function gistPush(){
-  if(!gistToken){
-    const tok=prompt('Token GitHub Gist (ghp_...) :');
-    if(!tok)return;
-    gistToken=tok.trim();
-    localStorage.setItem('pft_gist_token',gistToken);
+// Short progress text shown under the balance
+function accProgressText(acc,verbose){
+  const cfg=getFirmCfg(acc.firm);
+  const rule=cfg.payoutRule||'days';
+  const buf=cfg.buffer&&cfg.buffer>0;
+  if(rule==='none') return buf?(acc.balance>cfg.buffer?'Payout dispo':'Sous le buffer'):'—';
+  if(buf&&ruleCheck(acc,cfg).ok&&acc.balance<=cfg.buffer) return 'Sous le buffer';
+  if(rule==='consistency'){
+    const c=getCycleConsistency(acc);
+    return c!==null?(verbose?c+'%<'+(cfg.consistencyThreshold||40)+'%':c+'%'):'—';
   }
-  updateSyncIcon('syncing');
-  showToast('⏳ Envoi vers le cloud...');
-  const allKeys=Object.keys(localStorage).filter(k=>k.startsWith('pft_')&&k!=='pft_gist_token');
-  const data={};
-  allKeys.forEach(k=>{const v=localStorage.getItem(k);if(v!=null)data[k]=v;});
-  try{
-    const body={files:{[GIST_FILE]:{content:JSON.stringify(data)}}};
-    const r=await fetch(`https://api.github.com/gists/${GIST_ID}`,{
-      method:'PATCH',headers:getGistHeaders(),body:JSON.stringify(body)
-    });
-    if(r.ok){updateSyncIcon('ok');showToast('✓ Données envoyées vers le cloud !');}
-    else{updateSyncIcon('error');showToast('⚠ Erreur envoi : '+r.status);}
-  }catch(e){updateSyncIcon('error');showToast('⚠ Erreur réseau');}
+  return acc.gainDays+'/'+(cfg.daysReq||DAYS_REQ)+(verbose?'j':'');
 }
-function changeGistToken(){
-  const tok=prompt('Nouveau token GitHub (ghp_...) :');
-  if(!tok)return;
-  gistToken=tok.trim();
-  localStorage.setItem('pft_gist_token',gistToken);
-  showToast('✓ Token mis à jour');
-  initGistSync();
-}
-async function initGistSync(){
-  if(!gistToken){
-    const tok=prompt('Token GitHub Gist (ghp_...) :');
-    if(!tok)return;
-    gistToken=tok.trim();
-    localStorage.setItem('pft_gist_token',gistToken);
+// Rule + buffer info lines of the expanded card
+function ruleInfoHtml(acc,consistency){
+  const cfg=getFirmCfg(acc.firm);
+  const rule=cfg.payoutRule||'days';
+  const st='font-size:10px;color:var(--text2);margin-bottom:8px';
+  let out='';
+  if(rule==='consistency') out+=`<div style="${st}">Consistency — ${consistency!==null?consistency+'%':'—'} · seuil < ${cfg.consistencyThreshold||40}%</div>`;
+  else if(rule==='days') out+=`<div style="${st}">Jours de gain — ${acc.gainDays}/${cfg.daysReq||DAYS_REQ} · seuil ${cfg.winThr||150} $</div>`;
+  if(cfg.buffer>0){
+    const dispo=Math.max(0,acc.balance-cfg.buffer);
+    out+=`<div style="${st}">Buffer — ${fmt(cfg.buffer)} $ · disponible ${fmt(dispo)} $${cfg.payoutCap>0?' (cap '+fmt(cfg.payoutCap)+' $)':''}</div>`;
   }
-  updateSyncIcon('syncing');
-  const loaded=await gistLoad();
-  if(loaded){
-    showToast('✓ Données synchronisées depuis le cloud');
-    loadAll();applyTheme(currentTheme);applyAmountsVisibility();renderAccounts();renderDash();setTimeout(loadExpenses,0);setTimeout(initMonthlyHistory,150);
-  }
-  updateSyncIcon(loaded?'ok':'error');
+  return out;
 }
+// ── EXPORT / IMPORT ──
 function exportData(){
   const keys=[
     'pft_v11','pft_expenses','pft_firms','pft_monthly','pft_manual_payouts',
     'pft_hide_amounts'
   ];
   // Also grab eval success keys
-  const allKeys=Object.keys(localStorage).filter(k=>k.startsWith('pft_'));
+  const allKeys=Object.keys(localStorage).filter(k=>k.startsWith('pft_')&&k!=='pft_gist_token');
   const data={};
   [...new Set([...keys,...allKeys])].forEach(k=>{
     const v=localStorage.getItem(k);
@@ -1849,7 +1797,7 @@ function importData(input){
       if(typeof data!=='object'){showToast('⚠ Fichier invalide');return;}
       const count=Object.keys(data).length;
       if(!confirm(`Importer ${count} entrées ? Cela remplacera toutes les données actuelles.`))return;
-      // Remove gist token from import to avoid using a potentially old/revoked token
+      // Ignore the obsolete cloud-sync token that older exports may contain
       Object.entries(data).forEach(([k,v])=>{
         if(k!=='pft_gist_token') localStorage.setItem(k,v);
       });
@@ -2079,7 +2027,7 @@ function renderDash(){
         <div class="acc-info"><div class="acc-name">${acc.firm}${acc.isLive?` <span class="live-badge"><i class="ti ti-circle-filled" style="font-size:6px"></i>LIVE</span>`:''}</div><div class="acc-meta">Cycle ${acc.cycleCount||1} · ${getFirmCfg(acc.firm).split||90}% split</div></div>
         <div class="acc-right">
           <div class="acc-balance">${amountsHidden?"•••• $":fmt(acc.balance)+" $"}</div>
-          <div class="acc-days" style="justify-content:center;font-weight:600"><span style="font-size:10px;font-family:var(--mono);color:${canPayoutCheck(acc).ok?'var(--green)':'var(--text2)'}">${(getFirmCfg(acc.firm).payoutRule||'days')==='consistency'?(getCycleConsistency(acc)!==null?getCycleConsistency(acc)+'%':'—'):(acc.gainDays+'/'+(getFirmCfg(acc.firm).daysReq||DAYS_REQ))}</span></div>
+          <div class="acc-days" style="justify-content:center;font-weight:600"><span style="font-size:10px;font-family:var(--mono);color:${canPayoutCheck(acc).ok?'var(--green)':'var(--text2)'}">${accProgressText(acc)}</span></div>
         </div>
       </div>
     </div>`;
@@ -2098,6 +2046,7 @@ function renderAccounts(){
     const payoutStatus=canPayoutCheck(acc);
     const canP=payoutStatus.ok;
     const isTopstep=(getFirmCfg(acc.firm).payoutRule||'days')==='consistency';
+    const showDots=(getFirmCfg(acc.firm).payoutRule||'days')==='days';
     const consistency=isTopstep?getCycleConsistency(acc):null;
     const ct=crashThreshold(acc);
     const realDays=acc.history.filter(h=>!h.payout);
@@ -2150,7 +2099,7 @@ function renderAccounts(){
         </div>
         <div class="acc-right">
           <div class="acc-balance">${fmt(acc.balance)} $</div>
-          <div class="acc-days" style="justify-content:center;font-weight:600"><span style="font-size:10px;font-family:var(--mono);color:${acc.isLive?(acc.balance>0?"var(--green)":"var(--text2)"):(canPayoutCheck(acc).ok?"var(--green)":"var(--text2)")}">${acc.isLive?(acc.balance>0?"Payout dispo":"En cours"):((getFirmCfg(acc.firm).payoutRule||"days")==="consistency"?(getCycleConsistency(acc)!==null?getCycleConsistency(acc)+"%":"—"):(acc.gainDays+"/"+(getFirmCfg(acc.firm).daysReq||DAYS_REQ)))}</span></div>
+          <div class="acc-days" style="justify-content:center;font-weight:600"><span style="font-size:10px;font-family:var(--mono);color:${acc.isLive?(acc.balance>0?"var(--green)":"var(--text2)"):(canPayoutCheck(acc).ok?"var(--green)":"var(--text2)")}">${acc.isLive?(acc.balance>0?"Payout dispo":"En cours"):accProgressText(acc)}</span></div>
         </div>
       </div>
       <div class="acc-expanded">
@@ -2163,8 +2112,8 @@ function renderAccounts(){
           <div class="acc-exp-stat"><div class="acc-exp-label">Taux réussite</div><div class="acc-exp-val ${wrC}">${winRate!==null?winRate+'%':'—'}</div></div>
           ${payoutEvents.length>0?`<div class="acc-exp-stat" style="grid-column:1/-1;display:flex;justify-content:space-between;align-items:center"><div><div class="acc-exp-label">Payouts encaissés</div><div style="font-size:9px;color:var(--text3)">${payoutEvents.length} payout${payoutEvents.length>1?'s':''}</div></div><div class="acc-exp-val g">+${fmt(payoutEvents.reduce((s,h)=>s+(h.payoutEur||0),0))} €</div></div>`:''}
         </div>
-        ${acc.isLive?'':`<div style="font-size:10px;color:var(--text2);margin-bottom:8px">${(getFirmCfg(acc.firm).payoutRule||'days')==='consistency'?`Consistency — ${consistency!==null?consistency+'%':'—'} · seuil < ${getFirmCfg(acc.firm).consistencyThreshold||40}%`:`Jours de gain — ${acc.gainDays}/${getFirmCfg(acc.firm).daysReq||DAYS_REQ} · seuil ${getFirmCfg(acc.firm).winThr||150} $`}</div>
-        <div class="acc-dots" style="gap:6px;margin-bottom:12px">${isTopstep?'':renderBigDots(acc)}</div>`}
+        ${acc.isLive?'':`${ruleInfoHtml(acc,consistency)}
+        <div class="acc-dots" style="gap:6px;margin-bottom:12px">${showDots?renderBigDots(acc):''}</div>`}
         ${acc.isLive
           ? `${acc.balance>0?`<button class="btn-live-payout" onclick="openLivePayoutModal(${acc.id})"><i class="ti ti-cash" style="font-size:13px;vertical-align:-2px;margin-right:6px"></i>Encaisser un payout</button>`:''}
              ${bonusBtnHtml}`
@@ -2277,13 +2226,15 @@ function openSheet(){
   const todayStr=new Date().toLocaleDateString('fr-FR',{day:'2-digit',month:'2-digit'});
   block.innerHTML=accounts.map(acc=>{
     // Find today's entry if already exists
-    const todayEntry=acc.history.find(h=>!h.payout&&h.date===todayStr);
+    const lastPIdx=acc.history.findIndex(h=>h.payout);
+    const curCycle=lastPIdx>=0?acc.history.slice(0,lastPIdx):acc.history;
+    const todayEntry=curCycle.find(h=>!h.payout&&h.date===todayStr);
     const prefill=todayEntry?todayEntry.val:'';
     const inputStyle=todayEntry?(todayEntry.val>=0?'color:var(--green)':'color:var(--red)'):'';
     // Cycle dots
     const cycleDays=getCycleDays(acc);
     const sheetCfg=getFirmCfg(acc.firm);
-    const sheetDotsCount=(sheetCfg.payoutRule||'days')==='consistency'?5:(sheetCfg.daysReq||DAYS_REQ);
+    const sheetDotsCount=(sheetCfg.payoutRule||'days')==='days'?(sheetCfg.daysReq||DAYS_REQ):5;
     const dots=Array.from({length:sheetDotsCount},(_,i)=>{
       const entry=cycleDays[i];
       if(entry){const c=entry.win?'var(--green)':'var(--red)';return`<div style="width:8px;height:8px;border-radius:50%;background:${c}"></div>`;}
@@ -2295,7 +2246,7 @@ function openSheet(){
         <div class="sheet-acc-name">${acc.firm}</div>
         <div class="sheet-acc-meta" style="display:flex;align-items:center;gap:8px">
           <span>${fmt(acc.balance)} $</span>
-          <span style="color:${canPayoutCheck(acc).ok?'var(--green)':'var(--text2)'};font-weight:600">${(getFirmCfg(acc.firm).payoutRule||'days')==='consistency'?(getCycleConsistency(acc)!==null?getCycleConsistency(acc)+'%<'+(getFirmCfg(acc.firm).consistencyThreshold||40)+'%':'—'):(acc.gainDays+'/'+(getFirmCfg(acc.firm).daysReq||DAYS_REQ)+'j')}</span>
+          <span style="color:${canPayoutCheck(acc).ok?'var(--green)':'var(--text2)'};font-weight:600">${accProgressText(acc,true)}</span>
           <div style="display:flex;gap:3px;align-items:center">${dots}</div>
         </div>
       </div>
@@ -2315,6 +2266,7 @@ function submitSheet(){
   const d=new Date();
   const dateStr=d.toLocaleDateString('fr-FR',{day:'2-digit',month:'2-digit'});
   let changed=false;
+  const skippedFirms=[];
   accounts.forEach(acc=>{
     const inp=document.getElementById('sheet-inp-'+acc.id);
     if(!inp||inp.value==='')return;
@@ -2326,7 +2278,7 @@ function submitSheet(){
     const cfg2=getFirmCfg(acc.firm);
     const hasBuffer=cfg2.buffer&&cfg2.buffer>0;
     const todayPayoutExists=!hasBuffer&&acc.history.some(h=>h.payout&&h.date===dateStr);
-    if(todayPayoutExists) return;
+    if(todayPayoutExists){skippedFirms.push(acc.firm);return;}
 
     // Find last payout to scope search to current cycle only
     const lastPayoutIdx=acc.history.findIndex(h=>h.payout);
@@ -2355,6 +2307,7 @@ function submitSheet(){
   });
   if(changed){saveAll();renderAccounts();}
   closeSheet();
+  if(skippedFirms.length)showToast('⚠ Saisie ignorée (payout déjà encaissé aujourd\'hui) : '+skippedFirms.join(', '),4000);
   if(Object.values(pendingCrash).some(v=>v))switchPage('accounts');
 }
 
@@ -2702,6 +2655,7 @@ function doPayout(id){
     : acc.balance*0.5;
   const payoutBrut3=cfg.payoutCap&&cfg.payoutCap>0?Math.min(available,cfg.payoutCap):available;
   let payoutAmt=payoutBrut3*split;
+  if(hasBuffer&&payoutBrut3<=0){showToast('⚠ Rien à encaisser au-dessus du buffer');return;}
   const eur=Math.round(payoutAmt*getFx());
   const balanceAfter=hasBuffer?Math.round(acc.balance-payoutBrut3):Math.round(acc.balance*0.5);
   const d=new Date();
@@ -2744,33 +2698,8 @@ renderAccounts();
 renderDash();
 setTimeout(loadExpenses,0);
 setTimeout(initMonthlyHistory,150);
-// Auto-sync from Gist if token already configured
-async function autoSyncOnLoad(){
-  if(!localStorage.getItem('pft_gist_token'))return;
-  updateSyncIcon('syncing');
-  try{
-    const r=await fetch(`https://api.github.com/gists/${GIST_ID}`,{headers:getGistHeaders()});
-    if(!r.ok){updateSyncIcon('error');return;}
-    const data=await r.json();
-    const content=data.files[GIST_FILE]?.content;
-    // Don't overwrite local data if Gist is empty
-    if(!content||content==='{}'||content.length<100){
-      updateSyncIcon('ok');
-      return;
-    }
-    const parsed=JSON.parse(content);
-    if(!parsed||typeof parsed!=='object'){updateSyncIcon('error');return;}
-    Object.entries(parsed).forEach(([k,v])=>localStorage.setItem(k,v));
-    loadAll();applyTheme(currentTheme);applyAmountsVisibility();renderAccounts();renderDash();setTimeout(loadExpenses,0);setTimeout(initMonthlyHistory,150);
-    showToast('✓ Sync cloud OK');
-    updateSyncIcon('ok');
-  }catch(e){updateSyncIcon('error');}
-}
-function clearAndImport(){
-  if(!confirm('Vider toutes les données locales et importer un fichier JSON ?'))return;
-  localStorage.clear();
-  document.getElementById('import-file').click();
-}
+// Remove the obsolete cloud-sync token left in local storage
+try{localStorage.removeItem('pft_gist_token');}catch(e){}
 </script>
 </body>
 </html>
