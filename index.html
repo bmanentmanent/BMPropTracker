@@ -1070,8 +1070,9 @@ function calcPayout(acc,sc,fx){
     return{tradingDays:null,finalBalance:Math.round(acc.balance),balanceAfter:Math.round(acc.balance-available),payoutEur:Math.round(payoutAmt*fx)};
   }
 
-  // Buffer firms (any rule): no projection in the treso scenarios
-  if(cfg.buffer&&cfg.buffer>0) return null;
+  // Buffer firms without a days rule (buffer only, or consistency + buffer): no projection in the treso scenarios
+  const hasBuffer=cfg.buffer&&cfg.buffer>0;
+  if(hasBuffer&&(cfg.payoutRule||'days')!=='days') return null;
 
   if((cfg.payoutRule||'days')==='consistency'){
     if(sc.key==='pes') return null;
@@ -1094,22 +1095,24 @@ function calcPayout(acc,sc,fx){
     return{tradingDays:null,finalBalance:targetBalance,balanceAfter:Math.round(targetBalance*0.5),payoutEur:Math.round(payoutAmt*fx)};
   }
 
-  // Standard firms — use per-firm daysReq and winThr
+  // Days-of-gain firms (with or without buffer) — per-firm daysReq
   const firmDaysReq=cfg.daysReq||DAYS_REQ;
-  const dl=firmDaysReq-acc.gainDays;
+  const dl=Math.max(0,firmDaysReq-acc.gainDays);
   const td=dl/sc.pWin,fb=acc.balance+td*getEsp(sc,acc.firm);
-  if(fb<=th)return null;
+  if(!hasBuffer&&fb<=th)return null;
   const netSinceLastPayout=acc.balance-(acc.balanceAtLastPayout||acc.startBalance||10000);
   const netMin=cfg.netMin||0;
   if(netMin>0&&netSinceLastPayout<netMin)return null;
-  // Buffer firm — no projection, just current available amount
-  if(cfg.buffer&&cfg.buffer>0){
-    if(sc.key==='pes') return null;
-    // No projection for buffer firms — return null for all scenarios
-    return null;
+
+  // With buffer: withdraw what is above the buffer, capped, split applied after
+  if(hasBuffer){
+    const avail=fb-cfg.buffer;
+    if(avail<=0) return null;
+    const brut=cfg.payoutCap&&cfg.payoutCap>0?Math.min(avail,cfg.payoutCap):avail;
+    return{tradingDays:Math.round(td*10)/10,finalBalance:Math.round(fb),balanceAfter:Math.round(fb-brut),payoutEur:Math.round(brut*split*fx)};
   }
 
-  // Standard payout amount calc (no buffer)
+  // Standard payout amount calc (50% rule)
   const payoutBrut2=cfg.payoutCap&&cfg.payoutCap>0?Math.min(fb*0.5,cfg.payoutCap):fb*0.5;
   let payoutAmt=payoutBrut2*split;
   return{tradingDays:Math.round(td*10)/10,finalBalance:Math.round(fb),balanceAfter:Math.round(fb*0.5),payoutEur:Math.round(payoutAmt*fx)};
