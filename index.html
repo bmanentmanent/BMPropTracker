@@ -588,11 +588,14 @@ body { overflow-x: hidden; }
   <div class="sheet-tabs">
     <button class="sheet-tab active" id="sheet-tab-pnl" onclick="setSheetMode('pnl')">P&L</button>
     <button class="sheet-tab" id="sheet-tab-evals" onclick="setSheetMode('evals')">Achat d'évaluations</button>
+    <button class="sheet-tab" id="sheet-tab-payout" onclick="setSheetMode('payout')">Payout</button>
   </div>
   <div id="sheet-accounts"></div>
   <div id="sheet-evals" style="display:none"></div>
+  <div id="sheet-payout" style="display:none"></div>
   <button class="sheet-submit" id="sheet-submit-pnl" onclick="submitSheet()">Valider tous les P&L</button>
   <button class="sheet-submit" id="sheet-submit-evals" onclick="submitEvalPurchases()" style="display:none">Ajouter les évals</button>
+  <button class="sheet-submit" id="sheet-submit-payout" onclick="submitSheetPayout()" style="display:none">Enregistrer le payout</button>
 </div>
 
 <!-- ACCOUNT MODAL -->
@@ -2161,14 +2164,53 @@ function deleteHistEntry(accId,idx){
 
 // ── DAILY SHEET ──
 function setSheetMode(mode){
-  const isPnl=mode==='pnl';
+  const isPnl=mode==='pnl',isEv=mode==='evals',isPo=mode==='payout';
   document.getElementById('sheet-tab-pnl').classList.toggle('active',isPnl);
-  document.getElementById('sheet-tab-evals').classList.toggle('active',!isPnl);
+  document.getElementById('sheet-tab-evals').classList.toggle('active',isEv);
+  document.getElementById('sheet-tab-payout').classList.toggle('active',isPo);
   document.getElementById('sheet-accounts').style.display=isPnl?'block':'none';
-  document.getElementById('sheet-evals').style.display=isPnl?'none':'block';
+  document.getElementById('sheet-evals').style.display=isEv?'block':'none';
+  document.getElementById('sheet-payout').style.display=isPo?'block':'none';
   document.getElementById('sheet-submit-pnl').style.display=isPnl?'block':'none';
-  document.getElementById('sheet-submit-evals').style.display=isPnl?'none':'block';
-  if(!isPnl)renderEvalPurchaseList();
+  document.getElementById('sheet-submit-evals').style.display=isEv?'block':'none';
+  document.getElementById('sheet-submit-payout').style.display=isPo?'block':'none';
+  if(isEv)renderEvalPurchaseList();
+  if(isPo)renderSheetPayout();
+}
+function renderSheetPayout(){
+  document.getElementById('sheet-payout').innerHTML=`<div style="padding:16px 20px">
+    <div class="firm-field" style="margin-bottom:12px"><label>Prop firm</label>
+      <select id="sheet-po-firm" style="background:var(--bg3);border:0.5px solid var(--border);border-radius:10px;padding:11px 12px;color:var(--text1);font-size:14px;width:100%;font-family:var(--font)">
+        ${firmsConfig.map(f=>`<option value="${f.name}">${f.name}</option>`).join('')}
+      </select>
+    </div>
+    <div class="firm-field"><label>Montant du payout ($)</label>
+      <input class="sheet-input" type="number" id="sheet-po-usd" placeholder="0" min="0" step="any" oninput="updateSheetPayoutPreview()" style="width:100%;box-sizing:border-box;text-align:left">
+    </div>
+    <div id="sheet-po-preview" style="margin-top:10px;font-size:12px;color:var(--text2);text-align:center"></div>
+  </div>`;
+  updateSheetPayoutPreview();
+}
+function updateSheetPayoutPreview(){
+  const el=document.getElementById('sheet-po-preview');if(!el)return;
+  const usd=parseFloat(document.getElementById('sheet-po-usd').value)||0;
+  el.textContent=usd>0?'≈ '+Math.round(usd*getFx())+' € (taux '+getFx()+')':'Converti en € au taux USD/EUR de l\'app';
+}
+function submitSheetPayout(){
+  const firm=document.getElementById('sheet-po-firm').value;
+  const usd=parseFloat(document.getElementById('sheet-po-usd').value)||0;
+  if(usd<=0){showToast('⚠ Montant requis');return;}
+  const eur=Math.round(usd*getFx());
+  const date=new Date().toLocaleDateString('fr-FR',{day:'2-digit',month:'2-digit'});
+  const list=loadManualPayouts();
+  list.push({firm,payoutEur:eur,date,usd:Math.round(usd*100)/100});
+  saveManualPayouts(list);
+  updateTresoBase(eur);
+  closeSheet();
+  renderDash();
+  try{renderStats();}catch(e){}
+  try{renderTreso();}catch(e){}
+  showToast('✓ Payout '+firm+' : '+eur+' €');
 }
 function renderEvalPurchaseList(){
   let exp={};try{const r=localStorage.getItem('pft_expenses');if(r)exp=JSON.parse(r);}catch(e){}
